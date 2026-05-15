@@ -30,8 +30,8 @@ def get_real_index_data(obj):
         return {"NIFTY 50": {"cmp": 0, "pct_change": 0}, "SENSEX": {"cmp": 0, "pct_change": 0}, "NIFTY SMALLCAP 100": {"cmp": 0, "pct_change": 0}}
     
     nifty = backend_helper.get_live_market_data(obj, "26000", "NSE") or {"cmp": 0, "pct_change": 0}
-    sensex = backend_helper.get_live_market_data(obj, "99926000", "BSE") or {"cmp": 0, "pct_change": 0}
-    smallcap = backend_helper.get_live_market_data(obj, "26043", "NSE") or {"cmp": 0, "pct_change": 0}
+    sensex = backend_helper.get_live_market_data(obj, "99919000", "BSE") or {"cmp": 0, "pct_change": 0}
+    smallcap = backend_helper.get_live_market_data(obj, "99926032", "NSE") or {"cmp": 0, "pct_change": 0}
     
     return {
         "NIFTY 50": nifty,
