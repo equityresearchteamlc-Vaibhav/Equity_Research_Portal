@@ -10,3 +10,4 @@ bcrypt
 streamlit-autorefresh
 logzero
 websocket-client
+streamlit-cookies-controller

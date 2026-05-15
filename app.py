@@ -1,12 +1,12 @@
 import streamlit as st
 import auth_manager
 import time
-from streamlit_cookies_manager import CookieManager  # <-- NEW
+from streamlit_cookies_controller import CookieController
 
 # -------------------------------------------------
 # Initialise cookie manager (once per session)
 # -------------------------------------------------
-cookies = CookieManager()
+cookies = CookieController()
 
 # -------------------------------------------------
 # Session‑state defaults
@@ -24,7 +24,7 @@ if "is_first_login" not in st.session_state:
 # Restore login from cookie (runs on every reload)
 # -------------------------------------------------
 if not st.session_state.authenticated:
-    saved_email = cookies.get("email")
+    saved_email = cookies.get("user_email")
     if saved_email:
         # Optional extra safety: verify the email still exists/approved
         user = auth_manager.get_user_by_email(saved_email)
@@ -59,7 +59,7 @@ def login_register():
                         st.session_state.is_first_login = data["Is_First_Login"]
 
                         # ---- persist via cookie ----
-                        cookies.set("email", data["Email"])
+                        cookies.set("user_email", data["Email"])
 
                         st.rerun()
                     else:
@@ -123,7 +123,7 @@ def logout():
     st.session_state.user_email = ""
     st.session_state.user_name = ""
     st.session_state.is_first_login = False
-    cookies.delete("email")          # <-- clear persisted cookie
+    cookies.remove("user_email")      # clear persisted cookie
     st.rerun()
 
 # -------------------------------------------------
