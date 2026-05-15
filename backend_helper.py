@@ -114,10 +114,17 @@ def get_drive_service():
 def find_file_in_folder(service, folder_id, file_name):
     """
     Helper to find a file by name within a specific folder.
+    Supports both My Drive and Shared Drives.
     """
     query = f"'{folder_id}' in parents and name = '{file_name}' and trashed = false"
     try:
-        results = service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
+        results = service.files().list(
+            q=query,
+            spaces='drive',
+            fields='files(id, name)',
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True
+        ).execute()
         files = results.get('files', [])
         if files:
             return files[0]['id']
@@ -128,7 +135,7 @@ def find_file_in_folder(service, folder_id, file_name):
 
 def upload_file_to_drive(service, file_bytes, file_name, folder_id, mime_type='application/octet-stream'):
     """
-    Uploads any research file type to Google Drive.
+    Uploads any research file type to Google Drive (supports Shared Drives).
     Raises exception on failure so callers can surface the real error.
     """
     file_metadata = {
@@ -136,7 +143,12 @@ def upload_file_to_drive(service, file_bytes, file_name, folder_id, mime_type='a
         'parents': [folder_id]
     }
     media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=True)
-    file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    file = service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields='id',
+        supportsAllDrives=True
+    ).execute()
     return file.get('id')
 
 def load_csv_database(service, folder_id, db_name='reports_db.csv'):
@@ -162,7 +174,7 @@ def load_csv_database(service, folder_id, db_name='reports_db.csv'):
 
 def save_csv_database(service, dataframe, folder_id, db_name='reports_db.csv'):
     """
-    Overwrites/updates the CSV on Drive.
+    Overwrites/updates the CSV on Drive. Supports Shared Drives.
     """
     file_id = find_file_in_folder(service, folder_id, db_name)
     try:
@@ -170,17 +182,25 @@ def save_csv_database(service, dataframe, folder_id, db_name='reports_db.csv'):
         dataframe.to_csv(csv_buffer, index=False)
         csv_buffer.seek(0)
         media = MediaIoBaseUpload(csv_buffer, mimetype='text/csv', resumable=True)
-        
+
         if file_id:
             # Update existing file
-            service.files().update(fileId=file_id, media_body=media).execute()
+            service.files().update(
+                fileId=file_id,
+                media_body=media,
+                supportsAllDrives=True
+            ).execute()
         else:
             # Create new file
             file_metadata = {
                 'name': db_name,
                 'parents': [folder_id]
             }
-            service.files().create(body=file_metadata, media_body=media).execute()
+            service.files().create(
+                body=file_metadata,
+                media_body=media,
+                supportsAllDrives=True
+            ).execute()
         return True
     except Exception as e:
         print(f"Error saving CSV {db_name}: {e}")
