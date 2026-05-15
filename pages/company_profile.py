@@ -1,30 +1,59 @@
 import streamlit as st
 import datetime
+import backend_helper
 
 st.title("🔍 Company Profile")
 
 # Determine which company is selected
 ticker = st.session_state.get("selected_ticker", "RELIANCE")
 company_name = st.session_state.get("selected_company", "Reliance Industries")
+exchange = st.session_state.get("selected_exchange", "NSE")
+file_id = st.session_state.get("selected_file_id", "")
+price_when_added = float(st.session_state.get("selected_price_added", 0))
+mc_added = float(st.session_state.get("selected_mc_added", 0))
 
 st.header(f"{company_name} ({ticker})")
 
+# Fetch Real Data
+cmp = 0.0
+pct_change = 0.0
+high_52 = 0.0
+low_52 = 0.0
+
+try:
+    angel_secrets = st.secrets["angel_one"]
+    client = backend_helper.get_angel_client(
+        api_key=angel_secrets["api_key"],
+        client_code=angel_secrets["client_code"],
+        password=angel_secrets["password"],
+        totp_secret=angel_secrets["totp_secret"]
+    )
+    
+    if client:
+        master_contract = backend_helper.fetch_master_contract()
+        token = backend_helper.get_token_id(master_contract, ticker, exchange)
+        if token:
+            live_data = backend_helper.get_live_market_data(client, token, exchange)
+            if live_data:
+                cmp = live_data.get('cmp', 0.0)
+                pct_change = live_data.get('pct_change', 0.0)
+                high_52 = live_data.get('52w_high', 0.0)
+                low_52 = live_data.get('52w_low', 0.0)
+except Exception as e:
+    st.error(f"Could not fetch live data: {e}")
+
+# Calculate Changes
+rs_change = cmp * (pct_change / 100) if cmp else 0
+pct_change_since = ((cmp - price_when_added) / price_when_added) * 100 if price_when_added > 0 else 0
+market_cap = mc_added * (cmp / price_when_added) if price_when_added > 0 else mc_added
+
 # --- Deep-dive Stats ---
 col1, col2, col3, col4 = st.columns(4)
-# Dummy data for demonstration
-cmp = 2850.50
-pct_change = 1.2
-rs_change = cmp * (pct_change / 100)
-market_cap = 1900000
-price_when_added = 2500
-pct_change_since = ((cmp - price_when_added) / price_when_added) * 100
-high_52 = 3000
-low_52 = 2200
 
 with col1:
-    st.metric(label="CMP (Real-time)", value=f"₹{cmp:,.2f}", delta=f"{pct_change}% / ₹{rs_change:.2f}")
+    st.metric(label="CMP (Real-time)", value=f"₹{cmp:,.2f}", delta=f"{pct_change:.2f}% / ₹{rs_change:.2f}")
 with col2:
-    st.metric(label="Market Cap", value=f"₹{market_cap:,.2f} Cr")
+    st.metric(label="Real-time Market Cap", value=f"₹{market_cap:,.2f} Cr")
 with col3:
     st.metric(label="Price When Added", value=f"₹{price_when_added:,.2f}", delta=f"{pct_change_since:.2f}% since added", delta_color="normal")
 with col4:
@@ -34,22 +63,32 @@ st.divider()
 
 # --- About Company & File ---
 st.subheader("ℹ️ About Company")
-st.info(f"{company_name} is a leading player in its sector. This section is populated via an external API to provide a brief overview of the company's core business, history, and key operational metrics.")
+st.info(f"{company_name} is currently being tracked by the Equity Research Team.")
 
-if st.button("📥 Click here to view uploaded research file", type="primary"):
-    st.success("Downloading file from Google Drive... (Mock action)")
+if file_id:
+    # Google Drive export link for direct download
+    drive_link = f"https://drive.google.com/uc?export=download&id={file_id}"
+    st.markdown(f"📥 **[Click here to download the uploaded research file]({drive_link})**")
+else:
+    st.warning("No research file attached to this company.")
 
 st.divider()
 
-# --- Instagram-style Comments Feed ---
+# --- Team Discussion (Drive Backed) ---
 st.subheader("💬 Team Discussion")
 
-# Initialize mock comments if not exist
-if f"comments_{ticker}" not in st.session_state:
-    st.session_state[f"comments_{ticker}"] = [
-        {"user": "alex_analyst", "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=alex", "timestamp": "2 hours ago", "rating": 4, "text": "Solid fundamentals, but the latest quarter margins were a bit squeezed. Watching closely."},
-        {"user": "sam_research", "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=sam", "timestamp": "1 day ago", "rating": 5, "text": "Great management commentary. The new capex cycle will definitely drive growth over the next 2-3 years."}
-    ]
+try:
+    drive_service = backend_helper.get_drive_service()
+    folder_id = st.secrets["google_drive"]["folder_id"]
+    comments_df = backend_helper.load_comments_database(drive_service, folder_id)
+except Exception as e:
+    comments_df = pd.DataFrame()
+
+# Filter comments for this ticker
+if not comments_df.empty and 'Ticker' in comments_df.columns:
+    ticker_comments = comments_df[comments_df['Ticker'] == ticker]
+else:
+    ticker_comments = pd.DataFrame()
 
 # Render Comments using HTML/CSS
 dark_mode_compatible_css = """
@@ -95,22 +134,26 @@ dark_mode_compatible_css = """
 
 st.markdown(dark_mode_compatible_css, unsafe_allow_html=True)
 
-for comment in st.session_state[f"comments_{ticker}"]:
-    stars_str = "★" * comment["rating"] + "☆" * (5 - comment["rating"])
-    html = f"""
-    <div class="comment-box">
-        <img src="{comment['avatar']}" class="comment-avatar">
-        <div style="flex-grow: 1;">
-            <div class="comment-header">
-                <span class="comment-user">@{comment['user']}</span>
-                <span class="comment-time">{comment['timestamp']}</span>
+if ticker_comments.empty:
+    st.write("No comments yet. Be the first to share your thoughts!")
+else:
+    for _, comment in ticker_comments.iterrows():
+        rating = int(comment.get('Rating', 5))
+        stars_str = "★" * rating + "☆" * (5 - rating)
+        html = f"""
+        <div class="comment-box">
+            <img src="{comment.get('Avatar', 'https://api.dicebear.com/7.x/adventurer/svg?seed=user')}" class="comment-avatar">
+            <div style="flex-grow: 1;">
+                <div class="comment-header">
+                    <span class="comment-user">@{comment.get('User', 'analyst')}</span>
+                    <span class="comment-time">{comment.get('Timestamp', '')}</span>
+                </div>
+                <div class="comment-stars">{stars_str}</div>
+                <div class="comment-text">{comment.get('Text', '')}</div>
             </div>
-            <div class="comment-stars">{stars_str}</div>
-            <div class="comment-text">{comment['text']}</div>
         </div>
-    </div>
-    """
-    st.markdown(html, unsafe_allow_html=True)
+        """
+        st.markdown(html, unsafe_allow_html=True)
 
 # --- Add New Comment ---
 st.write("---")
@@ -121,12 +164,25 @@ with st.form("new_comment_form", clear_on_submit=True):
     submit_comment = st.form_submit_button("Post Comment")
     
     if submit_comment and new_comment:
-        username = st.session_state.get("user_email", "user@firm.com").split('@')[0]
-        st.session_state[f"comments_{ticker}"].insert(0, {
-            "user": username,
-            "avatar": f"https://api.dicebear.com/7.x/adventurer/svg?seed={username}",
-            "timestamp": "Just now",
-            "rating": new_rating,
-            "text": new_comment
-        })
-        st.rerun()
+        if drive_service and folder_id:
+            username = st.session_state.get("user_email", "user@firm.com").split('@')[0]
+            new_row = {
+                "Ticker": ticker,
+                "User": username,
+                "Avatar": f"https://api.dicebear.com/7.x/adventurer/svg?seed={username}",
+                "Timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Rating": new_rating,
+                "Text": new_comment
+            }
+            
+            import pandas as pd
+            if comments_df.empty:
+                comments_df = pd.DataFrame([new_row])
+            else:
+                comments_df = pd.concat([comments_df, pd.DataFrame([new_row])], ignore_index=True)
+                
+            backend_helper.save_comments_database(drive_service, comments_df, folder_id)
+            st.success("Comment posted!")
+            st.rerun()
+        else:
+            st.error("Google Drive not configured.")
