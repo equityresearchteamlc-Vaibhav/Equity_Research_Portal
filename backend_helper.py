@@ -129,18 +129,15 @@ def find_file_in_folder(service, folder_id, file_name):
 def upload_file_to_drive(service, file_bytes, file_name, folder_id, mime_type='application/octet-stream'):
     """
     Uploads any research file type to Google Drive.
+    Raises exception on failure so callers can surface the real error.
     """
-    try:
-        file_metadata = {
-            'name': file_name,
-            'parents': [folder_id]
-        }
-        media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=True)
-        file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-        return file.get('id')
-    except Exception as e:
-        print(f"Error uploading file to drive: {e}")
-        return None
+    file_metadata = {
+        'name': file_name,
+        'parents': [folder_id]
+    }
+    media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=True)
+    file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    return file.get('id')
 
 def load_csv_database(service, folder_id, db_name='reports_db.csv'):
     """
