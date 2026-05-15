@@ -39,7 +39,10 @@ def logout():
 
 # --- Main Routing ---
 if not st.session_state.authenticated:
-    login()
+    # Calling st.navigation here hides the default 'pages/' folder links
+    login_page = st.Page(login, title="Login", icon="🔐")
+    pg = st.navigation([login_page])
+    pg.run()
 else:
     # Modern st.navigation and st.Page routing
     pages = {
@@ -56,6 +59,7 @@ else:
     
     with st.sidebar:
         st.markdown(f"**Logged in as:** {st.session_state.user_email}")
-        st.button("Logout", on_click=logout)
+        st.button("Logout", on_click=logout, type="primary")
     
     pg.run()
+
