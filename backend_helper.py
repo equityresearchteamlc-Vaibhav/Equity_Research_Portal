@@ -9,6 +9,7 @@ from SmartApi import SmartConnect
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
+import streamlit as st
 
 # --- Angel One Integration ---
 def get_angel_client(api_key, client_code, password, totp_secret):
@@ -28,6 +29,7 @@ def get_angel_client(api_key, client_code, password, totp_secret):
         print(f"Error during Angel One authentication: {e}")
         return None
 
+@st.cache_data(ttl=3600)
 def fetch_master_contract():
     """
     Downloads Angel One's open-source master instrument JSON file.
@@ -91,14 +93,14 @@ def get_live_market_data(obj, token, exchange="NSE"):
 
 # --- Google Drive Integration ---
 
-def get_drive_service(credentials_path='google_credentials.json'):
+def get_drive_service():
     """
-    Builds the Google Drive service client.
+    Builds the Google Drive service client from st.secrets.
     """
     SCOPES = ['https://www.googleapis.com/auth/drive']
     try:
-        creds = service_account.Credentials.from_service_account_file(
-            credentials_path, scopes=SCOPES)
+        creds = service_account.Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"], scopes=SCOPES)
         service = build('drive', 'v3', credentials=creds)
         return service
     except Exception as e:
