@@ -8,7 +8,7 @@ import time
 from SmartApi import SmartConnect
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
 import streamlit as st
 
 # --- Angel One Integration ---
@@ -76,13 +76,17 @@ def get_live_market_data(obj, token, exchange="NSE"):
             high_52 = unpacked.get('high52', 0.0)
             low_52 = unpacked.get('low52', 0.0)
             close = unpacked.get('close', 0.0)
+            # marketCap from Angel One API is in raw rupees; divide by 1 Cr (10,000,000)
+            raw_mc = unpacked.get('marketCap', 0.0) or 0.0
+            market_cap_cr = raw_mc / 10_000_000
             pct_change = ((cmp - close) / close * 100) if close != 0 else 0.0
             return {
                 "cmp": cmp,
                 "52w_high": high_52,
                 "52w_low": low_52,
                 "pct_change": pct_change,
-                "close": close
+                "close": close,
+                "market_cap_cr": market_cap_cr
             }
         else:
             print("Failed to fetch live data")
@@ -141,6 +145,7 @@ def upload_file_to_drive(service, file_bytes, file_name, folder_id, mime_type='a
 def load_csv_database(service, folder_id, db_name='reports_db.csv'):
     """
     Reads a CSV file directly into a Pandas DataFrame from Drive.
+    Uses MediaIoBaseDownload for reliable streaming of file content.
     """
     file_id = find_file_in_folder(service, folder_id, db_name)
     if not file_id:
@@ -148,8 +153,10 @@ def load_csv_database(service, folder_id, db_name='reports_db.csv'):
     try:
         request = service.files().get_media(fileId=file_id)
         fh = io.BytesIO()
-        downloader = request.execute()
-        fh.write(downloader)
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while not done:
+            _, done = downloader.next_chunk()
         fh.seek(0)
         return pd.read_csv(fh)
     except Exception as e:

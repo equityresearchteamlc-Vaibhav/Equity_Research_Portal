@@ -1,6 +1,7 @@
 streamlit
 pandas
 pyotp
+pytz
 smartapi-python
 google-api-python-client
 google-auth
