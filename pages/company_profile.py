@@ -1,8 +1,16 @@
 import streamlit as st
 import datetime
 import backend_helper
+import utils
+from streamlit_autorefresh import st_autorefresh
+
+# Auto-refresh every 5 minutes (300,000 ms)
+st_autorefresh(interval=300_000, key="company_profile_autorefresh")
 
 st.title("🔍 Company Profile")
+
+# Market status + refresh bar
+utils.render_status_bar(refresh_interval_secs=300)
 
 # Determine which company is selected
 ticker = st.session_state.get("selected_ticker", "RELIANCE")
@@ -45,7 +53,9 @@ except Exception as e:
 # Calculate Changes
 rs_change = cmp * (pct_change / 100) if cmp else 0
 pct_change_since = ((cmp - price_when_added) / price_when_added) * 100 if price_when_added > 0 else 0
-market_cap = mc_added * (cmp / price_when_added) if price_when_added > 0 else mc_added
+# Prefer live market cap from API; fall back to proportional estimate
+market_cap = live_data.get('market_cap_cr', 0.0) if live_data and live_data.get('market_cap_cr', 0.0) > 0 \
+             else (mc_added * (cmp / price_when_added) if price_when_added > 0 else mc_added)
 
 # --- Deep-dive Stats ---
 col1, col2, col3, col4 = st.columns(4)
