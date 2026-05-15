@@ -122,20 +122,20 @@ with st.form("upload_research_form"):
                 st.error("Google Drive is not configured properly in st.secrets.")
             else:
                 with st.spinner("Uploading to Google Drive..."):
-                    # Read file bytes INSIDE the spinner (still within form context)
-                    file_bytes = uploaded_file.getvalue()
-                    file_ext = uploaded_file.name.rsplit('.', 1)[-1]
-                    safe_file_name = f"{ticker}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
+                    try:
+                        # Read file bytes
+                        file_bytes = uploaded_file.getvalue()
+                        file_ext = uploaded_file.name.rsplit('.', 1)[-1]
+                        safe_file_name = f"{ticker}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
 
-                    # Upload file to Drive
-                    file_id = backend_helper.upload_file_to_drive(
-                        drive_service,
-                        file_bytes,
-                        safe_file_name,
-                        folder_id
-                    )
+                        # Upload file to Drive
+                        file_id = backend_helper.upload_file_to_drive(
+                            drive_service,
+                            file_bytes,
+                            safe_file_name,
+                            folder_id
+                        )
 
-                    if file_id:
                         new_data = {
                             "Company Name": company_name,
                             "Ticker": ticker.upper().strip(),
@@ -166,7 +166,9 @@ with st.form("upload_research_form"):
                             st.success(f"✅ Successfully uploaded research for **{company_name}** to Google Drive!")
                         else:
                             st.error("File uploaded, but failed to update reports_db.csv on Drive.")
-                    else:
-                        st.error("❌ Failed to upload file to Google Drive. Check Drive permissions.")
+
+                    except Exception as upload_err:
+                        st.error(f"❌ Upload failed: {upload_err}")
+                        st.info("💡 Most likely fix: Share your Google Drive folder with the service account email:\n\n`portal-bot@equity-research-portal.iam.gserviceaccount.com`\n\nand give it **Editor** access.")
         else:
             st.error("Please fill in the Company Name, Ticker, and attach a file.")
