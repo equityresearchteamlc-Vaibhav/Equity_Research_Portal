@@ -2,6 +2,7 @@ streamlit
 pandas
 pyotp
 pytz
+supabase
 smartapi-python
 google-api-python-client
 google-auth
