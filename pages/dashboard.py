@@ -89,6 +89,7 @@ search_query = st.text_input("🔍 Search Companies by Keyword (e.g. 'Tata', 'Te
 
 # --- Comprehensive Upload Form ---
 st.subheader("📤 Upload New Research")
+
 with st.form("upload_research_form"):
     col_a, col_b = st.columns(2)
 
@@ -112,29 +113,24 @@ with st.form("upload_research_form"):
         rating = st.slider("Rating by Owner (1-5 Stars)", 1, 5, 3)
         comment_by_owner = st.text_area("Comment by Owner")
 
-    uploaded_file = st.file_uploader("Upload Research File (PDF, PPTX, DOCX, etc.)")
+    uploaded_file = st.file_uploader("📎 Upload Research File (PDF, PPTX, DOCX, XLSX...)")
 
     submit_upload = st.form_submit_button("Submit Research & Sync to Drive", type="primary")
 
     if submit_upload:
-        if company_name and ticker and uploaded_file:
+        if company_name and ticker:
             if not drive_service or not folder_id:
                 st.error("Google Drive is not configured properly in st.secrets.")
             else:
-                with st.spinner("Uploading to Google Drive..."):
+                with st.spinner("Uploading and saving..."):
                     try:
-                        # Read file bytes
-                        file_bytes = uploaded_file.getvalue()
-                        file_ext = uploaded_file.name.rsplit('.', 1)[-1]
-                        safe_file_name = f"{ticker}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
-
-                        # Upload file to Drive
-                        file_id = backend_helper.upload_file_to_drive(
-                            drive_service,
-                            file_bytes,
-                            safe_file_name,
-                            folder_id
-                        )
+                        # --- Upload file to Supabase Storage ---
+                        file_link = ""
+                        if uploaded_file:
+                            file_bytes = uploaded_file.getvalue()
+                            file_ext   = uploaded_file.name.rsplit('.', 1)[-1]
+                            safe_name  = f"{ticker.upper().strip()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
+                            file_link  = backend_helper.upload_file_to_supabase(file_bytes, safe_name)
 
                         new_data = {
                             "Company Name": company_name,
@@ -149,7 +145,7 @@ with st.form("upload_research_form"):
                             "Rating": rating,
                             "Analyst": analyst_name,
                             "Comment": comment_by_owner,
-                            "File ID": file_id
+                            "File Link": file_link
                         }
 
                         # Load existing DB or create new
@@ -163,12 +159,13 @@ with st.form("upload_research_form"):
                         success = backend_helper.save_csv_database(drive_service, df, folder_id, 'reports_db.csv')
 
                         if success:
-                            st.success(f"✅ Successfully uploaded research for **{company_name}** to Google Drive!")
+                            st.success(f"✅ Research for **{company_name}** saved successfully!")
                         else:
-                            st.error("File uploaded, but failed to update reports_db.csv on Drive.")
+                            st.error("❌ Metadata saved but failed to sync to Google Drive.")
 
-                    except Exception as upload_err:
-                        st.error(f"❌ Upload failed: {upload_err}")
-                        st.info("💡 Most likely fix: Share your Google Drive folder with the service account email:\n\n`portal-bot@equity-research-portal.iam.gserviceaccount.com`\n\nand give it **Editor** access.")
+                    except Exception as e:
+                        st.error(f"❌ Error: {e}")
         else:
-            st.error("Please fill in the Company Name, Ticker, and attach a file.")
+            st.error("Please fill in at least Company Name and Ticker.")
+
+
