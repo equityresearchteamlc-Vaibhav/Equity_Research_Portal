@@ -9,7 +9,6 @@ from SmartApi import SmartConnect
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
-from supabase import create_client
 import streamlit as st
 
 # --- Angel One Integration ---
@@ -134,34 +133,7 @@ def find_file_in_folder(service, folder_id, file_name):
         print(f"Error finding file {file_name}: {e}")
         return None
 
-# --- Supabase Storage Integration ---
-
-def get_supabase_client():
-    """
-    Returns a Supabase client using credentials from st.secrets.
-    """
-    url = st.secrets["supabase"]["url"]
-    key = st.secrets["supabase"]["key"]
-    return create_client(url, key)
-
-
-def upload_file_to_supabase(file_bytes: bytes, file_name: str, bucket: str = "research-files") -> str:
-    """
-    Uploads a file to Supabase Storage and returns the public URL.
-    Raises on failure so callers can surface the real error.
-    """
-    client = get_supabase_client()
-    # upsert=True overwrites if same name exists
-    client.storage.from_(bucket).upload(
-        path=file_name,
-        file=file_bytes,
-        file_options={"content-type": "application/octet-stream", "upsert": "true"}
-    )
-    public_url = client.storage.from_(bucket).get_public_url(file_name)
-    return public_url
-
-
-# --- Google Drive File Upload (kept for reference, not used for direct uploads) ---
+# --- Google Drive File Upload ---
 
 def upload_file_to_drive(service, file_bytes, file_name, folder_id, mime_type='application/octet-stream'):
     """
