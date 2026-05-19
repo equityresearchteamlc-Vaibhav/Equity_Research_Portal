@@ -5,7 +5,20 @@ import bcrypt
 DB_FILE = 'users_db.csv'
 
 def init_db():
+    required_cols = {"Name", "Email", "Password", "Is_First_Login", "Is_Approved", "Last_Seen"}
+    recreate = False
+    
     if not os.path.exists(DB_FILE):
+        recreate = True
+    else:
+        try:
+            df = pd.read_csv(DB_FILE)
+            if df.empty or not required_cols.issubset(df.columns):
+                recreate = True
+        except Exception:
+            recreate = True
+            
+    if recreate:
         # Create initial DataFrame
         default_pwd = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         
