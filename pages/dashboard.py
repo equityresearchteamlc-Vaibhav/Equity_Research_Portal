@@ -84,11 +84,34 @@ with col4:
 
 st.divider()
 
+# --- Initialize Form Session States ---
+if "upload_company_name" not in st.session_state:
+    st.session_state.upload_company_name = ""
+if "upload_ticker" not in st.session_state:
+    st.session_state.upload_ticker = ""
+if "upload_price" not in st.session_state:
+    st.session_state.upload_price = 0.0
+if "upload_market_cap" not in st.session_state:
+    st.session_state.upload_market_cap = 0.0
+if "upload_industry" not in st.session_state:
+    st.session_state.upload_industry = ""
+if "upload_qtr" not in st.session_state:
+    st.session_state.upload_qtr = ""
+if "upload_comment" not in st.session_state:
+    st.session_state.upload_comment = ""
+if "file_uploader_key" not in st.session_state:
+    st.session_state.file_uploader_key = 0
+
 # --- Search Bar ---
 search_query = st.text_input("🔍 Search Companies by Keyword (e.g. 'Tata', 'Tech')", "")
 
 # --- Comprehensive Upload Form ---
 st.subheader("📤 Upload New Research")
+
+# Display persistent success message after rerun
+if "upload_success_message" in st.session_state:
+    st.success(st.session_state.upload_success_message)
+    del st.session_state.upload_success_message
 
 with st.form("upload_research_form"):
     col_a, col_b = st.columns(2)
@@ -99,21 +122,24 @@ with st.form("upload_research_form"):
             value=st.session_state.user_email.split('@')[0].capitalize()
                   if st.session_state.get('user_email') else 'Analyst'
         )
-        company_name = st.text_input("Company Name")
-        ticker = st.text_input("Ticker Symbol (e.g., RELIANCE)")
+        company_name = st.text_input("Company Name", key="upload_company_name")
+        ticker = st.text_input("Ticker Symbol (e.g., RELIANCE)", key="upload_ticker")
         exchange = st.selectbox("Exchange", ["NSE", "BSE"])
-        price_during_research = st.number_input("Price during research (₹)", min_value=0.0, format="%.2f")
-        market_cap_research = st.number_input("Market Cap during research (₹ Cr)", min_value=0.0, format="%.2f")
+        price_during_research = st.number_input("Price during research (₹)", min_value=0.0, format="%.2f", key="upload_price")
+        market_cap_research = st.number_input("Market Cap during research (₹ Cr)", min_value=0.0, format="%.2f", key="upload_market_cap")
 
     with col_b:
-        industry = st.text_input("Industry / Sector")
+        industry = st.text_input("Industry / Sector", key="upload_industry")
         research_type = st.selectbox("Research Type", ["Fundamental only", "Technical only", "Both"])
-        latest_qtr = st.text_input("Latest Qtr Result available (e.g., Q4 FY24)")
+        latest_qtr = st.text_input("Latest Qtr Result available (e.g., Q4 FY24)", key="upload_qtr")
         date_submission = st.date_input("Date of submission", datetime.date.today())
         rating = st.slider("Rating by Owner (1-5 Stars)", 1, 5, 3)
-        comment_by_owner = st.text_area("Comment by Owner")
+        comment_by_owner = st.text_area("Comment by Owner", key="upload_comment")
 
-    uploaded_file = st.file_uploader("📎 Upload Research File (PDF, PPTX, DOCX, XLSX...)")
+    uploaded_file = st.file_uploader(
+        "📎 Upload Research File (PDF, PPTX, DOCX, XLSX...)",
+        key=f"file_uploader_{st.session_state.file_uploader_key}"
+    )
 
     submit_upload = st.form_submit_button("Submit Research & Sync to Drive", type="primary")
 
@@ -122,54 +148,73 @@ with st.form("upload_research_form"):
             if not drive_service or not folder_id:
                 st.error("Google Drive is not configured properly in st.secrets.")
             else:
-                with st.spinner("Uploading and saving..."):
-                    try:
-                        # --- Upload file to Google Drive ---
-                        file_id = ""
-                        file_link = ""
-                        if uploaded_file:
-                            file_bytes = uploaded_file.getvalue()
-                            file_ext   = uploaded_file.name.rsplit('.', 1)[-1]
-                            safe_name  = f"{ticker.upper().strip()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
-                            file_id    = backend_helper.upload_file_to_drive(drive_service, file_bytes, safe_name, folder_id)
-                            if file_id:
-                                file_link = f"https://drive.google.com/file/d/{file_id}/view?usp=drivesdk"
+                status_placeholder = st.empty()
+                with status_placeholder.container():
+                    col_l, col_c, col_r = st.columns([2, 1, 2])
+                    with col_c:
+                        st.image("loading.gif", use_container_width=True)
+                    st.info("Uploading research file and syncing metadata...")
+                try:
+                    # --- Upload file to Google Drive ---
+                    file_id = ""
+                    file_link = ""
+                    if uploaded_file:
+                        file_bytes = uploaded_file.getvalue()
+                        file_ext   = uploaded_file.name.rsplit('.', 1)[-1]
+                        safe_name  = f"{ticker.upper().strip()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
+                        file_id    = backend_helper.upload_file_to_drive(drive_service, file_bytes, safe_name, folder_id)
+                        if file_id:
+                            file_link = f"https://drive.google.com/file/d/{file_id}/view?usp=drivesdk"
 
-                        new_data = {
-                            "Company Name": company_name,
-                            "Ticker": ticker.upper().strip(),
-                            "Exchange": exchange,
-                            "Date Added": str(date_submission),
-                            "Price When Added": price_during_research,
-                            "Market Cap when added": market_cap_research,
-                            "Industry": industry,
-                            "Research Type": research_type,
-                            "Latest Qtr": latest_qtr,
-                            "Rating": rating,
-                            "Analyst": analyst_name,
-                            "Comment": comment_by_owner,
-                            "File ID": file_id,
-                            "File Link": file_link
-                        }
+                    new_data = {
+                        "Company Name": company_name,
+                        "Ticker": ticker.upper().strip(),
+                        "Exchange": exchange,
+                        "Date Added": str(date_submission),
+                        "Price When Added": price_during_research,
+                        "Market Cap when added": market_cap_research,
+                        "Industry": industry,
+                        "Research Type": research_type,
+                        "Latest Qtr": latest_qtr,
+                        "Rating": rating,
+                        "Analyst": analyst_name,
+                        "Comment": comment_by_owner,
+                        "File ID": file_id,
+                        "File Link": file_link
+                    }
 
-                        # Load existing DB or create new
-                        df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
-                        if df.empty:
-                            df = pd.DataFrame([new_data])
-                        else:
-                            df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+                    # Load existing DB or create new
+                    df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+                    if df.empty:
+                        df = pd.DataFrame([new_data])
+                    else:
+                        df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
 
-                        # Save back to Drive
-                        success = backend_helper.save_csv_database(drive_service, df, folder_id, 'reports_db.csv')
+                    # Save back to Drive
+                    success = backend_helper.save_csv_database(drive_service, df, folder_id, 'reports_db.csv')
+                    status_placeholder.empty()
 
-                        if success:
-                            st.success(f"✅ Research for **{company_name}** saved successfully!")
-                            st.cache_data.clear()
-                        else:
-                            st.error("❌ Metadata saved but failed to sync to Google Drive.")
+                    if success:
+                        st.session_state.upload_success_message = f"✅ Research for **{company_name}** saved successfully!"
+                        
+                        # Clear inputs in session state
+                        st.session_state.upload_company_name = ""
+                        st.session_state.upload_ticker = ""
+                        st.session_state.upload_price = 0.0
+                        st.session_state.upload_market_cap = 0.0
+                        st.session_state.upload_industry = ""
+                        st.session_state.upload_qtr = ""
+                        st.session_state.upload_comment = ""
+                        st.session_state.file_uploader_key += 1
+                        
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.error("❌ Metadata saved but failed to sync to Google Drive.")
 
-                    except Exception as e:
-                        st.error(f"❌ Error: {e}")
+                except Exception as e:
+                    status_placeholder.empty()
+                    st.error(f"❌ Error: {e}")
         else:
             st.error("Please fill in at least Company Name and Ticker.")
 
