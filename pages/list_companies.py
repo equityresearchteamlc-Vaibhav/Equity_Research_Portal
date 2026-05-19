@@ -72,7 +72,8 @@ def load_real_companies_db():
                 "Market Cap when added (Cr)": round(mc_added, 2),
                 "Real-time Market Cap (Cr)": round(rt_market_cap, 2),
                 "% Change of Market Cap": round(mc_change, 2),
-                "File ID": row.get("File ID", "")
+                "File ID": row.get("File ID", ""),
+                "File Link": row.get("File Link", "")
             })
 
         return pd.DataFrame(enhanced_data)
@@ -90,7 +91,7 @@ df = load_real_companies_db()
 if df.empty:
     st.info("No companies have been uploaded yet. Go to the Dashboard to upload one!")
 else:
-    display_df = df.drop(columns=["File ID", "Exchange"], errors='ignore')
+    display_df = df.drop(columns=["File ID", "File Link", "Exchange"], errors='ignore')
     st.dataframe(
         display_df,
         use_container_width=True,
@@ -121,6 +122,7 @@ else:
             st.session_state.selected_company  = selected_row['Company Name']
             st.session_state.selected_exchange = selected_row.get('Exchange', 'NSE')
             st.session_state.selected_file_id  = selected_row.get('File ID', '')
+            st.session_state.selected_file_link = selected_row.get('File Link', '')
             st.session_state.selected_price_added = selected_row.get('Price When Added', 0)
             st.session_state.selected_mc_added    = selected_row.get('Market Cap when added (Cr)', 0)
             st.switch_page("pages/company_profile.py")

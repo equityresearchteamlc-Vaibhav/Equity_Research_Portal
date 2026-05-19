@@ -124,13 +124,16 @@ with st.form("upload_research_form"):
             else:
                 with st.spinner("Uploading and saving..."):
                     try:
-                        # --- Upload file to Supabase Storage ---
+                        # --- Upload file to Google Drive ---
+                        file_id = ""
                         file_link = ""
                         if uploaded_file:
                             file_bytes = uploaded_file.getvalue()
                             file_ext   = uploaded_file.name.rsplit('.', 1)[-1]
                             safe_name  = f"{ticker.upper().strip()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
-                            file_link  = backend_helper.upload_file_to_supabase(file_bytes, safe_name)
+                            file_id    = backend_helper.upload_file_to_drive(drive_service, file_bytes, safe_name, folder_id)
+                            if file_id:
+                                file_link = f"https://drive.google.com/file/d/{file_id}/view?usp=drivesdk"
 
                         new_data = {
                             "Company Name": company_name,
@@ -145,6 +148,7 @@ with st.form("upload_research_form"):
                             "Rating": rating,
                             "Analyst": analyst_name,
                             "Comment": comment_by_owner,
+                            "File ID": file_id,
                             "File Link": file_link
                         }
 
