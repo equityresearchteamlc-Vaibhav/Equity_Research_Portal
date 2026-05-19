@@ -164,6 +164,7 @@ with st.form("upload_research_form"):
 
                         if success:
                             st.success(f"✅ Research for **{company_name}** saved successfully!")
+                            st.cache_data.clear()
                         else:
                             st.error("❌ Metadata saved but failed to sync to Google Drive.")
 
