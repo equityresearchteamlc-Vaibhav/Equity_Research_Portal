@@ -107,6 +107,8 @@ def update_user_activity(email):
     df = get_users_df()
     idx = df[df['Email'] == email].index
     if not idx.empty:
+        # Cast Last_Seen to object type to support string assignment on empty/float columns
+        df['Last_Seen'] = df['Last_Seen'].astype(object)
         df.loc[idx, 'Last_Seen'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         df.to_csv(DB_FILE, index=False)
         return True
