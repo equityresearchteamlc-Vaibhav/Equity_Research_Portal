@@ -92,75 +92,45 @@ def inject_custom_css():
     """Inject premium CSS to style the portal like a professional financial research terminal."""
     st.markdown(
         """
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
-            /* Apply primary font families */
-            html, body, [class*="css"], .stMarkdown, p, span, label, input, button, textarea {
-                font-family: 'Outfit', sans-serif !important;
-            }
-            h1, h2, h3, h4, h5, h6, [data-testid="stHeader"] {
-                font-family: 'Space Grotesk', sans-serif !important;
-                font-weight: 700 !important;
-                letter-spacing: -0.5px !important;
-            }
-            
-            /* Modernized metric cards */
+            /* Modernized metric cards - no aggressive padding to prevent overlaps */
             div[data-testid="stMetric"] {
                 background: rgba(255, 255, 255, 0.03) !important;
                 border: 1px solid rgba(255, 255, 255, 0.08) !important;
-                border-radius: 14px !important;
-                padding: 20px 24px !important;
-                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2) !important;
-                backdrop-filter: blur(8px) !important;
-                -webkit-backdrop-filter: blur(8px) !important;
-                transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+                border-radius: 10px !important;
+                transition: transform 0.3s ease, border-color 0.3s ease !important;
             }
             div[data-testid="stMetric"]:hover {
-                transform: translateY(-3px) !important;
+                transform: translateY(-2px) !important;
                 border-color: rgba(59, 130, 246, 0.4) !important;
-                box-shadow: 0 8px 35px rgba(59, 130, 246, 0.15) !important;
             }
             
             /* Professional form styling */
             div[data-testid="stForm"] {
-                background: rgba(255, 255, 255, 0.02) !important;
-                border: 1px solid rgba(255, 255, 255, 0.06) !important;
-                border-radius: 18px !important;
-                padding: 30px !important;
-                box-shadow: 0 12px 45px rgba(0, 0, 0, 0.45) !important;
-                backdrop-filter: blur(12px) !important;
-                -webkit-backdrop-filter: blur(12px) !important;
+                background: rgba(255, 255, 255, 0.01) !important;
+                border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                border-radius: 12px !important;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
             }
             
-            /* Styled submit and view buttons */
+            /* Styled primary buttons */
             button[kind="primary"] {
                 background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
                 border: none !important;
                 color: white !important;
                 font-weight: 600 !important;
-                border-radius: 8px !important;
-                box-shadow: 0 4px 15px rgba(139, 92, 246, 0.25) !important;
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                border-radius: 6px !important;
+                transition: all 0.2s ease !important;
             }
             button[kind="primary"]:hover {
                 background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
                 transform: translateY(-1px) !important;
-                box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4) !important;
             }
             
             /* Glassmorphism sidebar */
             section[data-testid="stSidebar"] {
                 background: rgba(15, 17, 26, 0.95) !important;
                 border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
-            }
-            
-            /* Form input labels styling */
-            div[data-testid="stForm"] label {
-                color: rgba(255, 255, 255, 0.85) !important;
-                font-weight: 500 !important;
-                font-size: 0.9rem !important;
             }
         </style>
         """,
