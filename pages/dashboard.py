@@ -152,7 +152,15 @@ with st.form("upload_research_form"):
                 with status_placeholder.container():
                     col_l, col_c, col_r = st.columns([2, 1, 2])
                     with col_c:
-                        st.image("loading.gif", use_container_width=True)
+                        import os
+                        gif_path = os.path.join(os.getcwd(), "loading.gif")
+                        if not os.path.exists(gif_path):
+                            gif_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "loading.gif")
+                        
+                        if os.path.exists(gif_path):
+                            st.image(gif_path, use_container_width=True)
+                        else:
+                            st.info("🔄 Uploading...")
                     st.info("Uploading research file and syncing metadata...")
                 try:
                     # --- Upload file to Google Drive ---
