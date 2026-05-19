@@ -73,8 +73,8 @@ def get_live_market_data(obj, token, exchange="NSE"):
         if res and res.get('status') and res.get('data'):
             unpacked = res['data']['fetched'][0]
             cmp = unpacked.get('ltp', 0.0)
-            high_52 = unpacked.get('high52', 0.0)
-            low_52 = unpacked.get('low52', 0.0)
+            high_52 = unpacked.get('52weekhigh', unpacked.get('high52', 0.0))
+            low_52 = unpacked.get('52weeklow', unpacked.get('low52', 0.0))
             close = unpacked.get('close', 0.0)
             # marketCap from Angel One API is in raw rupees; divide by 1 Cr (10,000,000)
             raw_mc = unpacked.get('marketCap', 0.0) or 0.0
