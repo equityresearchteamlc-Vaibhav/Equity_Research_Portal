@@ -16,7 +16,8 @@ utils.render_status_bar(refresh_interval_secs=300)
 ticker = st.session_state.get("selected_ticker", "RELIANCE")
 company_name = st.session_state.get("selected_company", "Reliance Industries")
 exchange = st.session_state.get("selected_exchange", "NSE")
-file_id = st.session_state.get("selected_file_id", "")
+file_id   = st.session_state.get("selected_file_id", "")
+file_link = st.session_state.get("selected_file_link", "")
 price_when_added = float(st.session_state.get("selected_price_added", 0))
 mc_added = float(st.session_state.get("selected_mc_added", 0))
 
@@ -75,12 +76,15 @@ st.divider()
 st.subheader("ℹ️ About Company")
 st.info(f"{company_name} is currently being tracked by the Equity Research Team.")
 
-if file_id:
-    # Google Drive export link for direct download
-    drive_link = f"https://drive.google.com/uc?export=download&id={file_id}"
-    st.markdown(f"📥 **[Click here to download the uploaded research file]({drive_link})**")
+if file_link:
+    st.markdown(f"📥 **[Click here to open the research file]({file_link})**")
+elif file_id:
+    # Backward compatibility for old records that used File ID
+    old_drive_link = f"https://drive.google.com/uc?export=download&id={file_id}"
+    st.markdown(f"📥 **[Click here to download the research file]({old_drive_link})**")
 else:
     st.warning("No research file attached to this company.")
+
 
 st.divider()
 
