@@ -11,6 +11,9 @@ st_autorefresh(interval=300_000, key="dashboard_autorefresh")
 
 st.title("📊 Equity Research Dashboard")
 
+# Inject premium CSS styling
+utils.inject_custom_css()
+
 # Market status + refresh bar
 utils.render_status_bar(refresh_interval_secs=300)
 
@@ -85,25 +88,66 @@ with col4:
 st.divider()
 
 # --- Initialize Form Session States ---
-if "upload_company_name" not in st.session_state:
-    st.session_state.upload_company_name = ""
-if "upload_ticker" not in st.session_state:
-    st.session_state.upload_ticker = ""
-if "upload_price" not in st.session_state:
-    st.session_state.upload_price = 0.0
-if "upload_market_cap" not in st.session_state:
-    st.session_state.upload_market_cap = 0.0
-if "upload_industry" not in st.session_state:
-    st.session_state.upload_industry = ""
-if "upload_qtr" not in st.session_state:
-    st.session_state.upload_qtr = ""
-if "upload_comment" not in st.session_state:
-    st.session_state.upload_comment = ""
-if "file_uploader_key" not in st.session_state:
-    st.session_state.file_uploader_key = 0
+# --- Initialize Form Version counter ---
+if "form_version" not in st.session_state:
+    st.session_state.form_version = 0
 
-# --- Search Bar ---
-search_query = st.text_input("🔍 Search Companies by Keyword (e.g. 'Tata', 'Tech')", "")
+# --- Search Section ---
+st.subheader("🔍 Search Tracked Companies")
+search_query = st.text_input("Search by company name, ticker, analyst, or industry:", "", key="dashboard_company_search")
+
+try:
+    drive_service = backend_helper.get_drive_service()
+    folder_id = st.secrets["google_drive"]["folder_id"]
+    db_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+except Exception:
+    db_df = pd.DataFrame()
+    drive_service = None
+    folder_id = None
+
+if not db_df.empty:
+    if search_query:
+        filtered_df = db_df[
+            db_df['Company Name'].str.contains(search_query, case=False, na=False) |
+            db_df['Ticker'].str.contains(search_query, case=False, na=False) |
+            db_df['Industry'].str.contains(search_query, case=False, na=False) |
+            db_df['Analyst'].str.contains(search_query, case=False, na=False)
+        ]
+    else:
+        filtered_df = db_df
+
+    if filtered_df.empty:
+        st.info("No matching companies found.")
+    else:
+        display_cols = ["Company Name", "Ticker", "Exchange", "Industry", "Analyst", "Latest Qtr", "Rating", "Date Added"]
+        existing_cols = [col for col in display_cols if col in filtered_df.columns]
+        
+        df_to_show = filtered_df[existing_cols].copy()
+        if 'Rating' in df_to_show.columns:
+            df_to_show['Rating'] = df_to_show['Rating'].apply(lambda x: f"{int(x)}/10" if pd.notna(x) and x != "" else "")
+            
+        st.dataframe(df_to_show, use_container_width=True, hide_index=True)
+        
+        col_s1, col_s2 = st.columns([3, 1])
+        with col_s1:
+            selected_search_ticker = st.selectbox("Select a company from search results to view profile:", filtered_df['Ticker'].unique(), key="dashboard_search_select")
+        with col_s2:
+            st.write("")
+            st.write("")
+            if st.button("👁️ View Profile", key="dashboard_search_view_btn", use_container_width=True, type="primary"):
+                selected_row = filtered_df[filtered_df['Ticker'] == selected_search_ticker].iloc[0]
+                st.session_state.selected_ticker = selected_row['Ticker']
+                st.session_state.selected_company  = selected_row['Company Name']
+                st.session_state.selected_exchange = selected_row.get('Exchange', 'NSE')
+                st.session_state.selected_file_id  = selected_row.get('File ID', '')
+                st.session_state.selected_file_link = selected_row.get('File Link', '')
+                st.session_state.selected_price_added = selected_row.get('Price When Added', 0)
+                st.session_state.selected_mc_added    = selected_row.get('Market Cap when added', 0)
+                st.switch_page("pages/company_profile.py")
+else:
+    st.info("No tracked companies in the database.")
+
+st.divider()
 
 # --- Comprehensive Upload Form ---
 st.subheader("📤 Upload New Research")
@@ -113,6 +157,7 @@ if "upload_success_message" in st.session_state:
     st.success(st.session_state.upload_success_message)
     del st.session_state.upload_success_message
 
+# We render the form elements with keys linked to st.session_state.form_version
 with st.form("upload_research_form"):
     col_a, col_b = st.columns(2)
 
@@ -122,23 +167,23 @@ with st.form("upload_research_form"):
             value=st.session_state.user_email.split('@')[0].capitalize()
                   if st.session_state.get('user_email') else 'Analyst'
         )
-        company_name = st.text_input("Company Name", key="upload_company_name")
-        ticker = st.text_input("Ticker Symbol (e.g., RELIANCE)", key="upload_ticker")
+        company_name = st.text_input("Company Name", key=f"upload_company_name_{st.session_state.form_version}")
+        ticker = st.text_input("Ticker Symbol (e.g., RELIANCE)", key=f"upload_ticker_{st.session_state.form_version}")
         exchange = st.selectbox("Exchange", ["NSE", "BSE"])
-        price_during_research = st.number_input("Price during research (₹)", min_value=0.0, format="%.2f", key="upload_price")
-        market_cap_research = st.number_input("Market Cap during research (₹ Cr)", min_value=0.0, format="%.2f", key="upload_market_cap")
+        price_during_research = st.number_input("Price during research (₹)", min_value=0.0, format="%.2f", key=f"upload_price_{st.session_state.form_version}")
+        market_cap_research = st.number_input("Market Cap during research (₹ Cr)", min_value=0.0, format="%.2f", key=f"upload_market_cap_{st.session_state.form_version}")
 
     with col_b:
-        industry = st.text_input("Industry / Sector", key="upload_industry")
+        industry = st.text_input("Industry / Sector", key=f"upload_industry_{st.session_state.form_version}")
         research_type = st.selectbox("Research Type", ["Fundamental only", "Technical only", "Both"])
-        latest_qtr = st.text_input("Latest Qtr Result available (e.g., Q4 FY24)", key="upload_qtr")
+        latest_qtr = st.text_input("Latest Qtr Result available (e.g., Q4 FY24)", key=f"upload_qtr_{st.session_state.form_version}")
         date_submission = st.date_input("Date of submission", datetime.date.today())
-        rating = st.slider("Rating by Owner (1-5 Stars)", 1, 5, 3)
-        comment_by_owner = st.text_area("Comment by Owner", key="upload_comment")
+        rating = st.slider("Rating by Owner (1-10 Stars)", 1, 10, 5)
+        comment_by_owner = st.text_area("Comment by Owner", key=f"upload_comment_{st.session_state.form_version}")
 
     uploaded_file = st.file_uploader(
         "📎 Upload Research File (PDF, PPTX, DOCX, XLSX...)",
-        key=f"file_uploader_{st.session_state.file_uploader_key}"
+        key=f"file_uploader_{st.session_state.form_version}"
     )
 
     submit_upload = st.form_submit_button("Submit Research & Sync to Drive", type="primary")
@@ -205,16 +250,8 @@ with st.form("upload_research_form"):
                     if success:
                         st.session_state.upload_success_message = f"✅ Research for **{company_name}** saved successfully!"
                         
-                        # Clear inputs in session state
-                        st.session_state.upload_company_name = ""
-                        st.session_state.upload_ticker = ""
-                        st.session_state.upload_price = 0.0
-                        st.session_state.upload_market_cap = 0.0
-                        st.session_state.upload_industry = ""
-                        st.session_state.upload_qtr = ""
-                        st.session_state.upload_comment = ""
-                        st.session_state.file_uploader_key += 1
-                        
+                        # Increment form version to clear all fields cleanly without session state errors
+                        st.session_state.form_version += 1
                         st.cache_data.clear()
                         st.rerun()
                     else:

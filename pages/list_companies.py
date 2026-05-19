@@ -9,6 +9,9 @@ st_autorefresh(interval=300_000, key="list_companies_autorefresh")
 
 st.title("🏢 Uploaded Companies")
 
+# Inject premium CSS styling
+utils.inject_custom_css()
+
 # Market status + refresh bar
 utils.render_status_bar(refresh_interval_secs=300)
 
@@ -72,6 +75,8 @@ def load_real_companies_db():
                 "Market Cap when added (Cr)": round(mc_added, 2),
                 "Real-time Market Cap (Cr)": round(rt_market_cap, 2),
                 "% Change of Market Cap": round(mc_change, 2),
+                "Rating": f"{int(float(row.get('Rating', 5)))}/10" if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else "",
+                "Owner Comment": row.get("Comment", ""),
                 "File ID": row.get("File ID", ""),
                 "File Link": row.get("File Link", "")
             })

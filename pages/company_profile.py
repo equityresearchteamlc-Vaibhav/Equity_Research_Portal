@@ -10,6 +10,9 @@ st_autorefresh(interval=300_000, key="company_profile_autorefresh")
 
 st.title("🔍 Company Profile")
 
+# Inject premium CSS styling
+utils.inject_custom_css()
+
 # Market status + refresh bar
 utils.render_status_bar(refresh_interval_secs=300)
 
@@ -124,6 +127,23 @@ elif file_id:
 else:
     st.warning("No research file attached to this company.")
 
+# --- Analyst Initial Research Notes ---
+st.subheader("💡 Analyst Initial Research Notes")
+analyst_name = selected_row.get("Analyst", "Unknown")
+owner_rating = selected_row.get("Rating", "")
+owner_comment = selected_row.get("Comment", "")
+
+with st.container(border=True):
+    st.write(f"🧑‍💻 **Research Submitted By:** {analyst_name}")
+    if pd.notna(owner_rating) and str(owner_rating).strip() != "":
+        st.write(f"⭐ **Analyst Rating:** **{int(float(owner_rating))}/10**")
+    else:
+        st.write("⭐ **Analyst Rating:** *Not rated*")
+    
+    if pd.notna(owner_comment) and str(owner_comment).strip() != "":
+        st.write(f"📝 **Analyst Comment:** {owner_comment}")
+    else:
+        st.write("📝 **Analyst Comment:** *No comment provided*")
 
 st.divider()
 
