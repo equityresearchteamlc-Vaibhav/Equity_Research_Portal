@@ -147,6 +147,7 @@ def upload_file_to_drive(service, file_bytes, file_name, folder_id, mime_type='a
         encoded_bytes = base64.b64encode(file_bytes).decode('utf-8')
         
         payload = {
+            "action": "upload",
             "token": token,
             "folderId": folder_id,
             "fileName": file_name,
@@ -193,36 +194,36 @@ def load_csv_database(service, folder_id, db_name='reports_db.csv'):
 
 def save_csv_database(service, dataframe, folder_id, db_name='reports_db.csv'):
     """
-    Overwrites/updates the CSV on Drive. Supports Shared Drives.
+    Overwrites/updates the CSV on Drive using Google Apps Script Web App.
     """
-    file_id = find_file_in_folder(service, folder_id, db_name)
     try:
-        csv_buffer = io.BytesIO()
-        dataframe.to_csv(csv_buffer, index=False)
-        csv_buffer.seek(0)
-        media = MediaIoBaseUpload(csv_buffer, mimetype='text/csv', resumable=True)
-
-        if file_id:
-            # Update existing file
-            service.files().update(
-                fileId=file_id,
-                media_body=media,
-                supportsAllDrives=True
-            ).execute()
-        else:
-            # Create new file
-            file_metadata = {
-                'name': db_name,
-                'parents': [folder_id]
-            }
-            service.files().create(
-                body=file_metadata,
-                media_body=media,
-                supportsAllDrives=True
-            ).execute()
-        return True
+        url = st.secrets["google_drive"]["apps_script_url"]
+        token = st.secrets["google_drive"]["apps_script_token"]
+        
+        csv_content = dataframe.to_csv(index=False)
+        
+        payload = {
+            "action": "save_csv",
+            "token": token,
+            "folderId": folder_id,
+            "fileName": db_name,
+            "csvContent": csv_content
+        }
+        
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode('utf-8'),
+            headers={'Content-Type': 'application/json'}
+        )
+        
+        with urllib.request.urlopen(req) as response:
+            res_data = json.loads(response.read().decode('utf-8'))
+            if res_data.get('success'):
+                return True
+            else:
+                raise Exception(res_data.get('error', 'Unknown Apps Script error'))
     except Exception as e:
-        print(f"Error saving CSV {db_name}: {e}")
+        print(f"Error saving CSV via Apps Script: {e}")
         return False
 
 def load_comments_database(service, folder_id):
