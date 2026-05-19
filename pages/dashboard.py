@@ -94,7 +94,7 @@ if "form_version" not in st.session_state:
 
 # --- Search Section ---
 st.subheader("🔍 Search Tracked Companies")
-search_query = st.text_input("Search by company name, ticker, analyst, or industry:", "", key="dashboard_company_search")
+search_query = st.text_input("Type company name or ticker to filter suggestions:", "", key="dashboard_company_search")
 
 try:
     drive_service = backend_helper.get_drive_service()
@@ -109,9 +109,7 @@ if not db_df.empty:
     if search_query:
         filtered_df = db_df[
             db_df['Company Name'].str.contains(search_query, case=False, na=False) |
-            db_df['Ticker'].str.contains(search_query, case=False, na=False) |
-            db_df['Industry'].str.contains(search_query, case=False, na=False) |
-            db_df['Analyst'].str.contains(search_query, case=False, na=False)
+            db_df['Ticker'].str.contains(search_query, case=False, na=False)
         ]
     else:
         filtered_df = db_df
@@ -119,23 +117,19 @@ if not db_df.empty:
     if filtered_df.empty:
         st.info("No matching companies found.")
     else:
-        display_cols = ["Company Name", "Ticker", "Exchange", "Industry", "Analyst", "Latest Qtr", "Rating", "Date Added"]
-        existing_cols = [col for col in display_cols if col in filtered_df.columns]
-        
-        df_to_show = filtered_df[existing_cols].copy()
-        if 'Rating' in df_to_show.columns:
-            df_to_show['Rating'] = df_to_show['Rating'].apply(lambda x: f"{int(x)}/10" if pd.notna(x) and x != "" else "")
-            
-        st.dataframe(df_to_show, use_container_width=True, hide_index=True)
+        # Create display list: "Company Name (Ticker)"
+        display_options = (filtered_df['Company Name'] + " (" + filtered_df['Ticker'] + ")").tolist()
         
         col_s1, col_s2 = st.columns([3, 1])
         with col_s1:
-            selected_search_ticker = st.selectbox("Select a company from search results to view profile:", filtered_df['Ticker'].unique(), key="dashboard_search_select")
+            selected_display = st.selectbox("Select a company from the list:", options=display_options, key="dashboard_search_select")
         with col_s2:
             st.write("")
             st.write("")
             if st.button("👁️ View Profile", key="dashboard_search_view_btn", use_container_width=True, type="primary"):
-                selected_row = filtered_df[filtered_df['Ticker'] == selected_search_ticker].iloc[0]
+                # Extract ticker from within parentheses
+                selected_ticker = selected_display.split("(")[-1].replace(")", "").strip()
+                selected_row = db_df[db_df['Ticker'] == selected_ticker].iloc[0]
                 st.session_state.selected_ticker = selected_row['Ticker']
                 st.session_state.selected_company  = selected_row['Company Name']
                 st.session_state.selected_exchange = selected_row.get('Exchange', 'NSE')
