@@ -25,29 +25,88 @@ if "is_first_login" not in st.session_state:
 # -------------------------------------------------
 if not st.session_state.authenticated:
     saved_email = cookies.get("user_email")
+    login_ts_str = cookies.get("login_timestamp")
     if saved_email:
-        # Optional extra safety: verify the email still exists/approved
-        user = auth_manager.get_user_by_email(saved_email)
-        if user and user["Is_Approved"]:
-            st.session_state.authenticated = True
-            st.session_state.user_email = user["Email"]
-            st.session_state.user_name = user["Name"]
-            st.session_state.is_first_login = user["Is_First_Login"]
+        is_expired = False
+        if login_ts_str:
+            try:
+                login_ts = float(login_ts_str)
+                # 24 hours = 86400 seconds
+                if time.time() - login_ts > 86400:
+                    is_expired = True
+            except ValueError:
+                is_expired = True
+        else:
+            is_expired = True
+
+        if is_expired:
+            cookies.remove("user_email")
+            cookies.remove("login_timestamp")
+            st.session_state.authenticated = False
+            st.session_state.user_email = ""
+            st.session_state.user_name = ""
+            st.session_state.is_first_login = False
+            st.warning("⚠️ Session expired (24-hour limit). Please log in again.")
+        else:
+            user = auth_manager.get_user_by_email(saved_email)
+            if user and user["Is_Approved"]:
+                st.session_state.authenticated = True
+                st.session_state.user_email = user["Email"]
+                st.session_state.user_name = user["Name"]
+                st.session_state.is_first_login = user["Is_First_Login"]
 
 # -------------------------------------------------
 # Login / Register UI
 # -------------------------------------------------
 def login_register():
-    st.title("🔐 Equity Research Portal")
-    tab1, tab2 = st.tabs(["Login", "Register"])
+    import utils
+    utils.inject_custom_css()
+    
+    st.markdown(
+        """
+        <div style="text-align: center; margin-bottom: 25px;">
+            <svg width="110" height="110" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="45" stroke="url(#paint0_linear)" stroke-width="4.5" stroke-dasharray="280" stroke-dashoffset="40" style="transform-origin: center; animation: spin 20s linear infinite;"/>
+                <path d="M28 65 L44 48 L56 57 L74 35" stroke="url(#paint1_linear)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="74" cy="35" r="4" fill="#ec4899"/>
+                <defs>
+                    <linearGradient id="paint0_linear" x1="5" y1="5" x2="95" y2="95" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#3b82f6"/>
+                        <stop offset="0.5" stop-color="#8b5cf6"/>
+                        <stop offset="1" stop-color="#ec4899"/>
+                    </linearGradient>
+                    <linearGradient id="paint1_linear" x1="28" y1="65" x2="74" y2="35" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#3b82f6"/>
+                        <stop offset="1" stop-color="#ec4899"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <h1 style="
+                font-family: 'Space Grotesk', sans-serif;
+                background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                font-size: 2.2rem;
+                font-weight: 700;
+                margin-top: 15px;
+                letter-spacing: -1px;
+            ">EQUITY INTEL</h1>
+            <p style="font-family: 'Outfit', sans-serif; opacity: 0.75; font-size: 0.95rem; margin-top:-5px;">
+                Institutional Equity Research Portal & Database Manager
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    tab1, tab2 = st.tabs(["🔐 Analyst Login", "📝 Register Request"])
 
     # ---------- Login ----------
     with tab1:
-        st.subheader("Team Login")
         with st.form("login_form"):
-            email = st.text_input("Email", placeholder="analyst@firm.com")
+            email = st.text_input("Email Address", placeholder="analyst@firm.com")
             password = st.text_input("Password", type="password")
-            submit = st.form_submit_button("Login", type="primary")
+            submit = st.form_submit_button("Login to Terminal", type="primary")
             if submit:
                 if email and password:
                     success, data = auth_manager.verify_login(email, password)
@@ -58,8 +117,9 @@ def login_register():
                         st.session_state.user_name    = data["Name"]
                         st.session_state.is_first_login = data["Is_First_Login"]
 
-                        # ---- persist via cookie ----
+                        # ---- persist via cookie with 24h expire limit ----
                         cookies.set("user_email", data["Email"])
+                        cookies.set("login_timestamp", str(time.time()))
 
                         st.rerun()
                     else:
@@ -124,6 +184,7 @@ def logout():
     st.session_state.user_name = ""
     st.session_state.is_first_login = False
     cookies.remove("user_email")      # clear persisted cookie
+    cookies.remove("login_timestamp")  # clear timestamp cookie
     st.rerun()
 
 # -------------------------------------------------
