@@ -10,14 +10,19 @@ def init_db():
         default_pwd = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         
         initial_users = [
-            {"Name": "Vaibhav Gupta", "Email": "vaibhavgupta@lingualconsultancy.in", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True},
-            {"Name": "Ashutosh Singh", "Email": "ashutosh.singh@seminalresearch.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True},
-            {"Name": "Ajay Yadav", "Email": "ajay.yadav@lingualconsultancy.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True},
-            {"Name": "Vaibhav Srivastava", "Email": "vaibhav.srivastava@lingualconsultancy.in", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True},
-            {"Name": "Mahesssss", "Email": "maheshyaduvanshi20@gmail.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True}
+            {"Name": "Vaibhav Gupta", "Email": "vaibhavgupta@lingualconsultancy.in", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": ""},
+            {"Name": "Ashutosh Singh", "Email": "ashutosh.singh@seminalresearch.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": ""},
+            {"Name": "Ajay Yadav", "Email": "ajay.yadav@lingualconsultancy.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": ""},
+            {"Name": "Vaibhav Srivastava", "Email": "vaibhav.srivastava@lingualconsultancy.in", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": ""},
+            {"Name": "Mahesssss", "Email": "maheshyaduvanshi20@gmail.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": ""}
         ]
         df = pd.DataFrame(initial_users)
         df.to_csv(DB_FILE, index=False)
+    else:
+        df = pd.read_csv(DB_FILE)
+        if "Last_Seen" not in df.columns:
+            df["Last_Seen"] = ""
+            df.to_csv(DB_FILE, index=False)
 
 def get_users_df():
     init_db()
@@ -86,6 +91,34 @@ def reject_user(email):
     idx = df[df['Email'] == email].index
     if not idx.empty:
         df = df.drop(idx)
+        df.to_csv(DB_FILE, index=False)
+        return True
+    return False
+
+def get_user_by_email(email):
+    df = get_users_df()
+    user_row = df[df['Email'] == email]
+    if user_row.empty:
+        return None
+    return user_row.iloc[0].to_dict()
+
+def update_user_activity(email):
+    import datetime
+    df = get_users_df()
+    idx = df[df['Email'] == email].index
+    if not idx.empty:
+        df.loc[idx, 'Last_Seen'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        df.to_csv(DB_FILE, index=False)
+        return True
+    return False
+
+def reset_user_password(email):
+    df = get_users_df()
+    idx = df[df['Email'] == email].index
+    if not idx.empty:
+        default_pwd = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        df.loc[idx, 'Password'] = default_pwd
+        df.loc[idx, 'Is_First_Login'] = True
         df.to_csv(DB_FILE, index=False)
         return True
     return False

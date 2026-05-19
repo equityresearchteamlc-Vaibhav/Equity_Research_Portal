@@ -144,6 +144,7 @@ elif st.session_state.is_first_login:
     pg.run()
 else:
     # Normal app pages
+    auth_manager.update_user_activity(st.session_state.user_email)
     pages = {
         "Dashboard": [
             st.Page("pages/dashboard.py", title="Dashboard", icon="📊", default=True),
