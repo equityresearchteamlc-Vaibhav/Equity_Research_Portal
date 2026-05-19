@@ -93,16 +93,28 @@ def inject_custom_css():
     st.markdown(
         """
         <style>
-            /* Modernized metric cards - no aggressive padding to prevent overlaps */
+            /* Modernized metric cards - custom fonts and margins */
             div[data-testid="stMetric"] {
                 background: rgba(255, 255, 255, 0.03) !important;
                 border: 1px solid rgba(255, 255, 255, 0.08) !important;
                 border-radius: 10px !important;
+                padding: 10px 14px !important;
                 transition: transform 0.3s ease, border-color 0.3s ease !important;
             }
             div[data-testid="stMetric"]:hover {
                 transform: translateY(-2px) !important;
                 border-color: rgba(59, 130, 246, 0.4) !important;
+            }
+            /* Control font sizing inside metrics to prevent truncation with 3 dots */
+            div[data-testid="stMetricValue"] {
+                font-size: 1.35rem !important;
+                font-weight: 700 !important;
+                margin-top: 2px !important;
+            }
+            div[data-testid="stMetricLabel"] {
+                font-size: 0.85rem !important;
+                font-weight: 500 !important;
+                color: rgba(255, 255, 255, 0.7) !important;
             }
             
             /* Professional form styling */
