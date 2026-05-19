@@ -137,21 +137,38 @@ def find_file_in_folder(service, folder_id, file_name):
 
 def upload_file_to_drive(service, file_bytes, file_name, folder_id, mime_type='application/octet-stream'):
     """
-    Uploads any research file type to Google Drive (supports Shared Drives).
-    Raises exception on failure so callers can surface the real error.
+    Uploads any research file type to Google Drive using Google Apps Script Web App.
     """
-    file_metadata = {
-        'name': file_name,
-        'parents': [folder_id]
-    }
-    media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=True)
-    file = service.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields='id',
-        supportsAllDrives=True
-    ).execute()
-    return file.get('id')
+    import base64
+    try:
+        url = st.secrets["google_drive"]["apps_script_url"]
+        token = st.secrets["google_drive"]["apps_script_token"]
+        
+        encoded_bytes = base64.b64encode(file_bytes).decode('utf-8')
+        
+        payload = {
+            "token": token,
+            "folderId": folder_id,
+            "fileName": file_name,
+            "fileBytes": encoded_bytes,
+            "mimeType": mime_type
+        }
+        
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode('utf-8'),
+            headers={'Content-Type': 'application/json'}
+        )
+        
+        with urllib.request.urlopen(req) as response:
+            res_data = json.loads(response.read().decode('utf-8'))
+            if res_data.get('success'):
+                return res_data.get('fileId')
+            else:
+                raise Exception(res_data.get('error', 'Unknown Apps Script error'))
+    except Exception as e:
+        print(f"Error uploading via Apps Script: {e}")
+        raise e
 
 def load_csv_database(service, folder_id, db_name='reports_db.csv'):
     """
