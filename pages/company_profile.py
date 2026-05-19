@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import datetime
 import backend_helper
 import utils
@@ -12,14 +13,52 @@ st.title("🔍 Company Profile")
 # Market status + refresh bar
 utils.render_status_bar(refresh_interval_secs=300)
 
-# Determine which company is selected
-ticker = st.session_state.get("selected_ticker", "RELIANCE")
-company_name = st.session_state.get("selected_company", "Reliance Industries")
-exchange = st.session_state.get("selected_exchange", "NSE")
-file_id   = st.session_state.get("selected_file_id", "")
-file_link = st.session_state.get("selected_file_link", "")
-price_when_added = float(st.session_state.get("selected_price_added", 0))
-mc_added = float(st.session_state.get("selected_mc_added", 0))
+# Load uploaded companies database
+try:
+    drive_service = backend_helper.get_drive_service()
+    folder_id = st.secrets["google_drive"]["folder_id"]
+    reports_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+except Exception as e:
+    reports_df = pd.DataFrame()
+
+if reports_df.empty:
+    st.info("No companies have been uploaded yet. Go to the Dashboard to upload one!")
+    st.stop()
+
+# Create a list of options: "Company Name (Ticker)"
+reports_df['Display_Name'] = reports_df['Company Name'] + " (" + reports_df['Ticker'] + ")"
+
+# Determine index of currently selected ticker
+current_ticker = st.session_state.get("selected_ticker")
+default_index = 0
+if current_ticker in reports_df['Ticker'].values:
+    default_index = int(reports_df[reports_df['Ticker'] == current_ticker].index[0])
+
+selected_display = st.selectbox(
+    "Select a tracked company:",
+    options=reports_df['Display_Name'].tolist(),
+    index=default_index
+)
+
+# Extract row of chosen company
+selected_row = reports_df[reports_df['Display_Name'] == selected_display].iloc[0]
+
+ticker = selected_row['Ticker']
+company_name = selected_row['Company Name']
+exchange = selected_row.get('Exchange', 'NSE')
+file_id = selected_row.get('File ID', '')
+file_link = selected_row.get('File Link', '')
+price_when_added = float(selected_row.get('Price When Added', 0))
+mc_added = float(selected_row.get('Market Cap when added', 0))
+
+# Save back to session state
+st.session_state.selected_ticker = ticker
+st.session_state.selected_company = company_name
+st.session_state.selected_exchange = exchange
+st.session_state.selected_file_id = file_id
+st.session_state.selected_file_link = file_link
+st.session_state.selected_price_added = price_when_added
+st.session_state.selected_mc_added = mc_added
 
 st.header(f"{company_name} ({ticker})")
 
