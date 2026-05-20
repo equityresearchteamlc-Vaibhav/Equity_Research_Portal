@@ -76,10 +76,14 @@ with tab_active:
                     status = "🔴 Offline"
                     
             with st.container(border=True):
-                col_u1, col_u2 = st.columns([3, 1])
+                is_user_admin = bool(row.get('Is_Admin', False))
+                role_str = "👑 Admin" if is_user_admin else "👤 Analyst"
+                
+                col_u1, col_u2 = st.columns([3, 1.5])
                 with col_u1:
                     st.write(f"👤 **Name:** {row['Name']}")
                     st.write(f"📧 **Email:** `{row['Email']}`")
+                    st.write(f"🏷️ **Role:** `{role_str}`")
                     st.write(f"📶 **Status:** {status}")
                     st.write(f"🔑 **Hashed Password:** `{row['Password'][:35]}...` (Bcrypt encrypted)")
                     
@@ -91,6 +95,20 @@ with tab_active:
                             st.rerun()
                         else:
                             st.error("Failed to reset password.")
+                            
+                    # Prevent primary admin from demoting themselves to avoid accidental lockout
+                    is_primary = row['Email'] == "vaibhavgupta@lingualconsultancy.in"
+                    btn_label = "👤 Remove Admin" if is_user_admin else "👑 Make Admin"
+                    btn_help = "Cannot demote primary admin" if is_primary else ("Remove administrator privileges" if is_user_admin else "Grant administrator privileges")
+                    
+                    if st.button(btn_label, key=f"toggle_admin_{row['Email']}", disabled=is_primary, help=btn_help, use_container_width=True):
+                        success, new_status = auth_manager.toggle_admin_status(row['Email'])
+                        if success:
+                            role_action = "promoted to Admin" if new_status else "demoted to Analyst"
+                            st.success(f"Successfully {role_action} {row['Email']}!")
+                            st.rerun()
+                        else:
+                            st.error("Failed to update user role.")
 
 # ==========================================
 # TAB 3: COMPANY DATABASE MANAGER
