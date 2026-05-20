@@ -1,22 +1,60 @@
 import pandas as pd
 import os
 import bcrypt
+import streamlit as st
+import backend_helper
 
 DB_FILE = 'users_db.csv'
+
+def get_drive_details():
+    try:
+        if "google_drive" in st.secrets and "gcp_service_account" in st.secrets:
+            service = backend_helper.get_drive_service()
+            folder_id = st.secrets["google_drive"]["folder_id"]
+            return service, folder_id
+    except Exception:
+        pass
+    return None, None
+
+def load_db():
+    service, folder_id = get_drive_details()
+    if service and folder_id:
+        try:
+            df = backend_helper.load_csv_database(service, folder_id, DB_FILE)
+            if not df.empty:
+                return df
+        except Exception as e:
+            print(f"Error loading {DB_FILE} from Google Drive: {e}")
+            
+    # Fallback to local copy
+    if os.path.exists(DB_FILE):
+        try:
+            return pd.read_csv(DB_FILE)
+        except Exception:
+            pass
+    return pd.DataFrame()
+
+def save_db(df):
+    # Save local copy as backup
+    try:
+        df.to_csv(DB_FILE, index=False)
+    except Exception as e:
+        print(f"Error saving {DB_FILE} locally: {e}")
+        
+    service, folder_id = get_drive_details()
+    if service and folder_id:
+        try:
+            backend_helper.save_csv_database(service, df, folder_id, DB_FILE)
+        except Exception as e:
+            print(f"Error saving {DB_FILE} to Google Drive: {e}")
 
 def init_db():
     required_cols = {"Name", "Email", "Password", "Is_First_Login", "Is_Approved", "Last_Seen"}
     recreate = False
     
-    if not os.path.exists(DB_FILE):
+    df = load_db()
+    if df.empty or not required_cols.issubset(df.columns):
         recreate = True
-    else:
-        try:
-            df = pd.read_csv(DB_FILE)
-            if df.empty or not required_cols.issubset(df.columns):
-                recreate = True
-        except Exception:
-            recreate = True
             
     if recreate:
         # Create initial DataFrame
@@ -30,16 +68,15 @@ def init_db():
             {"Name": "Mahesssss", "Email": "maheshyaduvanshi20@gmail.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": ""}
         ]
         df = pd.DataFrame(initial_users)
-        df.to_csv(DB_FILE, index=False)
+        save_db(df)
     else:
-        df = pd.read_csv(DB_FILE)
         if "Last_Seen" not in df.columns:
             df["Last_Seen"] = ""
-            df.to_csv(DB_FILE, index=False)
+            save_db(df)
 
 def get_users_df():
     init_db()
-    return pd.read_csv(DB_FILE)
+    return load_db()
 
 def verify_login(email, password):
     df = get_users_df()
@@ -65,7 +102,7 @@ def change_password(email, new_password):
         new_hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         df.loc[idx, 'Password'] = new_hashed
         df.loc[idx, 'Is_First_Login'] = False
-        df.to_csv(DB_FILE, index=False)
+        save_db(df)
         return True
     return False
 
@@ -80,10 +117,11 @@ def register_user(name, email, password):
         "Email": email, 
         "Password": new_hashed, 
         "Is_First_Login": False, 
-        "Is_Approved": False
+        "Is_Approved": False,
+        "Last_Seen": ""
     }
     df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
-    df.to_csv(DB_FILE, index=False)
+    save_db(df)
     return True, "Registration successful! Pending Admin approval."
 
 def get_pending_approvals():
@@ -95,7 +133,7 @@ def approve_user(email):
     idx = df[df['Email'] == email].index
     if not idx.empty:
         df.loc[idx, 'Is_Approved'] = True
-        df.to_csv(DB_FILE, index=False)
+        save_db(df)
         return True
     return False
 
@@ -104,7 +142,7 @@ def reject_user(email):
     idx = df[df['Email'] == email].index
     if not idx.empty:
         df = df.drop(idx)
-        df.to_csv(DB_FILE, index=False)
+        save_db(df)
         return True
     return False
 
@@ -123,7 +161,7 @@ def update_user_activity(email):
         # Cast Last_Seen to object type to support string assignment on empty/float columns
         df['Last_Seen'] = df['Last_Seen'].astype(object)
         df.loc[idx, 'Last_Seen'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        df.to_csv(DB_FILE, index=False)
+        save_db(df)
         return True
     return False
 
@@ -134,7 +172,7 @@ def reset_user_password(email):
         default_pwd = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         df.loc[idx, 'Password'] = default_pwd
         df.loc[idx, 'Is_First_Login'] = True
-        df.to_csv(DB_FILE, index=False)
+        save_db(df)
         return True
     return False
 
