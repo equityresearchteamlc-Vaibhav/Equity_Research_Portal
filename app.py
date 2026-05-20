@@ -6,7 +6,9 @@ from streamlit_cookies_controller import CookieController
 # -------------------------------------------------
 # Initialise cookie manager (once per session)
 # -------------------------------------------------
-cookies = CookieController()
+if "cookie_controller" not in st.session_state:
+    st.session_state.cookie_controller = CookieController()
+cookies = st.session_state.cookie_controller
 
 # -------------------------------------------------
 # Session‑state defaults
@@ -27,36 +29,14 @@ if "is_admin" not in st.session_state:
 # -------------------------------------------------
 if not st.session_state.authenticated:
     saved_email = cookies.get("user_email")
-    login_ts_str = cookies.get("login_timestamp")
     if saved_email:
-        is_expired = False
-        if login_ts_str:
-            try:
-                login_ts = float(login_ts_str)
-                # 24 hours = 86400 seconds
-                if time.time() - login_ts > 86400:
-                    is_expired = True
-            except ValueError:
-                is_expired = True
-        else:
-            is_expired = True
-
-        if is_expired:
-            cookies.remove("user_email")
-            cookies.remove("login_timestamp")
-            st.session_state.authenticated = False
-            st.session_state.user_email = ""
-            st.session_state.user_name = ""
-            st.session_state.is_first_login = False
-            st.warning("⚠️ Session expired (24-hour limit). Please log in again.")
-        else:
-            user = auth_manager.get_user_by_email(saved_email)
-            if user and user["Is_Approved"]:
-                st.session_state.authenticated = True
-                st.session_state.user_email = user["Email"]
-                st.session_state.user_name = user["Name"]
-                st.session_state.is_first_login = user["Is_First_Login"]
-                st.session_state.is_admin = bool(user.get("Is_Admin", False))
+        user = auth_manager.get_user_by_email(saved_email)
+        if user and user["Is_Approved"]:
+            st.session_state.authenticated = True
+            st.session_state.user_email = user["Email"]
+            st.session_state.user_name = user["Name"]
+            st.session_state.is_first_login = user["Is_First_Login"]
+            st.session_state.is_admin = bool(user.get("Is_Admin", False))
 
 # -------------------------------------------------
 # Login / Register UI
@@ -122,8 +102,7 @@ def login_register():
                         st.session_state.is_admin      = bool(data.get("Is_Admin", False))
 
                         # ---- persist via cookie with 24h expire limit ----
-                        cookies.set("user_email", data["Email"])
-                        cookies.set("login_timestamp", str(time.time()))
+                        cookies.set("user_email", data["Email"], max_age=86400)
 
                         st.rerun()
                     else:
@@ -189,7 +168,7 @@ def logout():
     st.session_state.is_first_login = False
     st.session_state.is_admin = False
     cookies.remove("user_email")      # clear persisted cookie
-    cookies.remove("login_timestamp")  # clear timestamp cookie
+    time.sleep(0.2)
     st.rerun()
 
 # -------------------------------------------------
