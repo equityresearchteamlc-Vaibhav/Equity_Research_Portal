@@ -49,30 +49,47 @@ def save_db(df):
             print(f"Error saving {DB_FILE} to Google Drive: {e}")
 
 def init_db():
-    required_cols = {"Name", "Email", "Password", "Is_First_Login", "Is_Approved", "Last_Seen"}
-    recreate = False
-    
     df = load_db()
-    if df.empty or not required_cols.issubset(df.columns):
-        recreate = True
-            
-    if recreate:
-        # Create initial DataFrame
+    
+    # If the file is completely empty or doesn't exist, create it with initial users
+    if df.empty:
         default_pwd = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        
         initial_users = [
-            {"Name": "Vaibhav Gupta", "Email": "vaibhavgupta@lingualconsultancy.in", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": ""},
-            {"Name": "Ashutosh Singh", "Email": "ashutosh.singh@seminalresearch.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": ""},
-            {"Name": "Ajay Yadav", "Email": "ajay.yadav@lingualconsultancy.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": ""},
-            {"Name": "Vaibhav Srivastava", "Email": "vaibhav.srivastava@lingualconsultancy.in", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": ""},
-            {"Name": "Mahesssss", "Email": "maheshyaduvanshi20@gmail.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": ""}
+            {"Name": "Vaibhav Gupta", "Email": "vaibhavgupta@lingualconsultancy.in", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": "", "Is_Admin": True},
+            {"Name": "Ashutosh Singh", "Email": "ashutosh.singh@seminalresearch.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": "", "Is_Admin": False},
+            {"Name": "Ajay Yadav", "Email": "ajay.yadav@lingualconsultancy.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": "", "Is_Admin": False},
+            {"Name": "Vaibhav Srivastava", "Email": "vaibhav.srivastava@lingualconsultancy.in", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": "", "Is_Admin": False},
+            {"Name": "Mahesssss", "Email": "maheshyaduvanshi20@gmail.com", "Password": default_pwd, "Is_First_Login": True, "Is_Approved": True, "Last_Seen": "", "Is_Admin": False}
         ]
         df = pd.DataFrame(initial_users)
         save_db(df)
-    else:
-        if "Last_Seen" not in df.columns:
-            df["Last_Seen"] = ""
-            save_db(df)
+        return
+
+    # Migration: Ensure all required columns exist without wiping the DB
+    updated = False
+    required_defaults = {
+        "Name": "",
+        "Email": "",
+        "Password": "",
+        "Is_First_Login": True,
+        "Is_Approved": False,
+        "Last_Seen": "",
+        "Is_Admin": False
+    }
+    
+    for col, default in required_defaults.items():
+        if col not in df.columns:
+            df[col] = default
+            updated = True
+            
+    # Explicitly make sure vaibhavgupta@lingualconsultancy.in is admin
+    idx = df[df['Email'] == "vaibhavgupta@lingualconsultancy.in"].index
+    if not idx.empty and not df.loc[idx[0], 'Is_Admin']:
+        df.loc[idx, 'Is_Admin'] = True
+        updated = True
+
+    if updated:
+        save_db(df)
 
 def get_users_df():
     init_db()
@@ -118,7 +135,8 @@ def register_user(name, email, password):
         "Password": new_hashed, 
         "Is_First_Login": False, 
         "Is_Approved": False,
-        "Last_Seen": ""
+        "Last_Seen": "",
+        "Is_Admin": False
     }
     df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
     save_db(df)
@@ -175,6 +193,16 @@ def reset_user_password(email):
         save_db(df)
         return True
     return False
+
+def toggle_admin_status(email):
+    df = get_users_df()
+    idx = df[df['Email'] == email].index
+    if not idx.empty:
+        new_val = not bool(df.loc[idx[0], 'Is_Admin'])
+        df.loc[idx, 'Is_Admin'] = new_val
+        save_db(df)
+        return True, new_val
+    return False, None
 
 # Ensure DB is initialized on import
 init_db()

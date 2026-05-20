@@ -19,6 +19,8 @@ if "user_name" not in st.session_state:
     st.session_state.user_name = ""
 if "is_first_login" not in st.session_state:
     st.session_state.is_first_login = False
+if "is_admin" not in st.session_state:
+    st.session_state.is_admin = False
 
 # -------------------------------------------------
 # Restore login from cookie (runs on every reload)
@@ -54,6 +56,7 @@ if not st.session_state.authenticated:
                 st.session_state.user_email = user["Email"]
                 st.session_state.user_name = user["Name"]
                 st.session_state.is_first_login = user["Is_First_Login"]
+                st.session_state.is_admin = bool(user.get("Is_Admin", False))
 
 # -------------------------------------------------
 # Login / Register UI
@@ -116,6 +119,7 @@ def login_register():
                         st.session_state.user_email   = data["Email"]
                         st.session_state.user_name    = data["Name"]
                         st.session_state.is_first_login = data["Is_First_Login"]
+                        st.session_state.is_admin      = bool(data.get("Is_Admin", False))
 
                         # ---- persist via cookie with 24h expire limit ----
                         cookies.set("user_email", data["Email"])
@@ -183,6 +187,7 @@ def logout():
     st.session_state.user_email = ""
     st.session_state.user_name = ""
     st.session_state.is_first_login = False
+    st.session_state.is_admin = False
     cookies.remove("user_email")      # clear persisted cookie
     cookies.remove("login_timestamp")  # clear timestamp cookie
     st.rerun()
@@ -217,8 +222,8 @@ else:
         ],
     }
 
-    # Admin panel only for you
-    if st.session_state.user_email == "vaibhavgupta@lingualconsultancy.in":
+    # Admin panel only for administrators
+    if st.session_state.get("is_admin", False):
         pages["Admin Tools"] = [
             st.Page("pages/admin_panel.py", title="Admin Panel", icon="⚙️")
         ]
