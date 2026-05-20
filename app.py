@@ -37,6 +37,7 @@ if not st.session_state.authenticated:
             st.session_state.user_name = user["Name"]
             st.session_state.is_first_login = user["Is_First_Login"]
             st.session_state.is_admin = bool(user.get("Is_Admin", False))
+            st.rerun()
 
 # -------------------------------------------------
 # Login / Register UI
@@ -102,7 +103,7 @@ def login_register():
                         st.session_state.is_admin      = bool(data.get("Is_Admin", False))
 
                         # ---- persist via cookie with 24h expire limit ----
-                        cookies.set("user_email", data["Email"], max_age=86400)
+                        cookies.set("user_email", data["Email"], max_age=86400, same_site="none", secure=True)
 
                         st.rerun()
                     else:
