@@ -186,7 +186,7 @@ def inject_custom_css():
 
             /* Floating inner core text */
             div[data-testid="stStatusWidget"]::after {
-                content: "Executing Terminal Request..." !important;
+                content: "Hang On! We Are Loading Your Page" !important;
                 font-family: 'Space Grotesk', 'Outfit', sans-serif !important;
                 font-size: 1rem !important;
                 font-weight: 600 !important;

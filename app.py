@@ -94,7 +94,7 @@ if not st.session_state.authenticated:
                         -webkit-text-fill-color: transparent;
                         animation: pulse 1.5s ease-in-out infinite;
                     ">
-                        Loading Equity Intel Terminal...
+                        Hang On! We Are Loading Your Page
                     </p>
                 </div>
                 """,
