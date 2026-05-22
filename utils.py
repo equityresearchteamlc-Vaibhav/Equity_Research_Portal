@@ -144,6 +144,81 @@ def inject_custom_css():
                 background: rgba(15, 17, 26, 0.95) !important;
                 border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
             }
+
+            /* ------------------------------------------------- */
+            /* Global Full-Screen Glassmorphism Loading Overlay */
+            /* ------------------------------------------------- */
+            div[data-testid="stStatusWidget"] {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                background: rgba(10, 12, 20, 0.75) !important; /* Premium dark backdrop */
+                backdrop-filter: blur(8px) !important; /* Premium blur */
+                -webkit-backdrop-filter: blur(8px) !important;
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                z-index: 999999 !important;
+                transition: all 0.3s ease-in-out !important;
+            }
+
+            /* Hide Streamlit's default small spinner inside stStatusWidget */
+            div[data-testid="stStatusWidget"] > div {
+                display: none !important;
+            }
+
+            /* Main glowing outer spinner */
+            div[data-testid="stStatusWidget"]::before {
+                content: "" !important;
+                width: 75px !important;
+                height: 75px !important;
+                border: 4px solid rgba(255, 255, 255, 0.03) !important;
+                border-top: 4px solid #3b82f6 !important;
+                border-right: 4px solid #8b5cf6 !important;
+                border-bottom: 4px solid #ec4899 !important;
+                border-radius: 50% !important;
+                animation: spin 1.0s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite !important;
+                box-shadow: 0 0 15px rgba(139, 92, 246, 0.4) !important;
+                position: absolute !important;
+            }
+
+            /* Floating inner core text */
+            div[data-testid="stStatusWidget"]::after {
+                content: "Executing Terminal Request..." !important;
+                font-family: 'Space Grotesk', 'Outfit', sans-serif !important;
+                font-size: 1rem !important;
+                font-weight: 600 !important;
+                background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899) !important;
+                -webkit-background-clip: text !important;
+                -webkit-text-fill-color: transparent !important;
+                margin-top: 130px !important;
+                letter-spacing: 0.5px !important;
+                animation: pulse 1.5s ease-in-out infinite !important;
+                position: absolute !important;
+            }
+
+            /* Hide the default tiny top progress bar */
+            [data-testid="stDecoration"] {
+                display: none !important;
+            }
+
+            /* Style default inline spinners to match theme */
+            div[data-testid="stSpinner"] > div {
+                border-top-color: #8b5cf6 !important;
+                border-right-color: #ec4899 !important;
+            }
+
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
+            @keyframes pulse {
+                0%, 100% { opacity: 0.6; transform: scale(0.98); }
+                50% { opacity: 1; transform: scale(1.02); }
+            }
         </style>
         """,
         unsafe_allow_html=True

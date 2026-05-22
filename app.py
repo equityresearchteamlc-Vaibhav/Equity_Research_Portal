@@ -53,22 +53,47 @@ if not st.session_state.authenticated:
             st.session_state.cookie_checked = True
             st.markdown(
                 """
-                <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 80vh;">
+                <div style="
+                    display: flex; 
+                    flex-direction: column; 
+                    justify-content: center; 
+                    align-items: center; 
+                    height: 80vh;
+                    background: transparent;
+                ">
                     <div style="
-                        border: 4px solid rgba(255, 255, 255, 0.1);
-                        width: 50px;
-                        height: 50px;
+                        width: 75px;
+                        height: 75px;
+                        border: 4px solid rgba(255, 255, 255, 0.03);
+                        border-top: 4px solid #3b82f6;
+                        border-right: 4px solid #8b5cf6;
+                        border-bottom: 4px solid #ec4899;
                         border-radius: 50%;
-                        border-left-color: #8b5cf6;
-                        animation: spin 1s linear infinite;
+                        animation: spin 1.0s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+                        box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+                        position: relative;
                     "></div>
                     <style>
                         @keyframes spin {
                             0% { transform: rotate(0deg); }
                             100% { transform: rotate(360deg); }
                         }
+                        @keyframes pulse {
+                            0%, 100% { opacity: 0.6; transform: scale(0.98); }
+                            50% { opacity: 1; transform: scale(1.02); }
+                        }
                     </style>
-                    <p style="font-family: 'Outfit', sans-serif; margin-top: 20px; opacity: 0.8; font-size: 1rem;">
+                    <p style="
+                        font-family: 'Space Grotesk', 'Outfit', sans-serif; 
+                        margin-top: 30px; 
+                        font-weight: 600;
+                        font-size: 1rem;
+                        letter-spacing: 0.5px;
+                        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        animation: pulse 1.5s ease-in-out infinite;
+                    ">
                         Loading Equity Intel Terminal...
                     </p>
                 </div>
