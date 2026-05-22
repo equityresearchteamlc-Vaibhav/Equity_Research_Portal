@@ -6,9 +6,8 @@ from streamlit_cookies_controller import CookieController
 # -------------------------------------------------
 # Initialise cookie manager (once per session)
 # -------------------------------------------------
-if "cookie_controller" not in st.session_state:
-    st.session_state.cookie_controller = CookieController()
-cookies = st.session_state.cookie_controller
+# Initialize cookie manager on every run to maintain React tree correctly
+cookies = CookieController()
 
 # -------------------------------------------------
 # Session‑state defaults
@@ -23,6 +22,8 @@ if "is_first_login" not in st.session_state:
     st.session_state.is_first_login = False
 if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
+if "cookie_checked" not in st.session_state:
+    st.session_state.cookie_checked = False
 
 # -------------------------------------------------
 # Restore login from cookie (runs on every reload)
@@ -37,7 +38,45 @@ if not st.session_state.authenticated:
             st.session_state.user_name = user["Name"]
             st.session_state.is_first_login = user["Is_First_Login"]
             st.session_state.is_admin = bool(user.get("Is_Admin", False))
+            st.session_state.cookie_checked = True
             st.rerun()
+        else:
+            # Cookie exists but user not found or not approved -> clear it
+            cookies.remove("user_email", path="/")
+            st.session_state.cookie_checked = True
+            st.rerun()
+    else:
+        # If we haven't checked/initialized the cookie component yet, we show a loader
+        # and let the component mount and send cookies. This prevents the "login flash" 
+        # and page redirect.
+        if not st.session_state.cookie_checked:
+            st.session_state.cookie_checked = True
+            st.markdown(
+                """
+                <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 80vh;">
+                    <div style="
+                        border: 4px solid rgba(255, 255, 255, 0.1);
+                        width: 50px;
+                        height: 50px;
+                        border-radius: 50%;
+                        border-left-color: #8b5cf6;
+                        animation: spin 1s linear infinite;
+                    "></div>
+                    <style>
+                        @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                    </style>
+                    <p style="font-family: 'Outfit', sans-serif; margin-top: 20px; opacity: 0.8; font-size: 1rem;">
+                        Loading Equity Intel Terminal...
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            # We must stop execution here to let the cookie controller load and trigger rerun.
+            st.stop()
 
 # -------------------------------------------------
 # Login / Register UI
@@ -103,7 +142,7 @@ def login_register():
                         st.session_state.is_admin      = bool(data.get("Is_Admin", False))
 
                         # ---- persist via cookie with 24h expire limit ----
-                        cookies.set("user_email", data["Email"], max_age=86400, same_site="none", secure=True)
+                        cookies.set("user_email", data["Email"], max_age=86400, path="/")
 
                         st.rerun()
                     else:
@@ -168,7 +207,7 @@ def logout():
     st.session_state.user_name = ""
     st.session_state.is_first_login = False
     st.session_state.is_admin = False
-    cookies.remove("user_email")      # clear persisted cookie
+    cookies.remove("user_email", path="/")      # clear persisted cookie
     time.sleep(0.2)
     st.rerun()
 
