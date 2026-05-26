@@ -12,6 +12,9 @@ st_autorefresh(interval=300_000, key="dashboard_autorefresh")
 # Inject premium CSS styling
 utils.inject_custom_css()
 
+# Display Lingual logo in top right corner
+utils.render_lingual_logo(position="top-right", show_tagline=False)
+
 # Modern page header
 utils.render_page_header(
     "Equity Research Dashboard", 
