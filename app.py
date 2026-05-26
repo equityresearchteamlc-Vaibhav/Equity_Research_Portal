@@ -114,22 +114,16 @@ def login_register():
     st.markdown(
         """
         <style>
-            /* Force dark background on login page */
             .stApp {
                 background: linear-gradient(135deg, #0a0e1a 0%, #111827 50%, #0f1419 100%) !important;
             }
-            
-            /* Ensure form containers are visible */
             section[data-testid="stSidebar"] {
                 display: none !important;
             }
-            
-            /* Center the login content */
             .main .block-container {
                 max-width: 600px !important;
                 padding-top: 3rem !important;
             }
-            
             @keyframes float {
                 0%, 100% { transform: translateY(0px); }
                 50% { transform: translateY(-10px); }
@@ -143,27 +137,24 @@ def login_register():
                 50% { filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.6)); }
             }
         </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    st.markdown(
+        """
         <div style="text-align: center; margin-bottom: 35px; margin-top: 20px;">
             <div style="animation: float 3s ease-in-out infinite;">
                 <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="animation: glow 2s ease-in-out infinite;">
-                    <!-- Outer rotating ring -->
                     <circle cx="50" cy="50" r="45" stroke="url(#paint0_linear)" stroke-width="3" stroke-dasharray="280" stroke-dashoffset="40" style="transform-origin: center; animation: rotate 20s linear infinite;"/>
-                    
-                    <!-- Inner glow circle -->
                     <circle cx="50" cy="50" r="38" stroke="url(#paint2_radial)" stroke-width="1.5" opacity="0.3"/>
-                    
-                    <!-- Chart line with gradient -->
                     <path d="M28 65 L44 48 L56 57 L74 35" stroke="url(#paint1_linear)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-                    
-                    <!-- Data points -->
                     <circle cx="28" cy="65" r="3" fill="#3b82f6"/>
                     <circle cx="44" cy="48" r="3" fill="#8b5cf6"/>
                     <circle cx="56" cy="57" r="3" fill="#a78bfa"/>
                     <circle cx="74" cy="35" r="4" fill="#ec4899">
                         <animate attributeName="r" values="4;5;4" dur="1.5s" repeatCount="indefinite"/>
                     </circle>
-                    
-                    <!-- Gradient definitions -->
                     <defs>
                         <linearGradient id="paint0_linear" x1="5" y1="5" x2="95" y2="95" gradientUnits="userSpaceOnUse">
                             <stop stop-color="#3b82f6"/>
@@ -182,33 +173,9 @@ def login_register():
                     </defs>
                 </svg>
             </div>
-            <h1 style="
-                font-family: 'Inter', 'Segoe UI', sans-serif;
-                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                font-size: 2.5rem;
-                font-weight: 800;
-                margin-top: 20px;
-                letter-spacing: -1.5px;
-            ">EQUITY INTEL</h1>
-            <p style="
-                font-family: 'Inter', 'Segoe UI', sans-serif; 
-                color: rgba(249, 250, 251, 0.6); 
-                font-size: 0.95rem; 
-                margin-top: 8px;
-                font-weight: 500;
-                letter-spacing: 0.5px;
-            ">
-                Institutional Equity Research Portal & Database Manager
-            </p>
-            <div style="
-                width: 60px;
-                height: 3px;
-                background: linear-gradient(90deg, transparent, #8b5cf6, transparent);
-                margin: 20px auto 0;
-                border-radius: 2px;
-            "></div>
+            <h1 style="font-family: 'Inter', 'Segoe UI', sans-serif; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.5rem; font-weight: 800; margin-top: 20px; letter-spacing: -1.5px;">EQUITY INTEL</h1>
+            <p style="font-family: 'Inter', 'Segoe UI', sans-serif; color: rgba(249, 250, 251, 0.6); font-size: 0.95rem; margin-top: 8px; font-weight: 500; letter-spacing: 0.5px;">Institutional Equity Research Portal & Database Manager</p>
+            <div style="width: 60px; height: 3px; background: linear-gradient(90deg, transparent, #8b5cf6, transparent); margin: 20px auto 0; border-radius: 2px;"></div>
         </div>
         """,
         unsafe_allow_html=True
