@@ -221,13 +221,17 @@ def inject_custom_css():
             }
             
             div[data-testid="stMetricValue"] {
-                font-size: 1.75rem !important;
+                font-size: 1.4rem !important;
                 font-weight: 700 !important;
                 background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%) !important;
                 -webkit-background-clip: text !important;
                 -webkit-text-fill-color: transparent !important;
                 margin-top: 4px !important;
                 letter-spacing: -0.5px !important;
+                white-space: normal !important;
+                word-wrap: break-word !important;
+                overflow: visible !important;
+                line-height: 1.3 !important;
             }
             
             div[data-testid="stMetricLabel"] {
@@ -236,6 +240,8 @@ def inject_custom_css():
                 color: rgba(249, 250, 251, 0.6) !important;
                 text-transform: uppercase !important;
                 letter-spacing: 0.5px !important;
+                white-space: normal !important;
+                word-wrap: break-word !important;
             }
             
             /* Positive delta - green glow */
