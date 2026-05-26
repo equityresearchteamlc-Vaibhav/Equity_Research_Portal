@@ -592,97 +592,42 @@ def render_lingual_logo(position: str = "top-right", show_tagline: bool = False)
         position: "top-right" for corner placement, "center" for centered
         show_tagline: If True, shows "Lingual Consultancy Services" below logo
     """
-    import os
-    import base64
     from pathlib import Path
     
-    # Get the absolute path to the logo file
-    # Try multiple strategies to find the logo
-    current_file = Path(__file__).parent if '__file__' in globals() else Path.cwd()
+    # Find the logo file
+    logo_file = "lingual_logo.png"
     
-    possible_paths = [
-        Path("lingual_logo.png"),  # Current directory
-        current_file / "lingual_logo.png",  # Same directory as utils.py
-        Path.cwd() / "lingual_logo.png",  # Working directory
-        Path(__file__).parent.parent / "lingual_logo.png" if '__file__' in globals() else None,  # Parent directory
-    ]
-    
-    # Filter out None values
-    possible_paths = [p for p in possible_paths if p is not None]
-    
-    logo_path = None
-    for path in possible_paths:
-        if path.exists():
-            logo_path = path
-            break
-    
-    if not logo_path:
-        # Show a minimal error - don't disrupt the page
-        return
-    
-    # Read and encode logo
-    try:
-        with open(logo_path, "rb") as f:
-            logo_data = base64.b64encode(f.read()).decode()
-    except Exception as e:
-        # Silently fail - don't disrupt the page
-        return
+    # Try to find the logo
+    if not Path(logo_file).exists():
+        script_dir = Path(__file__).parent if '__file__' in globals() else Path.cwd()
+        logo_file = script_dir / "lingual_logo.png"
+        if not logo_file.exists():
+            logo_file = Path.cwd() / "lingual_logo.png"
+            if not logo_file.exists():
+                return  # Skip if not found
     
     if position == "center":
         # Centered layout for login page
-        tagline_html = """
-            <p style="
-                font-family: 'Inter', 'Segoe UI', sans-serif;
-                color: rgba(249, 250, 251, 0.7);
-                font-size: 0.9rem;
-                margin-top: 12px;
-                font-weight: 500;
-                letter-spacing: 1px;
-                text-align: center;
-            ">Lingual Consultancy Services</p>
-        """ if show_tagline else ""
-        
-        st.markdown(
-            f"""
-            <div style="
-                display: flex; 
-                flex-direction: column; 
-                align-items: center; 
-                justify-content: center;
-                margin-bottom: 30px;
-                padding: 20px;
-                background: rgba(255, 255, 255, 0.03);
-                border-radius: 16px;
-                backdrop-filter: blur(10px);
-            ">
-                <img src="data:image/png;base64,{logo_data}" 
-                     style="height: 80px; width: auto; filter: brightness(1.1);" 
-                     alt="Lingual Consultancy"/>
-                {tagline_html}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.image(str(logo_file), use_column_width=True)
+            if show_tagline:
+                st.markdown(
+                    """
+                    <p style="
+                        text-align: center;
+                        font-family: 'Inter', 'Segoe UI', sans-serif;
+                        color: rgba(249, 250, 251, 0.7);
+                        font-size: 0.9rem;
+                        margin-top: 12px;
+                        font-weight: 500;
+                        letter-spacing: 1px;
+                    ">Lingual Consultancy Services</p>
+                    """,
+                    unsafe_allow_html=True
+                )
     else:
         # Top right corner for all other pages
-        st.markdown(
-            f"""
-            <div style="
-                position: fixed;
-                top: 70px;
-                right: 20px;
-                z-index: 999;
-                background: rgba(255, 255, 255, 0.05);
-                padding: 12px 16px;
-                border-radius: 12px;
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-            ">
-                <img src="data:image/png;base64,{logo_data}" 
-                     style="height: 50px; width: auto; display: block; filter: brightness(1.1);" 
-                     alt="Lingual Consultancy"/>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        col1, col2 = st.columns([5, 1])
+        with col2:
+            st.image(str(logo_file), use_column_width=True)
