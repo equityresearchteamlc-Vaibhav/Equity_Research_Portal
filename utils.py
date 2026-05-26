@@ -133,9 +133,9 @@ def inject_custom_css():
             /* DARK THEME BASE */
             /* ============================================ */
             :root {
-                --primary-bg: #0a0e1a;
-                --secondary-bg: #111827;
-                --card-bg: rgba(17, 24, 39, 0.6);
+                --primary-bg: #0f1419;
+                --secondary-bg: #1a1f2e;
+                --card-bg: rgba(26, 31, 46, 0.6);
                 --border-color: rgba(99, 102, 241, 0.15);
                 --text-primary: #f9fafb;
                 --text-secondary: rgba(249, 250, 251, 0.7);
@@ -148,7 +148,7 @@ def inject_custom_css():
             
             /* Main app background with subtle gradient */
             .stApp {
-                background: linear-gradient(135deg, #0a0e1a 0%, #111827 50%, #0f1419 100%) !important;
+                background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #141923 100%) !important;
                 background-attachment: fixed !important;
             }
             
@@ -578,83 +578,81 @@ def render_page_header(title: str, subtitle: str = "", icon: str = "📊"):
     )
 
 
-def render_lingual_logo(center: bool = False, show_tagline: bool = True):
+def render_lingual_logo(position: str = "top-right", show_tagline: bool = False):
     """
-    Render the Lingual Consultancy logo with optional tagline.
+    Render the Lingual Consultancy logo.
     
     Args:
-        center: If True, centers the logo. If False, aligns left.
-        show_tagline: If True, shows "Lingual Consultancy Services" below logo.
+        position: "top-right" for corner placement, "center" for centered
+        show_tagline: If True, shows "Lingual Consultancy Services" below logo
     """
-    alignment = "center" if center else "flex-start"
-    text_align = "center" if center else "left"
-    
-    tagline_html = """
-        <p style="
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            color: rgba(249, 250, 251, 0.5);
-            font-size: 0.85rem;
-            margin-top: 8px;
-            font-weight: 500;
-            letter-spacing: 1px;
-            text-align: {text_align};
-        ">Lingual Consultancy Services</p>
-    """.format(text_align=text_align) if show_tagline else ""
-    
-    # Check if logo file exists
     import os
+    import base64
+    
     logo_path = "lingual_logo.png"
     
-    if os.path.exists(logo_path):
-        # Use actual logo file
-        import base64
-        with open(logo_path, "rb") as f:
-            logo_data = base64.b64encode(f.read()).decode()
+    if not os.path.exists(logo_path):
+        st.warning("Logo file not found: lingual_logo.png")
+        return
+    
+    # Read and encode logo
+    with open(logo_path, "rb") as f:
+        logo_data = base64.b64encode(f.read()).decode()
+    
+    if position == "center":
+        # Centered layout for login page
+        tagline_html = """
+            <p style="
+                font-family: 'Inter', 'Segoe UI', sans-serif;
+                color: rgba(249, 250, 251, 0.7);
+                font-size: 0.9rem;
+                margin-top: 12px;
+                font-weight: 500;
+                letter-spacing: 1px;
+                text-align: center;
+            ">Lingual Consultancy Services</p>
+        """ if show_tagline else ""
         
         st.markdown(
             f"""
-            <div style="display: flex; flex-direction: column; align-items: {alignment}; margin-bottom: 20px;">
-                <img src="data:image/png;base64,{logo_data}" style="height: 60px; width: auto;" alt="Lingual Consultancy"/>
+            <div style="
+                display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                justify-content: center;
+                margin-bottom: 30px;
+                padding: 20px;
+                background: rgba(255, 255, 255, 0.03);
+                border-radius: 16px;
+                backdrop-filter: blur(10px);
+            ">
+                <img src="data:image/png;base64,{logo_data}" 
+                     style="height: 80px; width: auto; filter: brightness(1.1);" 
+                     alt="Lingual Consultancy"/>
                 {tagline_html}
             </div>
             """,
             unsafe_allow_html=True
         )
     else:
-        # Use SVG fallback with LC initials
+        # Top right corner for all other pages
         st.markdown(
             f"""
-            <div style="display: flex; flex-direction: column; align-items: {alignment}; margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <svg width="50" height="50" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="100" height="100" rx="12" fill="url(#logo_gradient)"/>
-                        <text x="50" y="65" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle">LC</text>
-                        <defs>
-                            <linearGradient id="logo_gradient" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-                                <stop stop-color="#1e40af"/>
-                                <stop offset="1" stop-color="#3b82f6"/>
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="
-                            font-family: 'Inter', 'Segoe UI', sans-serif;
-                            font-size: 1.5rem;
-                            font-weight: 700;
-                            color: #3b82f6;
-                            letter-spacing: 2px;
-                        ">LINGUAL</span>
-                        <span style="
-                            font-family: 'Inter', 'Segoe UI', sans-serif;
-                            font-size: 0.75rem;
-                            font-weight: 500;
-                            color: rgba(249, 250, 251, 0.5);
-                            letter-spacing: 3px;
-                            margin-top: -4px;
-                        ">CONSULTANCY</span>
-                    </div>
-                </div>
-                {tagline_html if show_tagline and not center else ""}
+            <div style="
+                position: fixed;
+                top: 70px;
+                right: 20px;
+                z-index: 999;
+                background: rgba(255, 255, 255, 0.05);
+                padding: 12px 16px;
+                border-radius: 12px;
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            ">
+                <img src="data:image/png;base64,{logo_data}" 
+                     style="height: 50px; width: auto; display: block; filter: brightness(1.1);" 
+                     alt="Lingual Consultancy"/>
             </div>
             """,
             unsafe_allow_html=True
