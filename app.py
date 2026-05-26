@@ -110,9 +110,26 @@ def login_register():
     import utils
     utils.inject_custom_css()
     
+    # Additional CSS for login page specifically
     st.markdown(
         """
         <style>
+            /* Force dark background on login page */
+            .stApp {
+                background: linear-gradient(135deg, #0a0e1a 0%, #111827 50%, #0f1419 100%) !important;
+            }
+            
+            /* Ensure form containers are visible */
+            section[data-testid="stSidebar"] {
+                display: none !important;
+            }
+            
+            /* Center the login content */
+            .main .block-container {
+                max-width: 600px !important;
+                padding-top: 3rem !important;
+            }
+            
             @keyframes float {
                 0%, 100% { transform: translateY(0px); }
                 50% { transform: translateY(-10px); }
@@ -174,7 +191,6 @@ def login_register():
                 font-weight: 800;
                 margin-top: 20px;
                 letter-spacing: -1.5px;
-                text-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
             ">EQUITY INTEL</h1>
             <p style="
                 font-family: 'Inter', 'Segoe UI', sans-serif; 
@@ -194,6 +210,74 @@ def login_register():
                 border-radius: 2px;
             "></div>
         </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # Additional styling for login/register forms
+    st.markdown(
+        """
+        <style>
+            /* Style the tabs */
+            .stTabs [data-baseweb="tab-list"] {
+                gap: 8px;
+                background: rgba(17, 24, 39, 0.4);
+                padding: 8px;
+                border-radius: 12px;
+                margin-bottom: 24px;
+            }
+            
+            .stTabs [data-baseweb="tab"] {
+                height: 50px;
+                background: transparent;
+                border-radius: 8px;
+                color: rgba(249, 250, 251, 0.6);
+                font-weight: 600;
+                font-size: 0.95rem;
+            }
+            
+            .stTabs [aria-selected="true"] {
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2)) !important;
+                color: #f9fafb !important;
+            }
+            
+            /* Style input fields on login page */
+            .stTextInput > div > div > input {
+                background: rgba(17, 24, 39, 0.6) !important;
+                border: 1px solid rgba(99, 102, 241, 0.3) !important;
+                color: #f9fafb !important;
+                font-size: 0.95rem !important;
+                padding: 12px !important;
+            }
+            
+            .stTextInput > div > div > input:focus {
+                border-color: rgba(139, 92, 246, 0.6) !important;
+                box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+            }
+            
+            /* Style labels */
+            .stTextInput > label, .stForm label {
+                color: rgba(249, 250, 251, 0.8) !important;
+                font-weight: 600 !important;
+                font-size: 0.9rem !important;
+                margin-bottom: 8px !important;
+            }
+            
+            /* Form submit button full width */
+            .stForm button[type="submit"] {
+                width: 100% !important;
+                margin-top: 16px !important;
+                padding: 12px !important;
+                font-size: 1rem !important;
+            }
+            
+            /* Subheader styling */
+            .stForm h3 {
+                color: #f9fafb !important;
+                font-weight: 700 !important;
+                margin-bottom: 20px !important;
+            }
+        </style>
         """,
         unsafe_allow_html=True
     )
