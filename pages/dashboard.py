@@ -9,10 +9,15 @@ import utils
 # Auto-refresh every 5 minutes (300,000 ms)
 st_autorefresh(interval=300_000, key="dashboard_autorefresh")
 
-st.title("📊 Equity Research Dashboard")
-
 # Inject premium CSS styling
 utils.inject_custom_css()
+
+# Modern page header
+utils.render_page_header(
+    "Equity Research Dashboard", 
+    "Real-time market data and research management",
+    "📊"
+)
 
 # Market status + refresh bar
 utils.render_status_bar(refresh_interval_secs=300)

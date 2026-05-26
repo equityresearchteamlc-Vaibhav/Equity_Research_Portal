@@ -7,10 +7,15 @@ from streamlit_autorefresh import st_autorefresh
 # Auto-refresh every 5 minutes (300,000 ms)
 st_autorefresh(interval=300_000, key="list_companies_autorefresh")
 
-st.title("🏢 Uploaded Companies")
-
 # Inject premium CSS styling
 utils.inject_custom_css()
+
+# Modern page header
+utils.render_page_header(
+    "Uploaded Companies",
+    "Track and analyze your research portfolio",
+    "🏢"
+)
 
 # Market status + refresh bar
 utils.render_status_bar(refresh_interval_secs=300)
@@ -91,7 +96,10 @@ def load_real_companies_db():
         return pd.DataFrame()
 
 
+# Load and optimize dataframe
 df = load_real_companies_db()
+if not df.empty:
+    df = utils.optimize_dataframe(df)
 
 if df.empty:
     st.info("No companies have been uploaded yet. Go to the Dashboard to upload one!")

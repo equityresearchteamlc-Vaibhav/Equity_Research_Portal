@@ -8,10 +8,15 @@ from streamlit_autorefresh import st_autorefresh
 # Auto-refresh every 5 minutes (300,000 ms)
 st_autorefresh(interval=300_000, key="company_profile_autorefresh")
 
-st.title("🔍 Company Profile")
-
 # Inject premium CSS styling
 utils.inject_custom_css()
+
+# Modern page header
+utils.render_page_header(
+    "Company Profile",
+    "Detailed analysis and real-time data",
+    "🔍"
+)
 
 # Market status + refresh bar
 utils.render_status_bar(refresh_interval_secs=300)

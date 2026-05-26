@@ -5,11 +5,15 @@ import utils
 import datetime
 import pandas as pd
 
-st.title("⚙️ Admin Panel")
-st.markdown("Manage user approvals, active sessions, and database entries.")
-
 # Inject premium CSS styling
 utils.inject_custom_css()
+
+# Modern page header
+utils.render_page_header(
+    "Admin Panel",
+    "Manage users, approvals, and database entries",
+    "⚙️"
+)
 
 # Create organized tabs
 tab_approvals, tab_active, tab_companies = st.tabs([
