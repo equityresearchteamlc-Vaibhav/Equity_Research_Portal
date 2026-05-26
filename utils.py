@@ -576,3 +576,86 @@ def render_page_header(title: str, subtitle: str = "", icon: str = "📊"):
         """,
         unsafe_allow_html=True
     )
+
+
+def render_lingual_logo(center: bool = False, show_tagline: bool = True):
+    """
+    Render the Lingual Consultancy logo with optional tagline.
+    
+    Args:
+        center: If True, centers the logo. If False, aligns left.
+        show_tagline: If True, shows "Lingual Consultancy Services" below logo.
+    """
+    alignment = "center" if center else "flex-start"
+    text_align = "center" if center else "left"
+    
+    tagline_html = """
+        <p style="
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            color: rgba(249, 250, 251, 0.5);
+            font-size: 0.85rem;
+            margin-top: 8px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-align: {text_align};
+        ">Lingual Consultancy Services</p>
+    """.format(text_align=text_align) if show_tagline else ""
+    
+    # Check if logo file exists
+    import os
+    logo_path = "lingual_logo.png"
+    
+    if os.path.exists(logo_path):
+        # Use actual logo file
+        import base64
+        with open(logo_path, "rb") as f:
+            logo_data = base64.b64encode(f.read()).decode()
+        
+        st.markdown(
+            f"""
+            <div style="display: flex; flex-direction: column; align-items: {alignment}; margin-bottom: 20px;">
+                <img src="data:image/png;base64,{logo_data}" style="height: 60px; width: auto;" alt="Lingual Consultancy"/>
+                {tagline_html}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        # Use SVG fallback with LC initials
+        st.markdown(
+            f"""
+            <div style="display: flex; flex-direction: column; align-items: {alignment}; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg width="50" height="50" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="100" height="100" rx="12" fill="url(#logo_gradient)"/>
+                        <text x="50" y="65" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle">LC</text>
+                        <defs>
+                            <linearGradient id="logo_gradient" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#1e40af"/>
+                                <stop offset="1" stop-color="#3b82f6"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="
+                            font-family: 'Inter', 'Segoe UI', sans-serif;
+                            font-size: 1.5rem;
+                            font-weight: 700;
+                            color: #3b82f6;
+                            letter-spacing: 2px;
+                        ">LINGUAL</span>
+                        <span style="
+                            font-family: 'Inter', 'Segoe UI', sans-serif;
+                            font-size: 0.75rem;
+                            font-weight: 500;
+                            color: rgba(249, 250, 251, 0.5);
+                            letter-spacing: 3px;
+                            margin-top: -4px;
+                        ">CONSULTANCY</span>
+                    </div>
+                </div>
+                {tagline_html if show_tagline and not center else ""}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
