@@ -589,15 +589,46 @@ def render_lingual_logo(position: str = "top-right", show_tagline: bool = False)
     import os
     import base64
     
-    logo_path = "lingual_logo.png"
+    # Try multiple possible paths for the logo
+    possible_paths = [
+        "lingual_logo.png",
+        os.path.join(os.path.dirname(__file__), "lingual_logo.png"),
+        os.path.join(os.getcwd(), "lingual_logo.png"),
+    ]
     
-    if not os.path.exists(logo_path):
-        st.warning("Logo file not found: lingual_logo.png")
+    logo_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            logo_path = path
+            break
+    
+    if not logo_path:
+        # Show a styled placeholder if logo not found
+        st.markdown(
+            """
+            <div style="
+                padding: 12px 20px;
+                background: rgba(239, 68, 68, 0.1);
+                border: 1px solid rgba(239, 68, 68, 0.3);
+                border-radius: 8px;
+                color: #ef4444;
+                font-size: 0.85rem;
+                margin-bottom: 20px;
+            ">
+                ⚠️ Logo file not found: lingual_logo.png
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         return
     
     # Read and encode logo
-    with open(logo_path, "rb") as f:
-        logo_data = base64.b64encode(f.read()).decode()
+    try:
+        with open(logo_path, "rb") as f:
+            logo_data = base64.b64encode(f.read()).decode()
+    except Exception as e:
+        st.error(f"Error reading logo file: {e}")
+        return
     
     if position == "center":
         # Centered layout for login page
