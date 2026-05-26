@@ -110,6 +110,9 @@ def login_register():
     import utils
     utils.inject_custom_css()
     
+    # Display Lingual Consultancy logo at the top center
+    utils.render_lingual_logo(center=True, show_tagline=True)
+    
     # Additional CSS for login page specifically
     st.markdown(
         """
@@ -122,7 +125,7 @@ def login_register():
             }
             .main .block-container {
                 max-width: 600px !important;
-                padding-top: 3rem !important;
+                padding-top: 2rem !important;
             }
             @keyframes float {
                 0%, 100% { transform: translateY(0px); }
@@ -349,6 +352,9 @@ elif st.session_state.is_first_login:
     reset_page = st.Page(force_password_reset, title="Reset Password", icon="⚠️")
     pg = st.navigation([reset_page])
     with st.sidebar:
+        import utils
+        utils.render_lingual_logo(center=False, show_tagline=True)
+        st.divider()
         st.markdown(f"**Logged in as:** {st.session_state.user_name}")
         st.button("Logout", on_click=logout, type="primary")
     pg.run()
@@ -375,6 +381,9 @@ else:
     pg = st.navigation(pages)
 
     with st.sidebar:
+        import utils
+        utils.render_lingual_logo(center=False, show_tagline=True)
+        st.divider()
         st.markdown(f"**Logged in as:** {st.session_state.user_name}")
         st.button("Logout", on_click=logout, type="primary")
 
