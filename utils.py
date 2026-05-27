@@ -622,118 +622,189 @@ def render_page_header(title: str, subtitle: str = "", icon: str = "📊"):
     )
 
 
-@st.cache_data(show_spinner=False)
+_LOGO_BASE64_CACHE = None
+
 def _get_logo_base64() -> str:
+    global _LOGO_BASE64_CACHE
+    if _LOGO_BASE64_CACHE is not None:
+        return _LOGO_BASE64_CACHE
+        
     import base64
     from pathlib import Path
     
     logo_file = "lingual_logo.png"
-    logo_path = Path(logo_file)
-    if not logo_path.exists():
-        script_dir = Path(__file__).parent if '__file__' in globals() else Path.cwd()
-        logo_path = script_dir / "lingual_logo.png"
-        if not logo_path.exists():
-            logo_path = Path.cwd() / "lingual_logo.png"
-            if not logo_path.exists():
-                return ""
+    
+    # Try finding the file in several common directories
+    possible_paths = [
+        Path(logo_file),
+        Path(__file__).parent / logo_file,
+        Path.cwd() / logo_file,
+        Path(__file__).parent.parent / logo_file
+    ]
+    
+    for path in possible_paths:
+        if path.exists():
+            try:
+                with open(path, "rb") as f:
+                    encoded = base64.b64encode(f.read()).decode()
+                    _LOGO_BASE64_CACHE = f"data:image/png;base64,{encoded}"
+                    return _LOGO_BASE64_CACHE
+            except Exception:
+                pass
                 
-    try:
-        with open(logo_path, "rb") as f:
-            encoded = base64.b64encode(f.read()).decode()
-            return f"data:image/png;base64,{encoded}"
-    except Exception:
-        return ""
+    _LOGO_BASE64_CACHE = ""
+    return ""
 
 
 def render_lingual_logo(position: str = "top-right", show_tagline: bool = False):
     """
     Render the Lingual Consultancy logo using high-contrast base64 HTML injection.
+    Includes a native Streamlit image fallback if base64 processing is unavailable.
     
     Args:
         position: "top-right" for fixed floating corner placement, "center" for centered login placement
         show_tagline: If True, shows "Lingual Consultancy Services" below logo
     """
     base64_logo = _get_logo_base64()
-    if not base64_logo:
-        return
-        
+    
     if position == "center":
-        # Centered layout on white high-contrast card for login page
-        st.markdown(
-            f"""
-            <div style="
-                text-align: center;
-                margin-bottom: 25px;
-                margin-top: 10px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-            ">
+        if base64_logo:
+            # Centered layout on white high-contrast card for login page (HTML/Base64)
+            st.markdown(
+                f"""
                 <div style="
-                    background: rgba(255, 255, 255, 0.95);
-                    padding: 16px 36px;
-                    border-radius: 16px;
-                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                    margin-bottom: 8px;
-                    transition: transform 0.3s ease;
-                ">
-                    <img src="{base64_logo}" style="height: 60px; width: auto; object-fit: contain;">
-                </div>
-                {"<p style='color: rgba(249, 250, 251, 0.75); font-family: \"Inter\", \"Segoe UI\", sans-serif; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.5px; margin-top: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);'>Lingual Consultancy Services</p>" if show_tagline else ""}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    else:
-        # Fixed floating top-right badge with white high-contrast pill container
-        st.markdown(
-            f"""
-            <style>
-                .floating-logo-container {{
-                    position: fixed;
-                    top: 15px;
-                    right: 20px;
-                    z-index: 999999;
-                    background: rgba(255, 255, 255, 0.96);
-                    padding: 6px 14px;
-                    border-radius: 24px;
-                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+                    text-align: center;
+                    margin-bottom: 25px;
+                    margin-top: 10px;
                     display: flex;
+                    flex-direction: column;
                     align-items: center;
                     justify-content: center;
-                    border: 1px solid rgba(0, 0, 0, 0.06);
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    pointer-events: auto;
-                }}
-                .floating-logo-container:hover {{
-                    transform: translateY(-2px) scale(1.02);
-                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-                    background: #ffffff;
-                }}
-                .floating-logo-container img {{
-                    height: 32px;
-                    width: auto;
-                    object-fit: contain;
-                }}
-                @media (max-width: 768px) {{
+                ">
+                    <div style="
+                        background: rgba(255, 255, 255, 0.95);
+                        padding: 16px 36px;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        border: 1px solid rgba(255, 255, 255, 0.3);
+                        margin-bottom: 8px;
+                    ">
+                        <img src="{base64_logo}" style="height: 60px; width: auto; object-fit: contain;">
+                    </div>
+                    {"<p style='color: rgba(249, 250, 251, 0.75); font-family: \"Inter\", \"Segoe UI\", sans-serif; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.5px; margin-top: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);'>Lingual Consultancy Services</p>" if show_tagline else ""}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            # Native Streamlit Fallback for Centered layout
+            col1, col2, col3 = st.columns([1.2, 2, 1.2])
+            with col2:
+                with st.container():
+                    st.markdown(
+                        """
+                        <div style="
+                            background: rgba(255, 255, 255, 0.95);
+                            padding: 16px 20px;
+                            border-radius: 16px;
+                            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            margin-bottom: 8px;
+                        ">
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    st.image("lingual_logo.png", use_column_width=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+            if show_tagline:
+                st.markdown(
+                    """
+                    <p style="
+                        text-align: center;
+                        color: rgba(249, 250, 251, 0.75);
+                        font-family: 'Inter', 'Segoe UI', sans-serif;
+                        font-size: 0.95rem;
+                        font-weight: 500;
+                        letter-spacing: 0.5px;
+                        margin-top: 8px;
+                        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                    ">Lingual Consultancy Services</p>
+                    """,
+                    unsafe_allow_html=True
+                )
+    else:
+        if base64_logo:
+            # Fixed floating top-right badge with white high-contrast pill container (HTML/Base64)
+            st.markdown(
+                f"""
+                <style>
                     .floating-logo-container {{
-                        top: 10px;
-                        right: 10px;
-                        padding: 4px 10px;
+                        position: fixed;
+                        top: 15px;
+                        right: 20px;
+                        z-index: 999999;
+                        background: rgba(255, 255, 255, 0.96);
+                        padding: 6px 14px;
+                        border-radius: 24px;
+                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border: 1px solid rgba(0, 0, 0, 0.06);
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        pointer-events: auto;
+                    }}
+                    .floating-logo-container:hover {{
+                        transform: translateY(-2px) scale(1.02);
+                        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+                        background: #ffffff;
                     }}
                     .floating-logo-container img {{
-                        height: 24px;
+                        height: 32px;
+                        width: auto;
+                        object-fit: contain;
                     }}
-                }}
-            </style>
-            <div class="floating-logo-container">
-                <img src="{base64_logo}" alt="Lingual Logo">
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+                    @media (max-width: 768px) {{
+                        .floating-logo-container {{
+                            top: 10px;
+                            right: 10px;
+                            padding: 4px 10px;
+                        }}
+                        .floating-logo-container img {{
+                            height: 24px;
+                        }}
+                    }}
+                </style>
+                <div class="floating-logo-container">
+                    <img src="{base64_logo}" alt="Lingual Logo">
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            # Native Streamlit Fallback for Top-Right (renders standard layout component)
+            col1, col2 = st.columns([5, 1])
+            with col2:
+                st.markdown(
+                    """
+                    <div style="
+                        background: rgba(255, 255, 255, 0.95);
+                        padding: 6px 10px;
+                        border-radius: 12px;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                        border: 1px solid rgba(0, 0, 0, 0.05);
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                    ">
+                    """,
+                    unsafe_allow_html=True
+                )
+                st.image("lingual_logo.png", use_column_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
