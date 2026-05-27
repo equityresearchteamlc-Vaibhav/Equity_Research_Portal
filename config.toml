@@ -1,0 +1,21 @@
+[theme]
+base = "dark"
+primaryColor = "#8b5cf6"
+backgroundColor = "#0f1419"
+secondaryBackgroundColor = "#1a1f2e"
+textColor = "#f9fafb"
+font = "sans serif"
+
+[server]
+# Enable faster page loads
+enableCORS = false
+enableXsrfProtection = true
+maxUploadSize = 200
+
+[browser]
+# Optimize browser performance
+gatherUsageStats = false
+
+[runner]
+# Faster reruns
+fastReruns = true
