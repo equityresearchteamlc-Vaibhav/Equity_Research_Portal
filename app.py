@@ -120,6 +120,12 @@ def login_register():
             .stApp {
                 background: linear-gradient(135deg, #0a0e1a 0%, #111827 50%, #0f1419 100%) !important;
             }
+            /* Hide Streamlit footer, watermark, and host/viewer badges */
+            footer, [data-testid="stViewerBadge"], .viewerBadge, .styles_viewerBadge__ {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0px !important;
+            }
             section[data-testid="stSidebar"] {
                 display: none !important;
             }

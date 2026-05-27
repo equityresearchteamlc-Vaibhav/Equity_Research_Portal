@@ -463,6 +463,13 @@ def inject_custom_css():
                 height: 0px !important;
             }
             
+            /* Hide Streamlit footer, watermark, and host/viewer badges */
+            footer, [data-testid="stViewerBadge"], .viewerBadge, .styles_viewerBadge__ {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0px !important;
+            }
+            
             /* Adjust top padding since header is hidden */
             .main .block-container {
                 padding-top: 2rem !important;
