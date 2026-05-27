@@ -464,7 +464,7 @@ def inject_custom_css():
             }
             
             /* Hide Streamlit footer, watermark, and host/viewer badges */
-            footer, [data-testid="stViewerBadge"], .viewerBadge, .styles_viewerBadge__ {
+            footer, [data-testid="stViewerBadge"], .viewerBadge, .styles_viewerBadge__, [class*="viewerBadge"], [class*="styles_viewerBadge"] {
                 display: none !important;
                 visibility: hidden !important;
                 height: 0px !important;
