@@ -387,6 +387,36 @@ def inject_custom_css():
                 outline: none !important;
             }
             
+            /* Force number inputs +/- buttons to be dark */
+            div[data-testid="stNumberInput"] button {
+                background-color: rgba(31, 41, 55, 0.8) !important;
+                color: #f9fafb !important;
+                border-color: rgba(99, 102, 241, 0.3) !important;
+            }
+            
+            /* Force date inputs wrapper to be dark */
+            div[data-testid="stDateInput"] > div {
+                background-color: rgba(17, 24, 39, 0.8) !important;
+                border-color: rgba(99, 102, 241, 0.3) !important;
+            }
+            
+            /* Force file uploader section to be dark mode styled */
+            div[data-testid="stFileUploader"] > section {
+                background-color: rgba(17, 24, 39, 0.8) !important;
+                border: 1px dashed rgba(99, 102, 241, 0.4) !important;
+            }
+            div[data-testid="stFileUploader"] * {
+                color: #f9fafb !important;
+            }
+            
+            /* Force slider track and thumbs to have dark theme colors */
+            div[data-testid="stSlider"] [role="slider"] {
+                background-color: #8b5cf6 !important;
+            }
+            div[data-testid="stSlider"] > div > div {
+                background-color: rgba(99, 102, 241, 0.3) !important;
+            }
+            
             /* ============================================ */
             /* DATAFRAME - DARK THEME */
             /* ============================================ */
