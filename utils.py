@@ -59,7 +59,8 @@ def render_status_bar(refresh_interval_secs: int = 300):
     next_refresh = now_ist + datetime.timedelta(seconds=refresh_interval_secs)
 
     market_open = is_market_open()
-    signal      = "🟢 Market Open" if market_open else "🔴 Market Closed"
+    signal_emoji = "🟢" if market_open else "🔴"
+    signal_text  = "Market Open" if market_open else "Market Closed"
     signal_color = "#10b981" if market_open else "#ef4444"
 
     last_str = now_ist.strftime("%d %b %Y, %I:%M:%S %p IST")
@@ -89,22 +90,25 @@ def render_status_bar(refresh_interval_secs: int = 300):
                 align-items: center;
                 gap: 8px;
                 text-shadow: 0 0 10px {signal_color}40;
-            ">{signal}</span>
-            <span style="
-                color: rgba(249, 250, 251, 0.7);
-                display: flex;
-                align-items: center;
-                gap: 6px;
             ">
-                🕐 Last refreshed: <strong style="color: #f9fafb;">{last_str}</strong>
+                <span style="-webkit-text-fill-color: initial; text-fill-color: initial; display: inline-block;">{signal_emoji}</span>
+                {signal_text}
             </span>
             <span style="
-                color: rgba(249, 250, 251, 0.7);
+                color: rgba(249, 250, 251, 0.85);
                 display: flex;
                 align-items: center;
                 gap: 6px;
             ">
-                ⏱️ Next update: <strong style="color: #f9fafb;">{next_str}</strong>
+                <span style="-webkit-text-fill-color: initial; text-fill-color: initial; font-style: normal; display: inline-block;">🕐</span> Last refreshed: <strong style="color: #f9fafb;">{last_str}</strong>
+            </span>
+            <span style="
+                color: rgba(249, 250, 251, 0.85);
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            ">
+                <span style="-webkit-text-fill-color: initial; text-fill-color: initial; font-style: normal; display: inline-block;">⏱️</span> Next update: <strong style="color: #f9fafb;">{next_str}</strong>
             </span>
         </div>
         """,
@@ -144,6 +148,11 @@ def inject_custom_css():
                 --accent-pink: #ec4899;
                 --success: #10b981;
                 --danger: #ef4444;
+            }
+            
+            /* Global Font Family & Emoji Support */
+            html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
             }
             
             /* Main app background with subtle gradient */
@@ -447,6 +456,18 @@ def inject_custom_css():
                 display: none !important;
             }
             
+            /* Hide Streamlit Header (Deploy, Fork, Menu, etc.) */
+            header, [data-testid="stHeader"] {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0px !important;
+            }
+            
+            /* Adjust top padding since header is hidden */
+            .main .block-container {
+                padding-top: 2rem !important;
+            }
+            
             /* ============================================ */
             /* DIVIDERS */
             /* ============================================ */
@@ -463,7 +484,7 @@ def inject_custom_css():
             button[data-baseweb="tab"] {
                 background: transparent !important;
                 border-bottom: 2px solid transparent !important;
-                color: rgba(249, 250, 251, 0.6) !important;
+                color: rgba(249, 250, 251, 0.85) !important;
                 font-weight: 600 !important;
                 transition: all 0.3s ease !important;
             }
@@ -566,16 +587,26 @@ def render_page_header(title: str, subtitle: str = "", icon: str = "📊"):
         f"""
         <div style="margin-bottom: 30px;">
             <h1 style="
-                font-family: 'Inter', 'Segoe UI', sans-serif;
+                font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
                 font-size: 2.5rem;
                 font-weight: 800;
-                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
                 margin-bottom: 0;
                 letter-spacing: -1px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
             ">
-                {icon} {title}
+                <span style="
+                    -webkit-text-fill-color: initial; 
+                    text-fill-color: initial;
+                    display: inline-block;
+                ">{icon}</span>
+                <span style="
+                    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    display: inline-block;
+                ">{title}</span>
             </h1>
             {subtitle_html}
         </div>
@@ -584,50 +615,118 @@ def render_page_header(title: str, subtitle: str = "", icon: str = "📊"):
     )
 
 
-def render_lingual_logo(position: str = "top-right", show_tagline: bool = False):
-    """
-    Render the Lingual Consultancy logo.
-    
-    Args:
-        position: "top-right" for corner placement, "center" for centered
-        show_tagline: If True, shows "Lingual Consultancy Services" below logo
-    """
+@st.cache_data(show_spinner=False)
+def _get_logo_base64() -> str:
+    import base64
     from pathlib import Path
     
-    # Find the logo file
     logo_file = "lingual_logo.png"
-    
-    # Try to find the logo
-    if not Path(logo_file).exists():
+    logo_path = Path(logo_file)
+    if not logo_path.exists():
         script_dir = Path(__file__).parent if '__file__' in globals() else Path.cwd()
-        logo_file = script_dir / "lingual_logo.png"
-        if not logo_file.exists():
-            logo_file = Path.cwd() / "lingual_logo.png"
-            if not logo_file.exists():
-                return  # Skip if not found
+        logo_path = script_dir / "lingual_logo.png"
+        if not logo_path.exists():
+            logo_path = Path.cwd() / "lingual_logo.png"
+            if not logo_path.exists():
+                return ""
+                
+    try:
+        with open(logo_path, "rb") as f:
+            encoded = base64.b64encode(f.read()).decode()
+            return f"data:image/png;base64,{encoded}"
+    except Exception:
+        return ""
+
+
+def render_lingual_logo(position: str = "top-right", show_tagline: bool = False):
+    """
+    Render the Lingual Consultancy logo using high-contrast base64 HTML injection.
     
+    Args:
+        position: "top-right" for fixed floating corner placement, "center" for centered login placement
+        show_tagline: If True, shows "Lingual Consultancy Services" below logo
+    """
+    base64_logo = _get_logo_base64()
+    if not base64_logo:
+        return
+        
     if position == "center":
-        # Centered layout for login page
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.image(str(logo_file), use_column_width=True)
-            if show_tagline:
-                st.markdown(
-                    """
-                    <p style="
-                        text-align: center;
-                        font-family: 'Inter', 'Segoe UI', sans-serif;
-                        color: rgba(249, 250, 251, 0.7);
-                        font-size: 0.9rem;
-                        margin-top: 12px;
-                        font-weight: 500;
-                        letter-spacing: 1px;
-                    ">Lingual Consultancy Services</p>
-                    """,
-                    unsafe_allow_html=True
-                )
+        # Centered layout on white high-contrast card for login page
+        st.markdown(
+            f"""
+            <div style="
+                text-align: center;
+                margin-bottom: 25px;
+                margin-top: 10px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            ">
+                <div style="
+                    background: rgba(255, 255, 255, 0.95);
+                    padding: 16px 36px;
+                    border-radius: 16px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: 1px solid rgba(255, 255, 255, 0.3);
+                    margin-bottom: 8px;
+                    transition: transform 0.3s ease;
+                ">
+                    <img src="{base64_logo}" style="height: 60px; width: auto; object-fit: contain;">
+                </div>
+                {"<p style='color: rgba(249, 250, 251, 0.75); font-family: \"Inter\", \"Segoe UI\", sans-serif; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.5px; margin-top: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);'>Lingual Consultancy Services</p>" if show_tagline else ""}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     else:
-        # Top right corner for all other pages
-        col1, col2 = st.columns([5, 1])
-        with col2:
-            st.image(str(logo_file), use_column_width=True)
+        # Fixed floating top-right badge with white high-contrast pill container
+        st.markdown(
+            f"""
+            <style>
+                .floating-logo-container {{
+                    position: fixed;
+                    top: 15px;
+                    right: 20px;
+                    z-index: 999999;
+                    background: rgba(255, 255, 255, 0.96);
+                    padding: 6px 14px;
+                    border-radius: 24px;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: 1px solid rgba(0, 0, 0, 0.06);
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    pointer-events: auto;
+                }}
+                .floating-logo-container:hover {{
+                    transform: translateY(-2px) scale(1.02);
+                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+                    background: #ffffff;
+                }}
+                .floating-logo-container img {{
+                    height: 32px;
+                    width: auto;
+                    object-fit: contain;
+                }}
+                @media (max-width: 768px) {{
+                    .floating-logo-container {{
+                        top: 10px;
+                        right: 10px;
+                        padding: 4px 10px;
+                    }}
+                    .floating-logo-container img {{
+                        height: 24px;
+                    }}
+                }}
+            </style>
+            <div class="floating-logo-container">
+                <img src="{base64_logo}" alt="Lingual Logo">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
