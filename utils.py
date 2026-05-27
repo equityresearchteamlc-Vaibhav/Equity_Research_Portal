@@ -171,6 +171,19 @@ def inject_custom_css():
                 color: #ffffff !important;
             }
             
+            /* Force selectboxes to have a dark background in all themes for readability */
+            div[data-baseweb="select"] > div {
+                background-color: rgba(17, 24, 39, 0.9) !important;
+                border: 1px solid rgba(99, 102, 241, 0.3) !important;
+            }
+            
+            /* Force dropdown dropdown-menus to have a dark background in all themes */
+            div[data-baseweb="menu"] {
+                background-color: #1a1f2e !important;
+                border: 1px solid rgba(99, 102, 241, 0.3) !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+            }
+            
             /* Main app background with subtle gradient */
             .stApp {
                 background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #141923 100%) !important;
