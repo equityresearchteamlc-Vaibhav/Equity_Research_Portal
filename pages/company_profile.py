@@ -124,16 +124,23 @@ st.divider()
 
 # --- About Company & File ---
 st.subheader("ℹ️ About Company")
-st.info(f"{company_name} is currently being tracked by the Equity Research Team.")
 
-if file_link:
-    st.markdown(f"📥 **[Click here to open the research file]({file_link})**")
-elif file_id:
-    # Backward compatibility for old records that used File ID
-    old_drive_link = f"https://drive.google.com/uc?export=download&id={file_id}"
-    st.markdown(f"📥 **[Click here to download the research file]({old_drive_link})**")
-else:
-    st.warning("No research file attached to this company.")
+analyst_name = selected_row.get("Analyst", "Unknown")
+
+col_a1, col_a2 = st.columns(2)
+with col_a1:
+    st.info(f"{company_name} is currently being tracked by the Equity Research Team.")
+with col_a2:
+    with st.container(border=True):
+        st.markdown(f"🧑‍💻 **Research Uploaded By:** **{analyst_name}**")
+        if file_link:
+            st.markdown(f"📥 **[Click here to open the research file]({file_link})**")
+        elif file_id:
+            # Backward compatibility for old records that used File ID
+            old_drive_link = f"https://drive.google.com/uc?export=download&id={file_id}"
+            st.markdown(f"📥 **[Click here to download the research file]({old_drive_link})**")
+        else:
+            st.warning("No research file attached to this company.")
 
 # --- Analyst Initial Research Notes ---
 st.subheader("💡 Analyst Initial Research Notes")
