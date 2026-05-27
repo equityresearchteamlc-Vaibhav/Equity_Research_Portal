@@ -98,45 +98,35 @@ with tab_active:
                     
                 with col_u2:
                     st.write("") # vertical spacing
-                    # Reset Password with MFA Expander
+                    # Reset Password Expander (Yes/No Confirmation)
                     with st.expander("🔄 Reset Password"):
-                        reset_mfa = st.text_input("MFA Code:", type="password", key=f"reset_mfa_{row['Email']}")
+                        st.warning(f"Reset password for {row['Name']} to default '123456'?")
                         if st.button("Confirm Reset", key=f"confirm_reset_{row['Email']}", type="primary", use_container_width=True):
-                            if not reset_mfa:
-                                st.error("MFA code is required.")
-                            elif not auth_manager.verify_mfa(reset_mfa):
-                                st.error("Invalid MFA code.")
+                            if auth_manager.reset_user_password(row['Email']):
+                                st.success("Reset password to '123456'!")
+                                st.rerun()
                             else:
-                                if auth_manager.reset_user_password(row['Email']):
-                                    st.success(f"Reset password to '123456'!")
-                                    st.rerun()
-                                else:
-                                    st.error("Failed to reset password.")
+                                st.error("Failed to reset password.")
                             
                     # Prevent primary admin from demoting themselves to avoid accidental lockout
                     is_primary = row['Email'] == "vaibhavgupta@lingualconsultancy.in"
                     btn_label = "👤 Remove Admin" if is_user_admin else "👑 Make Admin"
                     btn_help = "Cannot demote primary admin" if is_primary else ("Remove administrator privileges" if is_user_admin else "Grant administrator privileges")
                     
-                    # Toggle Admin with MFA Expander (Only show for other users)
+                    # Toggle Admin Expander (Only show for other users)
                     if not is_primary:
                         with st.expander(btn_label):
-                            role_mfa = st.text_input("MFA Code:", type="password", key=f"role_mfa_{row['Email']}")
-                            if st.button(btn_label, key=f"toggle_admin_{row['Email']}", help=btn_help, use_container_width=True):
-                                if not role_mfa:
-                                    st.error("MFA code is required.")
-                                elif not auth_manager.verify_mfa(role_mfa):
-                                    st.error("Invalid MFA code.")
+                            st.warning(f"Change admin role status for {row['Name']}?")
+                            if st.button(f"Confirm {btn_label}", key=f"toggle_admin_{row['Email']}", help=btn_help, use_container_width=True, type="primary"):
+                                success, new_status = auth_manager.toggle_admin_status(row['Email'])
+                                if success:
+                                    role_action = "promoted to Admin" if new_status else "demoted to Analyst"
+                                    st.success(f"Successfully {role_action} {row['Email']}!")
+                                    st.rerun()
                                 else:
-                                    success, new_status = auth_manager.toggle_admin_status(row['Email'])
-                                    if success:
-                                        role_action = "promoted to Admin" if new_status else "demoted to Analyst"
-                                        st.success(f"Successfully {role_action} {row['Email']}!")
-                                        st.rerun()
-                                    else:
-                                        st.error("Failed to update user role.")
+                                    st.error("Failed to update user role.")
  
-                # Remove User Option (Confirm via expander to prevent accidental deletion + MFA)
+                # Remove User Option (Confirm via expander to prevent accidental deletion)
                 is_self = row['Email'] == st.session_state.get("user_email")
                 if is_self:
                     st.caption("ℹ️ *You cannot remove your own account.*")
@@ -145,18 +135,12 @@ with tab_active:
                 else:
                     with st.expander(f"🗑️ Remove User Account ({row['Name']})"):
                         st.warning(f"Are you sure you want to permanently delete **{row['Name']}** ({row['Email']})?")
-                        delete_user_mfa = st.text_input("Enter MFA Code to confirm:", type="password", key=f"delete_user_mfa_{row['Email']}")
                         if st.button("🔥 Permanently Delete User", key=f"delete_user_{row['Email']}", type="primary", use_container_width=True):
-                            if not delete_user_mfa:
-                                st.error("MFA code is required.")
-                            elif not auth_manager.verify_mfa(delete_user_mfa):
-                                st.error("Invalid MFA code.")
+                            if auth_manager.remove_user(row['Email']):
+                                st.success(f"Successfully deleted {row['Name']}!")
+                                st.rerun()
                             else:
-                                if auth_manager.remove_user(row['Email']):
-                                    st.success(f"Successfully deleted {row['Name']}!")
-                                    st.rerun()
-                                else:
-                                    st.error("Failed to delete user.")
+                                st.error("Failed to delete user.")
  
 # ==========================================
 # TAB 3: COMPANY DATABASE MANAGER
@@ -190,20 +174,14 @@ with tab_companies:
         
         with st.expander(f"⚠️ Confirm Deletion of {company_to_delete}"):
             st.warning(f"Are you sure you want to permanently delete **{selected_row['Company Name']}** ({selected_ticker})? This action cannot be undone.")
-            delete_co_mfa = st.text_input("Enter MFA Code to confirm:", type="password", key="delete_company_mfa")
             confirm_btn = st.button("🔥 Permanently Delete Company", type="primary", use_container_width=True)
             
             if confirm_btn:
-                if not delete_co_mfa:
-                    st.error("MFA code is required.")
-                elif not auth_manager.verify_mfa(delete_co_mfa):
-                    st.error("Invalid MFA code.")
-                else:
-                    with st.spinner("Deleting company from Drive..."):
-                        updated_df = reports_df[reports_df['Ticker'] != selected_ticker]
-                        updated_df = updated_df.drop(columns=['Display_Name'], errors='ignore')
-                        
-                        success = backend_helper.save_csv_database(drive_service, updated_df, folder_id, 'reports_db.csv')
+                with st.spinner("Deleting company from Drive..."):
+                    updated_df = reports_df[reports_df['Ticker'] != selected_ticker]
+                    updated_df = updated_df.drop(columns=['Display_Name'], errors='ignore')
+                    
+                    success = backend_helper.save_csv_database(drive_service, updated_df, folder_id, 'reports_db.csv')
                     
                     if success:
                         try:
