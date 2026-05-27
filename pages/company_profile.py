@@ -441,6 +441,7 @@ with st.form("new_comment_form", clear_on_submit=True):
                 comments_df = pd.concat([comments_df, pd.DataFrame([new_row])], ignore_index=True)
                 
             backend_helper.save_comments_database(drive_service, comments_df, folder_id)
+            st.cache_data.clear()
             st.success("Comment posted!")
             st.rerun()
         else:
