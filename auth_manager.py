@@ -204,5 +204,14 @@ def toggle_admin_status(email):
         return True, new_val
     return False, None
 
+def remove_user(email):
+    df = get_users_df()
+    idx = df[df['Email'] == email].index
+    if not idx.empty:
+        df = df.drop(idx)
+        save_db(df)
+        return True
+    return False
+
 # Ensure DB is initialized on import
 init_db()
