@@ -12,6 +12,7 @@ from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
 import streamlit as st
 
 # --- Angel One Integration ---
+@st.cache_resource(ttl=1800)
 def get_angel_client(api_key, client_code, password, totp_secret):
     """
     Authenticates with Angel One SmartAPI using provided credentials.
@@ -58,7 +59,8 @@ def get_token_id(df, ticker, exchange="NSE"):
         return res.iloc[0]['token']
     return None
 
-def get_live_market_data(obj, token, exchange="NSE"):
+@st.cache_data(ttl=15, show_spinner=False)
+def get_live_market_data(_obj, token, exchange="NSE"):
     """
     Fetches real-time market data (CMP, 52W High/Low, Today's % Change).
     """
@@ -69,7 +71,7 @@ def get_live_market_data(obj, token, exchange="NSE"):
                 exchange: [token]
             }
         }
-        res = obj.getMarketData(data['mode'], data['exchangeTokens'])
+        res = _obj.getMarketData(data['mode'], data['exchangeTokens'])
         if res and res.get('status') and res.get('data'):
             unpacked = res['data']['fetched'][0]
             cmp = unpacked.get('ltp', 0.0)
@@ -97,6 +99,7 @@ def get_live_market_data(obj, token, exchange="NSE"):
 
 # --- Google Drive Integration ---
 
+@st.cache_resource
 def get_drive_service():
     """
     Builds the Google Drive service client from st.secrets.
@@ -171,16 +174,17 @@ def upload_file_to_drive(service, file_bytes, file_name, folder_id, mime_type='a
         print(f"Error uploading via Apps Script: {e}")
         raise e
 
-def load_csv_database(service, folder_id, db_name='reports_db.csv'):
+@st.cache_data(ttl=60, show_spinner=False)
+def load_csv_database(_service, folder_id, db_name='reports_db.csv'):
     """
     Reads a CSV file directly into a Pandas DataFrame from Drive.
     Uses MediaIoBaseDownload for reliable streaming of file content.
     """
-    file_id = find_file_in_folder(service, folder_id, db_name)
+    file_id = find_file_in_folder(_service, folder_id, db_name)
     if not file_id:
         return pd.DataFrame()
     try:
-        request = service.files().get_media(fileId=file_id)
+        request = _service.files().get_media(fileId=file_id)
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
         done = False

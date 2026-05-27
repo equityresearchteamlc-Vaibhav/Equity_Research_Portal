@@ -82,11 +82,15 @@ def init_db():
             df[col] = default
             updated = True
             
-    # Explicitly make sure vaibhavgupta@lingualconsultancy.in is admin
+    # Explicitly make sure vaibhavgupta@lingualconsultancy.in is admin and named Vaibhav Gupta
     idx = df[df['Email'] == "vaibhavgupta@lingualconsultancy.in"].index
-    if not idx.empty and not df.loc[idx[0], 'Is_Admin']:
-        df.loc[idx, 'Is_Admin'] = True
-        updated = True
+    if not idx.empty:
+        if not df.loc[idx[0], 'Is_Admin']:
+            df.loc[idx, 'Is_Admin'] = True
+            updated = True
+        if df.loc[idx[0], 'Name'] != "Vaibhav Gupta":
+            df.loc[idx, 'Name'] = "Vaibhav Gupta"
+            updated = True
 
     if updated:
         save_db(df)
@@ -173,12 +177,13 @@ def get_user_by_email(email):
 
 def update_user_activity(email):
     import datetime
+    import pytz
     df = get_users_df()
     idx = df[df['Email'] == email].index
     if not idx.empty:
         # Cast Last_Seen to object type to support string assignment on empty/float columns
         df['Last_Seen'] = df['Last_Seen'].astype(object)
-        df.loc[idx, 'Last_Seen'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        df.loc[idx, 'Last_Seen'] = datetime.datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S")
         save_db(df)
         return True
     return False
@@ -212,6 +217,16 @@ def remove_user(email):
         save_db(df)
         return True
     return False
+
+def verify_mfa(code):
+    try:
+        import pyotp
+        totp_secret = st.secrets["angel_one"]["totp_secret"]
+        totp = pyotp.TOTP(totp_secret)
+        # Verify allowing adjacent time steps for user latency
+        return totp.verify(str(code).strip(), valid_window=1)
+    except Exception:
+        return False
 
 # Ensure DB is initialized on import
 init_db()
