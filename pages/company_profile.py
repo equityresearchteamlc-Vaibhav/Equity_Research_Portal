@@ -395,12 +395,12 @@ st.markdown(dark_mode_compatible_css, unsafe_allow_html=True)
 if ticker_comments.empty:
     st.write("No comments yet. Be the first to share your thoughts!")
 else:
-    for _, comment in ticker_comments.iterrows():
+    for idx_row, comment in ticker_comments.iterrows():
         user_name, initials, avatar_color = get_user_display_info(comment.get('User', 'analyst'))
         rating = int(comment.get('Rating', 10))
         stars_str = "★" * rating + "☆" * (10 - rating)
         html = f"""
-        <div class="comment-box">
+        <div class="comment-box" style="margin-bottom: 0px;">
             <div class="comment-avatar" style="background-color: {avatar_color};">{initials}</div>
             <div style="flex-grow: 1;">
                 <div class="comment-header">
@@ -412,7 +412,37 @@ else:
             </div>
         </div>
         """
-        st.markdown(html, unsafe_allow_html=True)
+        
+        # Check if current user is an admin to display the delete button
+        is_user_admin = st.session_state.get("is_admin", False)
+        
+        if is_user_admin:
+            col_c1, col_c2 = st.columns([12, 1])
+            with col_c1:
+                st.markdown(html, unsafe_allow_html=True)
+            with col_c2:
+                st.write("")
+                st.write("")
+                if st.button("🗑️", key=f"del_comment_{idx_row}", help=f"Delete comment by {user_name}"):
+                    # Filter out this comment from comments database
+                    comments_df = comments_df[~(
+                        (comments_df['Ticker'] == ticker) &
+                        (comments_df['User'] == comment.get('User')) &
+                        (comments_df['Timestamp'] == comment.get('Timestamp')) &
+                        (comments_df['Text'] == comment.get('Text'))
+                    )]
+                    
+                    if drive_service and folder_id:
+                        backend_helper.save_comments_database(drive_service, comments_df, folder_id)
+                        st.cache_data.clear()
+                        st.success("Comment deleted!")
+                        st.rerun()
+                    else:
+                        st.error("Google Drive not configured.")
+            st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+        else:
+            st.markdown(html, unsafe_allow_html=True)
+            st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
 # --- Add New Comment ---
 st.write("---")
