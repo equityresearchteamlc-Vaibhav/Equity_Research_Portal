@@ -108,17 +108,136 @@ pct_change_since = ((cmp - price_when_added) / price_when_added) * 100 if price_
 market_cap = live_data.get('market_cap_cr', 0.0) if live_data and live_data.get('market_cap_cr', 0.0) > 0 \
              else (mc_added * (cmp / price_when_added) if price_when_added > 0 else mc_added)
 
-# --- Deep-dive Stats ---
+# --- Deep-dive Stats (Custom Premium Cards with Perfect Alignment) ---
+st.markdown(
+    """
+    <style>
+    .metric-card {
+        background: rgba(17, 24, 39, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 130px;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+    }
+    .metric-card:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.15);
+        background: rgba(17, 24, 39, 0.6);
+        transform: translateY(-2px);
+    }
+    .metric-title {
+        font-size: 0.75rem;
+        color: rgba(249, 250, 251, 0.6);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0;
+    }
+    .metric-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 8px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
+    }
+    .metric-delta {
+        font-size: 0.72rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        width: fit-content;
+        margin-top: auto;
+    }
+    .delta-positive {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+    .delta-negative {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+    .delta-neutral {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(249, 250, 251, 0.7);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 col1, col2, col3, col4 = st.columns(4)
 
+# Card 1: CMP (Real-time)
+cmp_delta_class = "delta-positive" if pct_change >= 0 else "delta-negative"
+cmp_arrow = "▲" if pct_change >= 0 else "▼"
+cmp_delta_text = f"{cmp_arrow} {abs(pct_change):.2f}% / ₹{abs(rs_change):,.2f}"
+
+card_cmp_html = f"""
+<div class="metric-card">
+    <div class="metric-title">CMP (Real-time)</div>
+    <div class="metric-value">₹{cmp:,.2f}</div>
+    <div class="metric-delta {cmp_delta_class}">{cmp_delta_text}</div>
+</div>
+"""
+
+# Card 2: Real-time Market Cap
+card_mcap_html = f"""
+<div class="metric-card">
+    <div class="metric-title">Real-time Market Cap</div>
+    <div class="metric-value">₹{market_cap:,.2f} Cr</div>
+    <div class="metric-delta delta-neutral">📊 Live Cap</div>
+</div>
+"""
+
+# Card 3: Price When Added
+added_delta_class = "delta-positive" if pct_change_since >= 0 else "delta-negative"
+added_arrow = "▲" if pct_change_since >= 0 else "▼"
+added_delta_text = f"{added_arrow} {abs(pct_change_since):.2f}% since added"
+
+card_added_html = f"""
+<div class="metric-card">
+    <div class="metric-title">Price When Added</div>
+    <div class="metric-value">₹{price_when_added:,.2f}</div>
+    <div class="metric-delta {added_delta_class}">{added_delta_text}</div>
+</div>
+"""
+
+# Card 4: 52-Week Range
+try:
+    range_val = f"₹{float(low_52):,.2f} - ₹{float(high_52):,.2f}"
+except Exception:
+    range_val = f"₹{low_52} - ₹{high_52}"
+
+card_range_html = f"""
+<div class="metric-card">
+    <div class="metric-title">52-Week Range</div>
+    <div class="metric-value" style="font-size: 1.12rem; white-space: normal;">{range_val}</div>
+    <div class="metric-delta delta-neutral">📅 52-W Range</div>
+</div>
+"""
+
 with col1:
-    st.metric(label="CMP (Real-time)", value=f"₹{cmp:,.2f}", delta=f"{pct_change:.2f}% / ₹{rs_change:.2f}")
+    st.markdown(card_cmp_html, unsafe_allow_html=True)
 with col2:
-    st.metric(label="Real-time Market Cap", value=f"₹{market_cap:,.2f} Cr")
+    st.markdown(card_mcap_html, unsafe_allow_html=True)
 with col3:
-    st.metric(label="Price When Added", value=f"₹{price_when_added:,.2f}", delta=f"{pct_change_since:.2f}% since added", delta_color="normal")
+    st.markdown(card_added_html, unsafe_allow_html=True)
 with col4:
-    st.metric(label="52-Week Range", value=f"₹{low_52} - ₹{high_52}")
+    st.markdown(card_range_html, unsafe_allow_html=True)
 
 st.divider()
 
