@@ -155,6 +155,22 @@ def inject_custom_css():
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
             }
             
+            /* Force light text color globally on key containers for readability */
+            h1, h2, h3, h4, h5, h6, label, [data-testid="stWidgetLabel"] p, .stMarkdown p, [data-testid="stSidebarNavLink"] span, [data-testid="stSidebarNavLink"] p {
+                color: rgba(249, 250, 251, 0.95) !important;
+            }
+            
+            /* Active sidebar navigation link text color */
+            [data-testid="stSidebarNavLink"][aria-current="page"] span, [data-testid="stSidebarNavLink"][aria-current="page"] p {
+                color: #ffffff !important;
+                font-weight: 700 !important;
+            }
+            
+            /* Dropdowns and select inputs styling for readability */
+            div[data-baseweb="menu"] *, [data-testid="stVirtualDropdown"] *, [data-baseweb="select"] * {
+                color: #ffffff !important;
+            }
+            
             /* Main app background with subtle gradient */
             .stApp {
                 background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #141923 100%) !important;
