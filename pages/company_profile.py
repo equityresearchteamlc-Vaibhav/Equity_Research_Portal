@@ -4,6 +4,7 @@ import datetime
 import backend_helper
 import utils
 from streamlit_autorefresh import st_autorefresh
+import pytz
 
 # Auto-refresh every 5 minutes (300,000 ms)
 st_autorefresh(interval=300_000, key="company_profile_autorefresh")
@@ -297,6 +298,48 @@ if not comments_df.empty and 'Ticker' in comments_df.columns:
 else:
     ticker_comments = pd.DataFrame()
 
+def get_initials(name_or_username):
+    name_str = str(name_or_username).replace('.', ' ').replace('_', ' ').replace('-', ' ').strip()
+    parts = name_str.split()
+    if len(parts) >= 2:
+        return (parts[0][0] + parts[-1][0]).upper()
+    elif len(parts) == 1 and len(parts[0]) > 0:
+        import re
+        camel_parts = re.findall('[A-Z][^A-Z]*', parts[0])
+        if len(camel_parts) >= 2:
+            return (camel_parts[0][0] + camel_parts[-1][0]).upper()
+        return parts[0][:2].upper()
+    return "U"
+
+def get_avatar_color(name):
+    colors = [
+        "#3b82f6", # Blue
+        "#8b5cf6", # Purple
+        "#ec4899", # Pink
+        "#10b981", # Emerald
+        "#f59e0b", # Amber
+        "#ef4444", # Red
+        "#14b8a6", # Teal
+        "#6366f1"  # Indigo
+    ]
+    hash_val = sum(ord(c) for c in str(name))
+    return colors[hash_val % len(colors)]
+
+def get_user_display_info(username):
+    try:
+        import auth_manager
+        df = auth_manager.get_users_df()
+        matching_user = df[df['Email'].str.startswith(username + '@', na=False)]
+        if not matching_user.empty:
+            full_name = matching_user.iloc[0]['Name']
+            clean_name = full_name.replace(" (Admin)", "")
+            return clean_name, get_initials(clean_name), get_avatar_color(clean_name)
+    except Exception:
+        pass
+    
+    clean_username = username.replace('.', ' ').title()
+    return clean_username, get_initials(clean_username), get_avatar_color(clean_username)
+
 # Render Comments using HTML/CSS
 dark_mode_compatible_css = """
 <style>
@@ -313,6 +356,14 @@ dark_mode_compatible_css = """
     height: 40px; 
     border-radius: 50%; 
     margin-right: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    font-size: 0.95rem;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    flex-shrink: 0;
 }
 .comment-header {
     display: flex; 
@@ -345,14 +396,15 @@ if ticker_comments.empty:
     st.write("No comments yet. Be the first to share your thoughts!")
 else:
     for _, comment in ticker_comments.iterrows():
-        rating = int(comment.get('Rating', 5))
-        stars_str = "★" * rating + "☆" * (5 - rating)
+        user_name, initials, avatar_color = get_user_display_info(comment.get('User', 'analyst'))
+        rating = int(comment.get('Rating', 10))
+        stars_str = "★" * rating + "☆" * (10 - rating)
         html = f"""
         <div class="comment-box">
-            <img src="{comment.get('Avatar', 'https://api.dicebear.com/7.x/adventurer/svg?seed=user')}" class="comment-avatar">
+            <div class="comment-avatar" style="background-color: {avatar_color};">{initials}</div>
             <div style="flex-grow: 1;">
                 <div class="comment-header">
-                    <span class="comment-user">@{comment.get('User', 'analyst')}</span>
+                    <span class="comment-user">{user_name} (@{comment.get('User', 'analyst')})</span>
                     <span class="comment-time">{comment.get('Timestamp', '')}</span>
                 </div>
                 <div class="comment-stars">{stars_str}</div>
@@ -366,7 +418,7 @@ else:
 st.write("---")
 with st.form("new_comment_form", clear_on_submit=True):
     st.markdown("**Add your insight**")
-    new_rating = st.slider("Rating", 1, 5, 5)
+    new_rating = st.slider("Rating (1-10 Stars)", 1, 10, 10)
     new_comment = st.text_input("Write a comment...", placeholder="What are your thoughts on this company?")
     submit_comment = st.form_submit_button("Post Comment")
     
@@ -376,8 +428,8 @@ with st.form("new_comment_form", clear_on_submit=True):
             new_row = {
                 "Ticker": ticker,
                 "User": username,
-                "Avatar": f"https://api.dicebear.com/7.x/adventurer/svg?seed={username}",
-                "Timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Avatar": "",
+                "Timestamp": datetime.datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S"),
                 "Rating": new_rating,
                 "Text": new_comment
             }

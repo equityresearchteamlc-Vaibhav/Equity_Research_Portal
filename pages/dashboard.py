@@ -166,8 +166,7 @@ with st.form("upload_research_form"):
     with col_a:
         analyst_name = st.text_input(
             "Analyst Name",
-            value=st.session_state.user_email.split('@')[0].capitalize()
-                  if st.session_state.get('user_email') else 'Analyst'
+            value=st.session_state.get('user_name', 'Analyst')
         )
         company_name = st.text_input("Company Name", key=f"upload_company_name_{st.session_state.form_version}")
         ticker = st.text_input("Ticker Symbol (e.g., RELIANCE)", key=f"upload_ticker_{st.session_state.form_version}")
@@ -179,7 +178,9 @@ with st.form("upload_research_form"):
         industry = st.text_input("Industry / Sector", key=f"upload_industry_{st.session_state.form_version}")
         research_type = st.selectbox("Research Type", ["Fundamental only", "Technical only", "Both"])
         latest_qtr = st.text_input("Latest Qtr Result available (e.g., Q4 FY24)", key=f"upload_qtr_{st.session_state.form_version}")
-        date_submission = st.date_input("Date of submission", datetime.date.today())
+        import pytz
+        ist_today = datetime.datetime.now(pytz.timezone('Asia/Kolkata')).date()
+        date_submission = st.date_input("Date of submission", ist_today)
         rating = st.slider("Rating by Owner (1-10 Stars)", 1, 10, 5)
         comment_by_owner = st.text_area("Comment by Owner", key=f"upload_comment_{st.session_state.form_version}")
 
@@ -191,7 +192,7 @@ with st.form("upload_research_form"):
     submit_upload = st.form_submit_button("Submit Research & Sync to Drive", type="primary")
 
     if submit_upload:
-        if company_name and ticker:
+        if company_name and ticker and uploaded_file:
             if not drive_service or not folder_id:
                 st.error("Google Drive is not configured properly in st.secrets.")
             else:
@@ -263,6 +264,6 @@ with st.form("upload_research_form"):
                     status_placeholder.empty()
                     st.error(f"❌ Error: {e}")
         else:
-            st.error("Please fill in at least Company Name and Ticker.")
+            st.error("Please fill in all fields (Company Name, Ticker) and upload a research file.")
 
 
