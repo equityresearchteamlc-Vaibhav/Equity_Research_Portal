@@ -622,16 +622,8 @@ def render_page_header(title: str, subtitle: str = "", icon: str = "📊"):
     )
 
 
-_LOGO_BASE64_CACHE = None
-
-def _get_logo_base64() -> str:
-    global _LOGO_BASE64_CACHE
-    if _LOGO_BASE64_CACHE is not None:
-        return _LOGO_BASE64_CACHE
-        
-    import base64
+def _find_logo_path() -> str:
     from pathlib import Path
-    
     logo_file = "lingual_logo.png"
     
     # Try finding the file in several common directories
@@ -643,14 +635,30 @@ def _get_logo_base64() -> str:
     ]
     
     for path in possible_paths:
-        if path.exists():
-            try:
-                with open(path, "rb") as f:
-                    encoded = base64.b64encode(f.read()).decode()
-                    _LOGO_BASE64_CACHE = f"data:image/png;base64,{encoded}"
-                    return _LOGO_BASE64_CACHE
-            except Exception:
-                pass
+        if path.exists() and path.is_file():
+            return str(path.absolute())
+    return ""
+
+
+_LOGO_BASE64_CACHE = None
+
+def _get_logo_base64(resolved_path: str) -> str:
+    global _LOGO_BASE64_CACHE
+    if _LOGO_BASE64_CACHE is not None:
+        return _LOGO_BASE64_CACHE
+        
+    if not resolved_path:
+        _LOGO_BASE64_CACHE = ""
+        return ""
+        
+    import base64
+    try:
+        with open(resolved_path, "rb") as f:
+            encoded = base64.b64encode(f.read()).decode()
+            _LOGO_BASE64_CACHE = f"data:image/png;base64,{encoded}"
+            return _LOGO_BASE64_CACHE
+    except Exception:
+        pass
                 
     _LOGO_BASE64_CACHE = ""
     return ""
@@ -659,13 +667,14 @@ def _get_logo_base64() -> str:
 def render_lingual_logo(position: str = "top-right", show_tagline: bool = False):
     """
     Render the Lingual Consultancy logo using high-contrast base64 HTML injection.
-    Includes a native Streamlit image fallback if base64 processing is unavailable.
+    Includes an absolute path st.image fallback, and a text logo if the file is missing.
     
     Args:
         position: "top-right" for fixed floating corner placement, "center" for centered login placement
         show_tagline: If True, shows "Lingual Consultancy Services" below logo
     """
-    base64_logo = _get_logo_base64()
+    resolved_path = _find_logo_path()
+    base64_logo = _get_logo_base64(resolved_path)
     
     if position == "center":
         if base64_logo:
@@ -699,8 +708,8 @@ def render_lingual_logo(position: str = "top-right", show_tagline: bool = False)
                 """,
                 unsafe_allow_html=True
             )
-        else:
-            # Native Streamlit Fallback for Centered layout
+        elif resolved_path:
+            # Native Streamlit Fallback for Centered layout using verified absolute path
             col1, col2, col3 = st.columns([1.2, 2, 1.2])
             with col2:
                 with st.container():
@@ -720,7 +729,7 @@ def render_lingual_logo(position: str = "top-right", show_tagline: bool = False)
                         """,
                         unsafe_allow_html=True
                     )
-                    st.image("lingual_logo.png", use_column_width=True)
+                    st.image(resolved_path, use_column_width=True)
                     st.markdown("</div>", unsafe_allow_html=True)
             if show_tagline:
                 st.markdown(
@@ -738,6 +747,53 @@ def render_lingual_logo(position: str = "top-right", show_tagline: bool = False)
                     """,
                     unsafe_allow_html=True
                 )
+        else:
+            # Elegant text-based branding fallback if the logo file is entirely missing
+            st.markdown(
+                f"""
+                <div style="
+                    text-align: center;
+                    margin-bottom: 25px;
+                    margin-top: 10px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <div style="
+                        background: rgba(255, 255, 255, 0.95);
+                        padding: 20px 40px;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+                        display: inline-flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        border: 1px solid rgba(255, 255, 255, 0.3);
+                        margin-bottom: 8px;
+                    ">
+                        <span style="
+                            font-family: 'Inter', 'Segoe UI', sans-serif;
+                            font-size: 1.5rem;
+                            font-weight: 800;
+                            color: #0f75bc;
+                            letter-spacing: 1px;
+                        ">🌐 LINGUAL</span>
+                        <span style="
+                            font-family: 'Inter', 'Segoe UI', sans-serif;
+                            font-size: 0.8rem;
+                            font-weight: 700;
+                            color: #3a3a3c;
+                            letter-spacing: 4px;
+                            margin-top: 2px;
+                            text-transform: uppercase;
+                        ">Consultancy</span>
+                    </div>
+                    {"<p style='color: rgba(249, 250, 251, 0.75); font-family: \"Inter\", \"Segoe UI\", sans-serif; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.5px; margin-top: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);'>Lingual Consultancy Services</p>" if show_tagline else ""}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
     else:
         if base64_logo:
             # Fixed floating top-right badge with white high-contrast pill container (HTML/Base64)
@@ -787,8 +843,8 @@ def render_lingual_logo(position: str = "top-right", show_tagline: bool = False)
                 """,
                 unsafe_allow_html=True
             )
-        else:
-            # Native Streamlit Fallback for Top-Right (renders standard layout component)
+        elif resolved_path:
+            # Native Streamlit Fallback for Top-Right (renders standard layout component) using absolute path
             col1, col2 = st.columns([5, 1])
             with col2:
                 st.markdown(
@@ -806,5 +862,28 @@ def render_lingual_logo(position: str = "top-right", show_tagline: bool = False)
                     """,
                     unsafe_allow_html=True
                 )
-                st.image("lingual_logo.png", use_column_width=True)
+                st.image(resolved_path, use_column_width=True)
                 st.markdown("</div>", unsafe_allow_html=True)
+        else:
+            # Text fallback for top-right corner if the logo file is entirely missing
+            col1, col2 = st.columns([4.2, 1.8])
+            with col2:
+                st.markdown(
+                    """
+                    <div style="
+                        background: rgba(255, 255, 255, 0.95);
+                        padding: 6px 12px;
+                        border-radius: 12px;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                        border: 1px solid rgba(0, 0, 0, 0.05);
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                    ">
+                        <span style="font-family: 'Inter', sans-serif; font-size: 0.75rem; font-weight: 800; color: #0f75bc; letter-spacing: 0.5px;">🌐 LINGUAL</span>
+                        <span style="font-family: 'Inter', sans-serif; font-size: 0.45rem; font-weight: 700; color: #3a3a3c; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px;">Consultancy</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
