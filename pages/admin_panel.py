@@ -117,6 +117,22 @@ with tab_active:
                         else:
                             st.error("Failed to update user role.")
 
+                # Remove User Option (Confirm via expander to prevent accidental deletion)
+                is_self = row['Email'] == st.session_state.get("user_email")
+                if is_self:
+                    st.caption("ℹ️ *You cannot remove your own account.*")
+                elif is_primary:
+                    st.caption("ℹ️ *Primary Administrator account cannot be removed.*")
+                else:
+                    with st.expander(f"🗑️ Remove User Account ({row['Name']})"):
+                        st.warning(f"Are you sure you want to permanently delete **{row['Name']}** ({row['Email']})?")
+                        if st.button("🔥 Permanently Delete User", key=f"delete_user_{row['Email']}", type="primary", use_container_width=True):
+                            if auth_manager.remove_user(row['Email']):
+                                st.success(f"Successfully deleted {row['Name']}!")
+                                st.rerun()
+                            else:
+                                st.error("Failed to delete user.")
+
 # ==========================================
 # TAB 3: COMPANY DATABASE MANAGER
 # ==========================================
