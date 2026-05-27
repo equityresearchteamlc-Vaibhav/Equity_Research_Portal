@@ -118,22 +118,23 @@ with tab_active:
                     btn_label = "👤 Remove Admin" if is_user_admin else "👑 Make Admin"
                     btn_help = "Cannot demote primary admin" if is_primary else ("Remove administrator privileges" if is_user_admin else "Grant administrator privileges")
                     
-                    # Toggle Admin with MFA Expander
-                    with st.expander("👑 Toggle Admin"):
-                        role_mfa = st.text_input("MFA Code:", type="password", key=f"role_mfa_{row['Email']}", disabled=is_primary)
-                        if st.button(btn_label, key=f"toggle_admin_{row['Email']}", disabled=is_primary, help=btn_help, use_container_width=True):
-                            if not role_mfa:
-                                st.error("MFA code is required.")
-                            elif not auth_manager.verify_mfa(role_mfa):
-                                st.error("Invalid MFA code.")
-                            else:
-                                success, new_status = auth_manager.toggle_admin_status(row['Email'])
-                                if success:
-                                    role_action = "promoted to Admin" if new_status else "demoted to Analyst"
-                                    st.success(f"Successfully {role_action} {row['Email']}!")
-                                    st.rerun()
+                    # Toggle Admin with MFA Expander (Only show for other users)
+                    if not is_primary:
+                        with st.expander(btn_label):
+                            role_mfa = st.text_input("MFA Code:", type="password", key=f"role_mfa_{row['Email']}")
+                            if st.button(btn_label, key=f"toggle_admin_{row['Email']}", help=btn_help, use_container_width=True):
+                                if not role_mfa:
+                                    st.error("MFA code is required.")
+                                elif not auth_manager.verify_mfa(role_mfa):
+                                    st.error("Invalid MFA code.")
                                 else:
-                                    st.error("Failed to update user role.")
+                                    success, new_status = auth_manager.toggle_admin_status(row['Email'])
+                                    if success:
+                                        role_action = "promoted to Admin" if new_status else "demoted to Analyst"
+                                        st.success(f"Successfully {role_action} {row['Email']}!")
+                                        st.rerun()
+                                    else:
+                                        st.error("Failed to update user role.")
  
                 # Remove User Option (Confirm via expander to prevent accidental deletion + MFA)
                 is_self = row['Email'] == st.session_state.get("user_email")
