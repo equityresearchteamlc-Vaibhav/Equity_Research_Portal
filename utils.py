@@ -515,11 +515,20 @@ def inject_custom_css():
                 display: none !important;
             }
             
-            /* Hide Streamlit Header (Deploy, Fork, Menu, etc.) */
+            /* Make header background transparent so it integrates beautifully */
             header, [data-testid="stHeader"] {
+                background: transparent !important;
+                background-color: transparent !important;
+            }
+            
+            /* Hide Streamlit deploy button, connection status, and options menu to keep a clean interface */
+            [data-testid="stAppDeployButton"], 
+            [data-testid="stConnectionStatus"], 
+            #connection-status, 
+            [data-testid="stMainMenu"] {
                 display: none !important;
                 visibility: hidden !important;
-                height: 0px !important;
+                width: 0px !important;
             }
             
             /* Hide Streamlit footer, watermark, and host/viewer badges */
