@@ -45,6 +45,7 @@ def save_db(df):
     if service and folder_id:
         try:
             backend_helper.save_csv_database(service, df, folder_id, DB_FILE)
+            st.cache_data.clear()
         except Exception as e:
             print(f"Error saving {DB_FILE} to Google Drive: {e}")
 
