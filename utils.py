@@ -285,12 +285,15 @@ def inject_custom_css():
                 color: rgba(249, 250, 251, 0.6) !important;
                 text-transform: uppercase !important;
                 letter-spacing: 0.5px !important;
+                white-space: normal !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
             }
             div[data-testid="stMetricLabel"] * {
                 white-space: normal !important;
                 word-wrap: break-word !important;
                 overflow: visible !important;
-                text-overflow: unset !important;
+                text-overflow: clip !important;
             }
             
             /* Positive delta - green glow */
