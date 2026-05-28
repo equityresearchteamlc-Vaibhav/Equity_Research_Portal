@@ -16,19 +16,24 @@ _IST = pytz.timezone("Asia/Kolkata")
 _MARKET_OPEN  = datetime.time(9, 15)
 _MARKET_CLOSE = datetime.time(15, 30)
 
-# NSE public holidays 2025-26 (add more as needed)
+# NSE public holidays 2026 (Official List)
 _NSE_HOLIDAYS = {
-    datetime.date(2025, 10, 2),   # Gandhi Jayanti
-    datetime.date(2025, 10, 24),  # Dussehra
-    datetime.date(2025, 11, 5),   # Diwali Laxmi Puja
-    datetime.date(2025, 11, 6),   # Diwali Balipratipada
-    datetime.date(2025, 12, 25),  # Christmas
+    datetime.date(2026, 1, 15),   # Municipal Corporation Election – Maharashtra
     datetime.date(2026, 1, 26),   # Republic Day
-    datetime.date(2026, 2, 26),   # Maha Shivaratri
-    datetime.date(2026, 3, 20),   # Holi
-    datetime.date(2026, 4, 2),    # Ram Navami
+    datetime.date(2026, 3, 3),    # Holi
+    datetime.date(2026, 3, 26),   # Shri Ram Navami
+    datetime.date(2026, 3, 31),   # Shri Mahavir Jayanti
     datetime.date(2026, 4, 3),    # Good Friday
+    datetime.date(2026, 4, 14),   # Dr. Baba Saheb Ambedkar Jayanti
     datetime.date(2026, 5, 1),    # Maharashtra Day
+    datetime.date(2026, 5, 28),   # Bakri Id / Eid ul-Adha (Today!)
+    datetime.date(2026, 6, 26),   # Muharram
+    datetime.date(2026, 9, 14),   # Ganesh Chaturthi
+    datetime.date(2026, 10, 2),   # Gandhi Jayanti
+    datetime.date(2026, 10, 20),  # Dussehra
+    datetime.date(2026, 11, 10),  # Diwali Balipratipada
+    datetime.date(2026, 11, 24),  # Guru Nanak Jayanti
+    datetime.date(2026, 12, 25),  # Christmas
 }
 
 
