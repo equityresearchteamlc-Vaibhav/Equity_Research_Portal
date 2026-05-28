@@ -30,7 +30,7 @@ def get_angel_client(api_key, client_code, password, totp_secret):
         print(f"Error during Angel One authentication: {e}")
         return None
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600, show_spinner="Loading your data...")
 def fetch_master_contract():
     """
     Downloads Angel One's open-source master instrument JSON file.
