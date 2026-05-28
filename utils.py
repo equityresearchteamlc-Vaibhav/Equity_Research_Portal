@@ -193,6 +193,7 @@ def inject_custom_css():
             .stApp {
                 background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #141923 100%) !important;
                 background-attachment: fixed !important;
+                transition: background 0.5s ease-in-out !important;
             }
             
             /* ============================================ */
@@ -353,6 +354,14 @@ def inject_custom_css():
                 box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4) !important;
             }
             
+            button[kind="primary"]:disabled {
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.35) 0%, rgba(139, 92, 246, 0.35) 50%, rgba(236, 72, 153, 0.35) 100%) !important;
+                color: rgba(255, 255, 255, 0.4) !important;
+                border: none !important;
+                box-shadow: none !important;
+                cursor: not-allowed !important;
+            }
+            
             button[kind="secondary"] {
                 background: rgba(17, 24, 39, 0.8) !important;
                 border: 1px solid rgba(99, 102, 241, 0.3) !important;
@@ -462,6 +471,7 @@ def inject_custom_css():
                 background: linear-gradient(180deg, #0f1419 0%, #111827 100%) !important;
                 border-right: 1px solid rgba(99, 102, 241, 0.15) !important;
                 box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5) !important;
+                transition: background 0.5s ease-in-out !important;
             }
             
             section[data-testid="stSidebar"] > div {
