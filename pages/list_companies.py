@@ -23,7 +23,7 @@ utils.render_page_header(
 # Market status + refresh bar
 utils.render_status_bar(refresh_interval_secs=300)
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300, show_spinner="Loading your data...")
 def load_real_companies_db():
     try:
         drive_service = backend_helper.get_drive_service()
