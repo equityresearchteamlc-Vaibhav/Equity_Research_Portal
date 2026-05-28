@@ -38,23 +38,46 @@ except KeyError:
     st.error("⚠️ Angel One secrets not configured in .streamlit/secrets.toml!")
     client = None
 
-# --- Real Angel One Data Fetcher ---
-def get_real_index_data(obj):
+# --- Real Angel One Data Fetcher (Batch & Cached) ---
+@st.cache_data(ttl=30, show_spinner=False)
+def get_cached_index_data(_obj):
     fallback = {"cmp": 0, "pct_change": 0}
-    if not obj:
-        return {"NIFTY 50": fallback, "SENSEX": fallback, "NIFTY SMALLCAP 100": fallback}
-
-    nifty    = backend_helper.get_live_market_data(obj, "26000",    "NSE") or fallback
-    sensex   = backend_helper.get_live_market_data(obj, "99919000", "BSE") or fallback
-    smallcap = backend_helper.get_live_market_data(obj, "99926032", "NSE") or fallback
-
-    return {
-        "NIFTY 50": nifty,
-        "SENSEX": sensex,
-        "NIFTY SMALLCAP 100": smallcap
+    result = {
+        "NIFTY 50": fallback,
+        "SENSEX": fallback,
+        "NIFTY SMALLCAP 100": fallback
     }
+    if not _obj:
+        return result
 
-indices_data = get_real_index_data(client)
+    try:
+        # Batch request for Nifty 50, Sensex, and Smallcap 100 in a single network call
+        exchange_tokens = {
+            "NSE": ["26000", "99926032"],
+            "BSE": ["99919000"]
+        }
+        res = _obj.getMarketData("FULL", exchange_tokens)
+        if res and res.get('status') and res.get('data') and res['data'].get('fetched'):
+            for item in res['data']['fetched']:
+                token = item.get('token')
+                cmp = item.get('ltp', 0.0)
+                close = item.get('close', 0.0)
+                pct_change = ((cmp - close) / close * 100) if close != 0 else 0.0
+                
+                parsed_data = {"cmp": cmp, "pct_change": pct_change}
+                
+                if token == "26000":
+                    result["NIFTY 50"] = parsed_data
+                elif token == "99919000":
+                    result["SENSEX"] = parsed_data
+                elif token == "99926032":
+                    result["NIFTY SMALLCAP 100"] = parsed_data
+    except Exception as e:
+        print(f"Error fetching batch index data: {e}")
+        
+    return result
+
+indices_data = get_cached_index_data(client)
 
 # --- Total Companies Metric ---
 try:
