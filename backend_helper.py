@@ -99,7 +99,6 @@ def get_live_market_data(_obj, token, exchange="NSE"):
 
 # --- Google Drive Integration ---
 
-@st.cache_resource
 def get_drive_service():
     """
     Builds the Google Drive service client from st.secrets.
