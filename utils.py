@@ -230,6 +230,7 @@ def inject_custom_css():
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
                 position: relative !important;
                 overflow: hidden !important;
+                min-height: 135px !important;
             }
             
             /* Hover glow effect */
@@ -278,8 +279,12 @@ def inject_custom_css():
                 color: rgba(249, 250, 251, 0.6) !important;
                 text-transform: uppercase !important;
                 letter-spacing: 0.5px !important;
+            }
+            div[data-testid="stMetricLabel"] * {
                 white-space: normal !important;
                 word-wrap: break-word !important;
+                overflow: visible !important;
+                text-overflow: unset !important;
             }
             
             /* Positive delta - green glow */
