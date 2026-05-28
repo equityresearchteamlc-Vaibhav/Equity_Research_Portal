@@ -59,7 +59,7 @@ def get_cached_index_data(_obj):
         res = _obj.getMarketData("FULL", exchange_tokens)
         if res and res.get('status') and res.get('data') and res['data'].get('fetched'):
             for item in res['data']['fetched']:
-                token = item.get('token')
+                token = item.get('symbolToken') or item.get('token')
                 cmp = item.get('ltp', 0.0)
                 close = item.get('close', 0.0)
                 pct_change = ((cmp - close) / close * 100) if close != 0 else 0.0
