@@ -176,6 +176,16 @@ def inject_custom_css():
                 color: #ffffff !important;
             }
             
+            /* Force text input containers to have a dark background and white text */
+            div[data-baseweb="input"] {
+                background-color: rgba(17, 24, 39, 0.85) !important;
+                border: 1px solid rgba(99, 102, 241, 0.3) !important;
+                border-radius: 8px !important;
+            }
+            div[data-baseweb="input"] * {
+                color: #ffffff !important;
+            }
+            
             /* Force selectboxes to have a dark background in all themes for readability */
             div[data-baseweb="select"] > div {
                 background-color: rgba(17, 24, 39, 0.9) !important;
@@ -447,6 +457,9 @@ def inject_custom_css():
                 border: 1px solid rgba(99, 102, 241, 0.15) !important;
                 border-radius: 12px !important;
                 overflow: hidden !important;
+            }
+            div[data-testid="stDataFrame"] * {
+                color: #ffffff !important;
             }
             
             /* Table headers */
