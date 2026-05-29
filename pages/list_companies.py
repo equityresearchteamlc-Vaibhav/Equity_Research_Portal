@@ -8,7 +8,7 @@ from streamlit_autorefresh import st_autorefresh
 st_autorefresh(interval=300_000, key="list_companies_autorefresh")
 
 # Inject premium CSS styling
-utils.inject_custom_css()
+utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
 
 # Display Lingual logo in top right corner
 utils.render_lingual_logo(position="top-right", show_tagline=False)

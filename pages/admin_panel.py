@@ -8,7 +8,7 @@ import datetime
 import pandas as pd
 
 # Inject premium CSS styling
-utils.inject_custom_css()
+utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
 
 # Display Lingual logo in top right corner
 utils.render_lingual_logo(position="top-right", show_tagline=False)
