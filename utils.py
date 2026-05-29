@@ -73,18 +73,15 @@ def render_status_bar(refresh_interval_secs: int = 300):
 
     st.markdown(
         f"""
-        <div style="
+        <div class="custom-status-bar" style="
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 20px;
             padding: 12px 20px;
             border-radius: 12px;
-            background: linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%);
-            border: 1px solid rgba(99, 102, 241, 0.2);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
             font-size: 0.875rem;
             margin-bottom: 20px;
         ">
@@ -99,21 +96,19 @@ def render_status_bar(refresh_interval_secs: int = 300):
                 <span style="-webkit-text-fill-color: initial; text-fill-color: initial; display: inline-block;">{signal_emoji}</span>
                 {signal_text}
             </span>
-            <span style="
-                color: rgba(249, 250, 251, 0.85);
+            <span class="custom-status-bar-text" style="
                 display: flex;
                 align-items: center;
                 gap: 6px;
             ">
-                <span style="-webkit-text-fill-color: initial; text-fill-color: initial; font-style: normal; display: inline-block;">🕐</span> Last refreshed: <strong style="color: #f9fafb;">{last_str}</strong>
+                <span style="-webkit-text-fill-color: initial; text-fill-color: initial; font-style: normal; display: inline-block;">🕐</span> Last refreshed: <strong class="custom-status-bar-strong">{last_str}</strong>
             </span>
-            <span style="
-                color: rgba(249, 250, 251, 0.85);
+            <span class="custom-status-bar-text" style="
                 display: flex;
                 align-items: center;
                 gap: 6px;
             ">
-                <span style="-webkit-text-fill-color: initial; text-fill-color: initial; font-style: normal; display: inline-block;">⏱️</span> Next update: <strong style="color: #f9fafb;">{next_str}</strong>
+                <span style="-webkit-text-fill-color: initial; text-fill-color: initial; font-style: normal; display: inline-block;">⏱️</span> Next update: <strong class="custom-status-bar-strong">{next_str}</strong>
             </span>
         </div>
         """,
@@ -121,11 +116,7 @@ def render_status_bar(refresh_interval_secs: int = 300):
     )
 
 
-def inject_custom_css():
-    """Inject premium dark theme CSS with modern graphics and optimized performance."""
-    st.markdown(
-        """
-        <style>
+BASE_CSS = """
             /* ============================================ */
             /* PERFORMANCE OPTIMIZATIONS */
             /* ============================================ */
@@ -138,6 +129,98 @@ def inject_custom_css():
                 image-rendering: -webkit-optimize-contrast !important;
             }
             
+            /* Global Font Family & Emoji Support */
+            html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+            }
+            
+            [data-testid="stDecoration"] {
+                display: none !important;
+            }
+            
+            /* Make header background transparent so it integrates beautifully */
+            header, [data-testid="stHeader"] {
+                background: transparent !important;
+                background-color: transparent !important;
+            }
+            
+            /* Hide Streamlit deploy button, connection status, and options menu to keep a clean interface */
+            [data-testid="stAppDeployButton"], 
+            [data-testid="stConnectionStatus"], 
+            #connection-status, 
+            [data-testid="stMainMenu"] {
+                display: none !important;
+                visibility: hidden !important;
+                width: 0px !important;
+            }
+            
+            /* Hide Streamlit footer, watermark, and host/viewer badges */
+            footer, [data-testid="stViewerBadge"], .viewerBadge, .styles_viewerBadge__, [class*="viewerBadge"], [class*="styles_viewerBadge"] {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0px !important;
+            }
+            
+            /* Adjust top padding since header is hidden */
+            .main .block-container {
+                padding-top: 2rem !important;
+            }
+            
+            /* ============================================ */
+            /* DIVIDERS */
+            /* ============================================ */
+            hr {
+                border: none !important;
+                height: 1px !important;
+                margin: 2rem 0 !important;
+            }
+            
+            /* ============================================ */
+            /* ANIMATIONS */
+            /* ============================================ */
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 0.6; transform: scale(0.98); }
+                50% { opacity: 1; transform: scale(1.02); }
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            /* Apply fade-in to main content */
+            .main .block-container {
+                animation: fadeIn 0.5s ease-out !important;
+            }
+            
+            /* ============================================ */
+            /* SCROLLBAR */
+            /* ============================================ */
+            ::-webkit-scrollbar {
+                width: 10px !important;
+                height: 10px !important;
+            }
+            
+            ::-webkit-scrollbar-track {
+                background: rgba(17, 24, 39, 0.5) !important;
+            }
+            
+            ::-webkit-scrollbar-thumb {
+                background: linear-gradient(180deg, #3b82f6, #8b5cf6) !important;
+                border-radius: 5px !important;
+            }
+            
+            ::-webkit-scrollbar-thumb:hover {
+                background: linear-gradient(180deg, #2563eb, #7c3aed) !important;
+            }
+"""
+
+DARK_CSS = """
             /* ============================================ */
             /* DARK THEME BASE */
             /* ============================================ */
@@ -153,11 +236,6 @@ def inject_custom_css():
                 --accent-pink: #ec4899;
                 --success: #10b981;
                 --danger: #ef4444;
-            }
-            
-            /* Global Font Family & Emoji Support */
-            html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
             }
             
             /* Force light text color globally on key containers for readability */
@@ -206,9 +284,7 @@ def inject_custom_css():
                 transition: background 0.5s ease-in-out !important;
             }
             
-            /* ============================================ */
             /* ANIMATED BACKGROUND PARTICLES */
-            /* ============================================ */
             .stApp::before {
                 content: "" !important;
                 position: fixed !important;
@@ -495,101 +571,6 @@ def inject_custom_css():
             }
             
             /* ============================================ */
-            /* LOADING OVERLAY - FULL SCREEN */
-            /* ============================================ */
-            div[data-testid="stStatusWidget"] {
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 100vw !important;
-                height: 100vh !important;
-                background: rgba(10, 14, 26, 0.95) !important;
-                backdrop-filter: blur(12px) !important;
-                -webkit-backdrop-filter: blur(12px) !important;
-                display: flex !important;
-                justify-content: center !important;
-                align-items: center !important;
-                z-index: 999999 !important;
-            }
-            
-            div[data-testid="stStatusWidget"] > div {
-                display: none !important;
-            }
-            
-            /* Animated spinner */
-            div[data-testid="stStatusWidget"]::before {
-                content: "" !important;
-                width: 80px !important;
-                height: 80px !important;
-                border: 4px solid rgba(255, 255, 255, 0.05) !important;
-                border-top: 4px solid #3b82f6 !important;
-                border-right: 4px solid #8b5cf6 !important;
-                border-bottom: 4px solid #ec4899 !important;
-                border-radius: 50% !important;
-                animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite !important;
-                box-shadow: 
-                    0 0 20px rgba(139, 92, 246, 0.4),
-                    inset 0 0 20px rgba(59, 130, 246, 0.2) !important;
-                position: absolute !important;
-            }
-            
-            div[data-testid="stStatusWidget"]::after {
-                content: "Loading Your Data..." !important;
-                font-family: 'Inter', 'Segoe UI', sans-serif !important;
-                font-size: 1.1rem !important;
-                font-weight: 600 !important;
-                background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899) !important;
-                -webkit-background-clip: text !important;
-                -webkit-text-fill-color: transparent !important;
-                margin-top: 140px !important;
-                letter-spacing: 0.5px !important;
-                animation: pulse 1.5s ease-in-out infinite !important;
-                position: absolute !important;
-            }
-            
-            [data-testid="stDecoration"] {
-                display: none !important;
-            }
-            
-            /* Make header background transparent so it integrates beautifully */
-            header, [data-testid="stHeader"] {
-                background: transparent !important;
-                background-color: transparent !important;
-            }
-            
-            /* Hide Streamlit deploy button, connection status, and options menu to keep a clean interface */
-            [data-testid="stAppDeployButton"], 
-            [data-testid="stConnectionStatus"], 
-            #connection-status, 
-            [data-testid="stMainMenu"] {
-                display: none !important;
-                visibility: hidden !important;
-                width: 0px !important;
-            }
-            
-            /* Hide Streamlit footer, watermark, and host/viewer badges */
-            footer, [data-testid="stViewerBadge"], .viewerBadge, .styles_viewerBadge__, [class*="viewerBadge"], [class*="styles_viewerBadge"] {
-                display: none !important;
-                visibility: hidden !important;
-                height: 0px !important;
-            }
-            
-            /* Adjust top padding since header is hidden */
-            .main .block-container {
-                padding-top: 2rem !important;
-            }
-            
-            /* ============================================ */
-            /* DIVIDERS */
-            /* ============================================ */
-            hr {
-                border: none !important;
-                height: 1px !important;
-                background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent) !important;
-                margin: 2rem 0 !important;
-            }
-            
-            /* ============================================ */
             /* TABS */
             /* ============================================ */
             button[data-baseweb="tab"] {
@@ -611,53 +592,318 @@ def inject_custom_css():
                 background: linear-gradient(180deg, transparent, rgba(99, 102, 241, 0.1)) !important;
             }
             
+            hr {
+                background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent) !important;
+            }
+            
+            /* Status Bar - Dark */
+            .custom-status-bar {
+                background: linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%) !important;
+                border: 1px solid rgba(99, 102, 241, 0.2) !important;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+            }
+            .custom-status-bar-text {
+                color: rgba(249, 250, 251, 0.85) !important;
+            }
+            .custom-status-bar-strong {
+                color: #f9fafb !important;
+            }
+            
+            /* Page Subtitle - Dark */
+            .custom-page-subtitle {
+                color: rgba(249, 250, 251, 0.6) !important;
+            }
+"""
+
+LIGHT_CSS = """
             /* ============================================ */
-            /* ANIMATIONS */
+            /* LIGHT THEME BASE */
             /* ============================================ */
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
+            .stApp {
+                background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 50%, #d1d5db 100%) !important;
+                background-attachment: fixed !important;
+                transition: background 0.5s ease-in-out !important;
             }
             
-            @keyframes pulse {
-                0%, 100% { opacity: 0.6; transform: scale(0.98); }
-                50% { opacity: 1; transform: scale(1.02); }
+            /* Force light-theme dark text color globally for readability */
+            h1, h2, h3, h4, h5, h6, label, [data-testid="stWidgetLabel"] p, .stMarkdown p, .stMarkdown li, [data-testid="stSidebarNavLink"] span, [data-testid="stSidebarNavLink"] p {
+                color: #1f2937 !important;
             }
             
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(10px); }
-                to { opacity: 1; transform: translateY(0); }
+            /* Active sidebar navigation link text color */
+            [data-testid="stSidebarNavLink"][aria-current="page"] span, [data-testid="stSidebarNavLink"][aria-current="page"] p {
+                color: #111827 !important;
+                font-weight: 700 !important;
             }
             
-            /* Apply fade-in to main content */
-            .main .block-container {
-                animation: fadeIn 0.5s ease-out !important;
+            /* Dropdowns and select inputs styling for readability in light mode */
+            div[data-baseweb="menu"] *, [data-testid="stVirtualDropdown"] *, [data-baseweb="select"] * {
+                color: #1f2937 !important;
+            }
+            
+            /* Force text input containers to have a light background and dark text */
+            div[data-baseweb="input"] {
+                background-color: #ffffff !important;
+                border: 1px solid rgba(0, 0, 0, 0.15) !important;
+                border-radius: 8px !important;
+            }
+            div[data-baseweb="input"] * {
+                color: #1f2937 !important;
+            }
+            
+            /* Force selectboxes to have a light background in light theme */
+            div[data-baseweb="select"] > div {
+                background-color: #ffffff !important;
+                border: 1px solid rgba(0, 0, 0, 0.15) !important;
+            }
+            
+            /* Force dropdown menus to have a light background in light theme */
+            div[data-baseweb="menu"] {
+                background-color: #ffffff !important;
+                border: 1px solid rgba(0, 0, 0, 0.1) !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
             }
             
             /* ============================================ */
-            /* SCROLLBAR */
+            /* METRIC CARDS - LIGHT GLASSMORPHISM */
             /* ============================================ */
-            ::-webkit-scrollbar {
-                width: 10px !important;
-                height: 10px !important;
+            div[data-testid="stMetric"] {
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(243, 244, 246, 0.7) 100%) !important;
+                border: 1px solid rgba(0, 0, 0, 0.08) !important;
+                border-radius: 16px !important;
+                padding: 18px 20px !important;
+                backdrop-filter: blur(10px) !important;
+                -webkit-backdrop-filter: blur(10px) !important;
+                box-shadow: 
+                    0 4px 20px rgba(0, 0, 0, 0.05),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+                min-height: 135px !important;
             }
             
-            ::-webkit-scrollbar-track {
-                background: rgba(17, 24, 39, 0.5) !important;
+            div[data-testid="stMetric"]:hover {
+                transform: translateY(-4px) scale(1.02) !important;
+                border-color: rgba(99, 102, 241, 0.3) !important;
+                box-shadow: 
+                    0 8px 24px rgba(99, 102, 241, 0.1),
+                    0 0 0 1px rgba(99, 102, 241, 0.15) !important;
             }
             
-            ::-webkit-scrollbar-thumb {
-                background: linear-gradient(180deg, #3b82f6, #8b5cf6) !important;
-                border-radius: 5px !important;
+            div[data-testid="stMetricValue"] {
+                font-size: 1.4rem !important;
+                font-weight: 700 !important;
+                color: #111827 !important;
+                margin-top: 4px !important;
+                letter-spacing: -0.5px !important;
+                white-space: normal !important;
+                word-wrap: break-word !important;
+                overflow: visible !important;
+                line-height: 1.3 !important;
             }
             
-            ::-webkit-scrollbar-thumb:hover {
-                background: linear-gradient(180deg, #2563eb, #7c3aed) !important;
+            div[data-testid="stMetricLabel"] {
+                font-size: 0.875rem !important;
+                font-weight: 600 !important;
+                color: #4b5563 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.5px !important;
+                white-space: normal !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
             }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+            div[data-testid="stMetricLabel"] * {
+                white-space: normal !important;
+                word-wrap: break-word !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
+            }
+            
+            /* Positive delta - green */
+            div[data-testid="stMetricDelta"] > div[data-testid="stMetricDeltaIcon-Up"] {
+                color: #10b981 !important;
+            }
+            div[data-testid="stMetricDelta"] > div:has(div[data-testid="stMetricDeltaIcon-Up"]) {
+                color: #10b981 !important;
+            }
+            
+            /* Negative delta - red */
+            div[data-testid="stMetricDelta"] > div[data-testid="stMetricDeltaIcon-Down"] {
+                color: #ef4444 !important;
+            }
+            div[data-testid="stMetricDelta"] > div:has(div[data-testid="stMetricDeltaIcon-Down"]) {
+                color: #ef4444 !important;
+            }
+            
+            /* ============================================ */
+            /* BUTTONS - LIGHT THEME STYLE */
+            /* ============================================ */
+            button[kind="primary"] {
+                background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%) !important;
+                background-size: 200% 200% !important;
+                border: none !important;
+                color: white !important;
+                font-weight: 600 !important;
+                border-radius: 10px !important;
+                padding: 0.6rem 1.5rem !important;
+                box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2) !important;
+            }
+            button[kind="primary"]:hover {
+                background-position: 100% 0 !important;
+                transform: translateY(-2px) !important;
+                box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3) !important;
+            }
+            button[kind="secondary"] {
+                background: #ffffff !important;
+                border: 1px solid rgba(0, 0, 0, 0.15) !important;
+                color: #1f2937 !important;
+                border-radius: 10px !important;
+                transition: all 0.3s ease !important;
+            }
+            button[kind="secondary"]:hover {
+                background: #f9fafb !important;
+                border-color: rgba(0, 0, 0, 0.25) !important;
+                transform: translateY(-1px) !important;
+            }
+            
+            /* ============================================ */
+            /* FORMS - LIGHT GLASSMORPHISM */
+            /* ============================================ */
+            div[data-testid="stForm"] {
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(249, 250, 251, 0.6) 100%) !important;
+                border: 1px solid rgba(0, 0, 0, 0.08) !important;
+                border-radius: 20px !important;
+                padding: 2rem !important;
+                backdrop-filter: blur(12px) !important;
+                -webkit-backdrop-filter: blur(12px) !important;
+                box-shadow: 
+                    0 8px 32px rgba(0, 0, 0, 0.05),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+            }
+            
+            /* Input fields */
+            input, textarea, select {
+                background: #ffffff !important;
+                border: 1px solid rgba(0, 0, 0, 0.15) !important;
+                border-radius: 8px !important;
+                color: #1f2937 !important;
+                transition: all 0.3s ease !important;
+            }
+            input:focus, textarea:focus, select:focus {
+                border-color: #3b82f6 !important;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+                outline: none !important;
+            }
+            
+            div[data-testid="stFileUploader"] > section {
+                background-color: #f9fafb !important;
+                border: 1px dashed rgba(0, 0, 0, 0.15) !important;
+            }
+            div[data-testid="stFileUploader"] * {
+                color: #4b5563 !important;
+            }
+            div[data-testid="stSlider"] [role="slider"] {
+                background-color: #3b82f6 !important;
+            }
+            div[data-testid="stSlider"] > div > div {
+                background-color: rgba(59, 130, 246, 0.2) !important;
+            }
+            
+            /* ============================================ */
+            /* DATAFRAME - LIGHT THEME */
+            /* ============================================ */
+            div[data-testid="stDataFrame"] {
+                background: #ffffff !important;
+                border: 1px solid rgba(0, 0, 0, 0.08) !important;
+                border-radius: 12px !important;
+                overflow: hidden !important;
+            }
+            div[data-testid="stDataFrame"] * {
+                color: #1f2937 !important;
+            }
+            .stDataFrame thead tr th {
+                background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
+                color: #111827 !important;
+                font-weight: 600 !important;
+                border-bottom: 2px solid rgba(0, 0, 0, 0.1) !important;
+            }
+            .stDataFrame tbody tr {
+                background: #ffffff !important;
+                transition: background 0.2s ease !important;
+            }
+            .stDataFrame tbody tr:hover {
+                background: #f3f4f6 !important;
+            }
+            
+            /* ============================================ */
+            /* SIDEBAR - LIGHT GRADIENT */
+            /* ============================================ */
+            section[data-testid="stSidebar"] {
+                background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%) !important;
+                border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+                box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05) !important;
+                transition: background 0.5s ease-in-out !important;
+            }
+            
+            hr {
+                background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent) !important;
+            }
+            
+            /* ============================================ */
+            /* TABS - LIGHT */
+            /* ============================================ */
+            button[data-baseweb="tab"] {
+                background: transparent !important;
+                border-bottom: 2px solid transparent !important;
+                color: #4b5563 !important;
+                font-weight: 600 !important;
+                transition: all 0.3s ease !important;
+            }
+            button[data-baseweb="tab"]:hover {
+                color: #111827 !important;
+                border-bottom-color: rgba(0, 0, 0, 0.2) !important;
+            }
+            button[data-baseweb="tab"][aria-selected="true"] {
+                color: #111827 !important;
+                border-bottom-color: #3b82f6 !important;
+                background: linear-gradient(180deg, transparent, rgba(59, 130, 246, 0.05)) !important;
+            }
+            
+            /* Status Bar - Light */
+            .custom-status-bar {
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(243, 244, 246, 0.7) 100%) !important;
+                border: 1px solid rgba(0, 0, 0, 0.08) !important;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+            }
+            .custom-status-bar-text {
+                color: #4b5563 !important;
+            }
+            .custom-status-bar-strong {
+                color: #111827 !important;
+            }
+            
+            /* Page Subtitle - Light */
+            .custom-page-subtitle {
+                color: #4b5563 !important;
+            }
+"""
+
+
+def inject_custom_css(theme: str = "Dark"):
+    """
+    Inject custom theme CSS based on user selection: 'Dark', 'Light', or 'System'.
+    'System' utilizes media queries to respect the OS preference dynamically.
+    """
+    theme = str(theme).strip().lower()
+    
+    css_to_inject = BASE_CSS
+    if theme == "light":
+        css_to_inject += LIGHT_CSS
+    elif theme == "system":
+        css_to_inject += "\\n@media (prefers-color-scheme: dark) {\\n" + DARK_CSS + "\\n}\\n"
+        css_to_inject += "\\n@media (prefers-color-scheme: light) {\\n" + LIGHT_CSS + "\\n}\\n"
+    else:  # dark (default)
+        css_to_inject += DARK_CSS
+        
+    st.markdown(f"<style>{css_to_inject}</style>", unsafe_allow_html=True)
 
 
 def optimize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -692,7 +938,7 @@ def render_page_header(title: str, subtitle: str = "", icon: str = "📊"):
     """
     Render a modern page header with gradient title and optional subtitle.
     """
-    subtitle_html = f'<p style="color: rgba(249, 250, 251, 0.6); font-size: 1rem; margin-top: 8px; font-weight: 500;">{subtitle}</p>' if subtitle else ""
+    subtitle_html = f'<p class="custom-page-subtitle" style="font-size: 1rem; margin-top: 8px; font-weight: 500;">{subtitle}</p>' if subtitle else ""
     
     st.markdown(
         f"""

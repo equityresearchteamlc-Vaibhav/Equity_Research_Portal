@@ -24,6 +24,8 @@ if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
 if "cookie_checked" not in st.session_state:
     st.session_state.cookie_checked = False
+if "app_theme" not in st.session_state:
+    st.session_state.app_theme = "Dark"
 
 # -------------------------------------------------
 # Restore login from cookie (runs on every reload)
@@ -108,7 +110,7 @@ if not st.session_state.authenticated:
 # -------------------------------------------------
 def login_register():
     import utils
-    utils.inject_custom_css()
+    utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
     
     # Display Lingual Consultancy logo at the top center
     utils.render_lingual_logo(position="center", show_tagline=True)
@@ -385,6 +387,12 @@ else:
 
     with st.sidebar:
         st.markdown(f"**Logged in as:** {st.session_state.user_name}")
+        st.selectbox(
+            "🎨 App Theme",
+            options=["Dark", "Light", "System"],
+            key="app_theme"
+        )
+        st.write("")
         st.button("Logout", on_click=logout, type="primary")
 
     pg.run()
