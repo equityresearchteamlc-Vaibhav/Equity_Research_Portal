@@ -161,7 +161,7 @@ def inject_custom_css():
             }
             
             /* Force light text color globally on key containers for readability */
-            h1, h2, h3, h4, h5, h6, label, [data-testid="stWidgetLabel"] p, .stMarkdown p, [data-testid="stSidebarNavLink"] span, [data-testid="stSidebarNavLink"] p {
+            h1, h2, h3, h4, h5, h6, label, [data-testid="stWidgetLabel"] p, .stMarkdown p, .stMarkdown li, [data-testid="stSidebarNavLink"] span, [data-testid="stSidebarNavLink"] p {
                 color: rgba(249, 250, 251, 0.95) !important;
             }
             
