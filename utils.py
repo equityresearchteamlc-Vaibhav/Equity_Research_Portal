@@ -75,8 +75,9 @@ def render_status_bar(refresh_interval_secs: int = 300):
         f"""
         <div class="custom-status-bar" style="
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             gap: 20px;
             padding: 12px 20px;
             border-radius: 12px;
@@ -907,24 +908,33 @@ GOT_CSS = """
 
             /* Typography & Headings */
             h1, h2, h3, h4, h5, h6, .custom-page-subtitle, [data-testid="stSidebarNavLink"] span, [data-testid="stSidebarNavLink"] p {
-                font-family: 'Cinzel', 'Marcellus', serif !important;
+                font-family: 'Cinzel', 'Marcellus', serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
                 color: #dfd5c6 !important;
             }
 
             /* Special Title styling */
-            h1 span {
+            h1 span.custom-header-title {
                 background: linear-gradient(135deg, #b59450 0%, #e5d5b7 50%, #9a783e 100%) !important;
                 -webkit-background-clip: text !important;
                 -webkit-text-fill-color: transparent !important;
                 text-shadow: 0 0 15px rgba(181, 148, 80, 0.2) !important;
                 font-weight: 700 !important;
+                display: inline-block !important;
+            }
+
+            h1 span.custom-header-icon {
+                -webkit-text-fill-color: initial !important;
+                text-fill-color: initial !important;
+                background: transparent !important;
+                display: inline-block !important;
             }
 
             body, p, li, label, [data-testid="stWidgetLabel"] p, .stMarkdown p, .stMarkdown li {
-                font-family: 'Cormorant Garamond', serif !important;
+                font-family: 'Cormorant Garamond', serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
                 font-size: 1.15rem !important;
                 color: #dfd5c6 !important;
             }
+
 
             /* Force light text color globally on key containers for readability */
             label, [data-testid="stWidgetLabel"] p {
@@ -1028,11 +1038,25 @@ GOT_CSS = """
             }
 
             div[data-testid="stMetricLabel"] {
-                font-family: 'Cinzel', serif !important;
+                font-family: 'Cinzel', serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
                 font-size: 0.85rem !important;
                 color: rgba(181, 148, 80, 0.8) !important;
                 letter-spacing: 1px !important;
+                white-space: normal !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
             }
+
+            div[data-testid="stMetricLabel"] > div, 
+            div[data-testid="stMetricLabel"] *, 
+            div[data-testid="stMetricValue"] *, 
+            div[data-testid="stMetric"] label, 
+            div[data-testid="stMetric"] * {
+                white-space: normal !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
+            }
+
 
             /* Delta coloring */
             div[data-testid="stMetricDelta"] > div[data-testid="stMetricDeltaIcon-Up"] {
@@ -1278,12 +1302,12 @@ def render_page_header(title: str, subtitle: str = "", icon: str = "📊"):
                 align-items: center;
                 gap: 12px;
             ">
-                <span style="
+                <span class="custom-header-icon" style="
                     -webkit-text-fill-color: initial; 
                     text-fill-color: initial;
                     display: inline-block;
                 ">{icon}</span>
-                <span style="
+                <span class="custom-header-title" style="
                     background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;

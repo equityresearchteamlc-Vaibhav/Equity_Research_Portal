@@ -115,6 +115,12 @@ def login_register():
     # Display Lingual Consultancy logo at the top center
     utils.render_lingual_logo(position="center", show_tagline=True)
     
+    # Display Game of Thrones banner if theme is selected
+    if st.session_state.get("app_theme", "Dark") == "Game of Thrones":
+        import os
+        if os.path.exists("got_banner.png"):
+            st.image("got_banner.png", use_container_width=True)
+    
     # Additional CSS for login page specifically
     st.markdown(
         """

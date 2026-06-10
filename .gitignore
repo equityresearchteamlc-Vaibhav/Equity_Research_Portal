@@ -23,4 +23,8 @@ __pycache__/
 # Listed companies cache
 listed_companies_cache*.csv
 
+# Game of Thrones banner asset
+got_banner.png
+
+
 
