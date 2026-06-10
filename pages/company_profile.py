@@ -291,6 +291,51 @@ st.divider()
 # --- Team Discussion (Drive Backed) ---
 st.subheader("💬 Team Discussion")
 
+def handle_post_comment(service, fid):
+    new_comment = st.session_state.get("new_comment_text", "").strip()
+    new_rating = st.session_state.get("new_comment_rating", 10)
+    
+    if not new_comment:
+        return
+        
+    if service and fid:
+        username = st.session_state.get("user_email", "user@firm.com").split('@')[0]
+        new_row = {
+            "Ticker": ticker,
+            "User": username,
+            "Avatar": "",
+            "Timestamp": datetime.datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S"),
+            "Rating": new_rating,
+            "Text": new_comment
+        }
+        
+        st.session_state.local_comments.append(new_row)
+        
+        df = backend_helper.load_comments_database(service, fid)
+        import pandas as pd
+        if df.empty:
+            full_comments_df = pd.DataFrame([new_row])
+        else:
+            full_comments_df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+            
+        import threading
+        
+        def save_comments_async(s, d, f):
+            backend_helper.save_comments_database(s, d, f)
+            backend_helper.load_csv_database.clear()
+            
+        upload_thread = threading.Thread(
+            target=save_comments_async,
+            args=(service, full_comments_df, fid)
+        )
+        upload_thread.daemon = True
+        upload_thread.start()
+        
+        # Clear inputs in session state before widget rendering to avoid StreamlitAPIException
+        st.session_state.new_comment_text = ""
+        st.session_state.new_comment_rating = 10
+        st.session_state.comment_success_message = "Comment posted!"
+
 try:
     drive_service = backend_helper.get_drive_service()
     folder_id = st.secrets["google_drive"]["folder_id"]
@@ -519,47 +564,8 @@ st.write("---")
 st.markdown("**Add your insight**")
 new_rating = st.slider("Rating (1-10 Stars)", 1, 10, 10, key="new_comment_rating")
 new_comment = st.text_input("Write a comment...", placeholder="What are your thoughts on this company?", key="new_comment_text")
-submit_comment = st.button("Post Comment", type="primary")
+st.button("Post Comment", type="primary", on_click=handle_post_comment, args=(drive_service, folder_id))
 
-if submit_comment and new_comment:
-    if drive_service and folder_id:
-        username = st.session_state.get("user_email", "user@firm.com").split('@')[0]
-        new_row = {
-            "Ticker": ticker,
-            "User": username,
-            "Avatar": "",
-            "Timestamp": datetime.datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S"),
-            "Rating": new_rating,
-            "Text": new_comment
-        }
-        
-        # Instantly append to session state local comments so it displays instantly
-        st.session_state.local_comments.append(new_row)
-        
-        import pandas as pd
-        if comments_df.empty:
-            full_comments_df = pd.DataFrame([new_row])
-        else:
-            full_comments_df = pd.concat([comments_df, pd.DataFrame([new_row])], ignore_index=True)
-            
-        import threading
-        
-        def save_comments_async(service, df, fid):
-            backend_helper.save_comments_database(service, df, fid)
-            backend_helper.load_csv_database.clear()
-            
-        upload_thread = threading.Thread(
-            target=save_comments_async,
-            args=(drive_service, full_comments_df, folder_id)
-        )
-        upload_thread.daemon = True
-        upload_thread.start()
-        
-        # Clear the inputs in session state
-        st.session_state.new_comment_text = ""
-        st.session_state.new_comment_rating = 10
-        
-        st.success("Comment posted!")
-        st.rerun()
-    else:
-        st.error("Google Drive not configured.")
+if st.session_state.get("comment_success_message"):
+    st.success(st.session_state.comment_success_message)
+    st.session_state.comment_success_message = ""
