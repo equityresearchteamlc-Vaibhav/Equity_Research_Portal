@@ -444,7 +444,7 @@ dark_mode_compatible_css = """
     font-weight: bold;
     color: white;
     font-size: 0.95rem;
-    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-family: 'Calibri', 'Calibri', sans-serif;
     flex-shrink: 0;
 }
 .comment-header {
@@ -467,7 +467,7 @@ dark_mode_compatible_css = """
 }
 .comment-text {
     color: var(--text-color); 
-    font-family: sans-serif;
+    font-family: 'Calibri', sans-serif;
 }
 </style>
 """
