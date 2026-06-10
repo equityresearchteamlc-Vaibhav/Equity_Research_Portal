@@ -45,7 +45,7 @@ def save_db(df):
     if service and folder_id:
         try:
             backend_helper.save_csv_database(service, df, folder_id, DB_FILE)
-            st.cache_data.clear()
+            backend_helper.load_csv_database.clear()
         except Exception as e:
             print(f"Error saving {DB_FILE} to Google Drive: {e}")
 
@@ -179,13 +179,21 @@ def get_user_by_email(email):
 def update_user_activity(email):
     import datetime
     import pytz
+    
+    # Throttle: Only update activity on Google Drive at most once every 10 minutes
+    now = datetime.datetime.now(pytz.timezone('Asia/Kolkata'))
+    last_update = st.session_state.get("last_activity_update")
+    if last_update and (now - last_update).total_seconds() < 600:
+        return True
+        
     df = get_users_df()
     idx = df[df['Email'] == email].index
     if not idx.empty:
         # Cast Last_Seen to object type to support string assignment on empty/float columns
         df['Last_Seen'] = df['Last_Seen'].astype(object)
-        df.loc[idx, 'Last_Seen'] = datetime.datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S")
+        df.loc[idx, 'Last_Seen'] = now.strftime("%Y-%m-%d %H:%M:%S")
         save_db(df)
+        st.session_state.last_activity_update = now
         return True
     return False
 

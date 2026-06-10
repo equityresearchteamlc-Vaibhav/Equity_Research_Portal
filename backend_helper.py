@@ -97,8 +97,59 @@ def get_live_market_data(_obj, token, exchange="NSE"):
         print(f"Error fetching market data: {e}")
         return None
 
+@st.cache_data(ttl=15, show_spinner=False)
+def get_live_market_data_batch(_obj, token_exchange_pairs):
+    """
+    Fetches real-time market data for multiple tokens in a single batch request.
+    token_exchange_pairs is a list/set/tuple of (token, exchange) pairs.
+    """
+    if not _obj or not token_exchange_pairs:
+        return {}
+    
+    # Group tokens by exchange
+    exchange_tokens = {}
+    for token, exchange in token_exchange_pairs:
+        if token:
+            exchange_tokens.setdefault(exchange, []).append(str(token))
+            
+    if not exchange_tokens:
+        return {}
+        
+    try:
+        res = _obj.getMarketData("FULL", exchange_tokens)
+        result_map = {}
+        if res and res.get('status') and res.get('data') and res['data'].get('fetched'):
+            for item in res['data']['fetched']:
+                token = item.get('symbolToken') or item.get('token')
+                if not token:
+                    continue
+                cmp = item.get('ltp', 0.0)
+                high_52 = item.get('52weekhigh', item.get('high52', 0.0))
+                low_52 = item.get('52weeklow', item.get('low52', 0.0))
+                close = item.get('close', 0.0)
+                raw_mc = item.get('marketCap', 0.0) or 0.0
+                market_cap_cr = raw_mc / 10_000_000
+                pct_change = ((cmp - close) / close * 100) if close != 0 else 0.0
+                
+                result_map[str(token)] = {
+                    "cmp": cmp,
+                    "52w_high": high_52,
+                    "52w_low": low_52,
+                    "pct_change": pct_change,
+                    "close": close,
+                    "market_cap_cr": market_cap_cr
+                }
+            return result_map
+        else:
+            print("Failed to fetch live batch data")
+            return {}
+    except Exception as e:
+        print(f"Error fetching batch market data: {e}")
+        return {}
+
 # --- Google Drive Integration ---
 
+@st.cache_resource
 def get_drive_service():
     """
     Builds the Google Drive service client from st.secrets.
