@@ -44,17 +44,18 @@ def fetch_master_contract():
         print(f"Error fetching master contract: {e}")
         return pd.DataFrame()
 
-def get_token_id(df, ticker, exchange="NSE"):
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_token_id(_df, ticker, exchange="NSE"):
     """
     Maps a stock ticker to its correct Token ID.
     Example ticker format: 'RELIANCE-EQ' or just 'RELIANCE'.
     """
     if exchange == "NSE":
         # Usually NSE equities end with '-EQ' in the symbol
-        res = df[(df['name'] == ticker) & (df['exch_seg'] == exchange) & (df['symbol'].str.endswith('-EQ'))]
+        res = _df[(_df['name'] == ticker) & (_df['exch_seg'] == exchange) & (_df['symbol'].str.endswith('-EQ'))]
         if not res.empty:
              return res.iloc[0]['token']
-    res = df[(df['name'] == ticker) & (df['exch_seg'] == exchange)]
+    res = _df[(_df['name'] == ticker) & (_df['exch_seg'] == exchange)]
     if not res.empty:
         return res.iloc[0]['token']
     return None
@@ -224,7 +225,7 @@ def upload_file_to_drive(service, file_bytes, file_name, folder_id, mime_type='a
         print(f"Error uploading via Apps Script: {e}")
         raise e
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def load_csv_database(_service, folder_id, db_name='reports_db.csv'):
     """
     Reads a CSV file directly into a Pandas DataFrame from Drive.

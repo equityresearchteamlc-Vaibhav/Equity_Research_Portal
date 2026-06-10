@@ -49,6 +49,7 @@ def save_db(df):
         except Exception as e:
             print(f"Error saving {DB_FILE} to Google Drive: {e}")
 
+@st.cache_resource
 def init_db():
     df = load_db()
     
