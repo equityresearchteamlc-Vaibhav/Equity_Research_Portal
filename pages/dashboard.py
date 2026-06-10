@@ -154,24 +154,31 @@ if not db_df.empty:
         # Create display list: "Company Name (Ticker)"
         display_options = (filtered_df['Company Name'] + " (" + filtered_df['Ticker'] + ")").tolist()
         
-        col_s1, col_s2 = st.columns([3, 1])
-        with col_s1:
-            selected_display = st.selectbox("Select a company from the list:", options=display_options, key="dashboard_search_select")
-        with col_s2:
-            st.write("")
-            st.write("")
-            if st.button("👁️ View Profile", key="dashboard_search_view_btn", use_container_width=True, type="primary"):
-                # Extract ticker from within parentheses
-                selected_ticker = selected_display.split("(")[-1].replace(")", "").strip()
-                selected_row = db_df[db_df['Ticker'] == selected_ticker].iloc[0]
-                st.session_state.selected_ticker = selected_row['Ticker']
-                st.session_state.selected_company  = selected_row['Company Name']
-                st.session_state.selected_exchange = selected_row.get('Exchange', 'NSE')
-                st.session_state.selected_file_id  = selected_row.get('File ID', '')
-                st.session_state.selected_file_link = selected_row.get('File Link', '')
-                st.session_state.selected_price_added = selected_row.get('Price When Added', 0)
-                st.session_state.selected_mc_added    = selected_row.get('Market Cap when added', 0)
-                st.switch_page("pages/company_profile.py")
+        # Callback for selection change to instantly view profile
+        def redirect_to_profile():
+            selected = st.session_state.get("dashboard_search_select")
+            if selected and selected != "-- Select a Company --":
+                selected_ticker = selected.split("(")[-1].replace(")", "").strip()
+                matching_rows = db_df[db_df['Ticker'] == selected_ticker]
+                if not matching_rows.empty:
+                    selected_row = matching_rows.iloc[0]
+                    st.session_state.selected_ticker = selected_row['Ticker']
+                    st.session_state.selected_company  = selected_row['Company Name']
+                    st.session_state.selected_exchange = selected_row.get('Exchange', 'NSE')
+                    st.session_state.selected_file_id  = selected_row.get('File ID', '')
+                    st.session_state.selected_file_link = selected_row.get('File Link', '')
+                    st.session_state.selected_price_added = selected_row.get('Price When Added', 0)
+                    st.session_state.selected_mc_added    = selected_row.get('Market Cap when added', 0)
+                    # Reset the dropdown value for the next time dashboard is loaded
+                    st.session_state.dashboard_search_select = "-- Select a Company --"
+                    st.switch_page("pages/company_profile.py")
+
+        st.selectbox(
+            "Select a company from the list:",
+            options=["-- Select a Company --"] + display_options,
+            key="dashboard_search_select",
+            on_change=redirect_to_profile
+        )
 else:
     st.info("No tracked companies in the database.")
 
