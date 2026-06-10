@@ -12,6 +12,10 @@ st_autorefresh(interval=300_000, key="company_profile_autorefresh")
 # Inject premium CSS styling
 utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
 
+# Initialize local comments list in session state
+if "local_comments" not in st.session_state:
+    st.session_state.local_comments = []
+
 # Display Lingual logo in top right corner
 utils.render_lingual_logo(position="top-right", show_tagline=False)
 
@@ -298,6 +302,17 @@ if not comments_df.empty and 'Ticker' in comments_df.columns:
 else:
     ticker_comments = pd.DataFrame()
 
+# Append temporary local comments for this ticker and remove duplicates
+if st.session_state.local_comments:
+    local_ticker = [c for c in st.session_state.local_comments if c.get('Ticker') == ticker]
+    if local_ticker:
+        local_df = pd.DataFrame(local_ticker)
+        if ticker_comments.empty:
+            ticker_comments = local_df
+        else:
+            ticker_comments = pd.concat([ticker_comments, local_df], ignore_index=True)
+            ticker_comments = ticker_comments.drop_duplicates(subset=['Ticker', 'User', 'Timestamp', 'Text'])
+
 def get_initials(name_or_username):
     name_str = str(name_or_username).replace('.', ' ').replace('_', ' ').replace('-', ' ').strip()
     parts = name_str.split()
@@ -441,6 +456,13 @@ else:
                 st.write("")
                 st.write("")
                 if st.button("🗑️", key=f"del_comment_{idx_row}", help=f"Delete comment by {user_name}"):
+                    # Filter out this comment from local session state comments if present
+                    if "local_comments" in st.session_state:
+                        st.session_state.local_comments = [
+                            c for c in st.session_state.local_comments
+                            if not (c['Ticker'] == ticker and c['User'] == comment.get('User') and c['Timestamp'] == comment.get('Timestamp') and c['Text'] == comment.get('Text'))
+                        ]
+
                     # Filter out this comment from comments database
                     comments_df = comments_df[~(
                         (comments_df['Ticker'] == ticker) &
@@ -450,8 +472,19 @@ else:
                     )]
                     
                     if drive_service and folder_id:
-                        backend_helper.save_comments_database(drive_service, comments_df, folder_id)
-                        backend_helper.load_csv_database.clear()
+                        import threading
+                        
+                        def delete_comments_async(service, df, fid):
+                            backend_helper.save_comments_database(service, df, fid)
+                            backend_helper.load_csv_database.clear()
+                            
+                        upload_thread = threading.Thread(
+                            target=delete_comments_async,
+                            args=(drive_service, comments_df, folder_id)
+                        )
+                        upload_thread.daemon = True
+                        upload_thread.start()
+                        
                         st.success("Comment deleted!")
                         st.rerun()
                     else:
@@ -481,14 +514,28 @@ with st.form("new_comment_form", clear_on_submit=True):
                 "Text": new_comment
             }
             
+            # Instantly append to session state local comments so it displays instantly
+            st.session_state.local_comments.append(new_row)
+            
             import pandas as pd
             if comments_df.empty:
-                comments_df = pd.DataFrame([new_row])
+                full_comments_df = pd.DataFrame([new_row])
             else:
-                comments_df = pd.concat([comments_df, pd.DataFrame([new_row])], ignore_index=True)
+                full_comments_df = pd.concat([comments_df, pd.DataFrame([new_row])], ignore_index=True)
                 
-            backend_helper.save_comments_database(drive_service, comments_df, folder_id)
-            backend_helper.load_csv_database.clear()
+            import threading
+            
+            def save_comments_async(service, df, fid):
+                backend_helper.save_comments_database(service, df, fid)
+                backend_helper.load_csv_database.clear()
+                
+            upload_thread = threading.Thread(
+                target=save_comments_async,
+                args=(drive_service, full_comments_df, folder_id)
+            )
+            upload_thread.daemon = True
+            upload_thread.start()
+            
             st.success("Comment posted!")
             st.rerun()
         else:
