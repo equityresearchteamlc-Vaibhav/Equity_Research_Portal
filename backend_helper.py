@@ -475,3 +475,93 @@ def fetch_industry_metadata(ticker):
         print(f"Error fetching industry metadata for {ticker}: {e}")
         return "", ""
 
+
+@st.cache_data(ttl=300, show_spinner="Loading your data...")
+def load_real_companies_db():
+    """
+    Loads company metadata from Google Drive and merges it with real-time Angel One market data.
+    Caches the results for 5 minutes (300 seconds).
+    """
+    try:
+        drive_service = get_drive_service()
+        folder_id = st.secrets["google_drive"]["folder_id"]
+
+        df = load_csv_database(drive_service, folder_id, 'reports_db.csv')
+
+        if df.empty:
+            return pd.DataFrame()
+
+        angel_secrets = st.secrets["angel_one"]
+        client = get_angel_client(
+            api_key=angel_secrets["api_key"],
+            client_code=angel_secrets["client_code"],
+            password=angel_secrets["password"],
+            totp_secret=angel_secrets["totp_secret"]
+        )
+
+        master_contract = fetch_master_contract()
+
+        # Gather tokens to fetch in batch
+        token_exchange_pairs = []
+        row_tokens = []
+        for _, row in df.iterrows():
+            ticker   = row.get("Ticker", "")
+            exchange = row.get("Exchange", "NSE")
+            token    = get_token_id(master_contract, ticker, exchange)
+            token_exchange_pairs.append((token, exchange))
+            row_tokens.append((row, token))
+
+        # Batch request market data
+        batch_data = {}
+        if client and token_exchange_pairs:
+            batch_data = get_live_market_data_batch(client, token_exchange_pairs)
+
+        enhanced_data = []
+        for row, token in row_tokens:
+            ticker     = row.get("Ticker", "")
+            exchange   = row.get("Exchange", "NSE")
+            price_added = float(row.get("Price When Added", 0) or 0)
+            mc_added    = float(row.get("Market Cap when added", 0) or 0)
+
+            # Look up live data using token string
+            live_data = batch_data.get(str(token)) if token else None
+
+            if live_data:
+                cmp       = live_data['cmp']
+                today_pct = live_data['pct_change']
+                rt_market_cap = live_data.get('market_cap_cr', 0.0)
+                if rt_market_cap == 0.0 and price_added > 0:
+                    rt_market_cap = mc_added * (cmp / price_added)
+            else:
+                cmp           = price_added
+                today_pct     = 0.0
+                rt_market_cap = mc_added
+
+            pct_change_added = ((cmp - price_added) / price_added * 100) if price_added > 0 else 0
+            mc_change        = ((rt_market_cap - mc_added) / mc_added * 100) if mc_added > 0 else 0
+
+            enhanced_data.append({
+                "Company Name": row.get("Company Name", ticker),
+                "Ticker": ticker,
+                "Exchange": exchange,
+                "Date Added": row.get("Date Added", ""),
+                "Price When Added": price_added,
+                "CMP (Real-time)": round(cmp, 2),
+                "% Change since added": round(pct_change_added, 2),
+                "Today's % Change": round(today_pct, 2),
+                "Market Cap when added (Cr)": round(mc_added, 2),
+                "Real-time Market Cap (Cr)": round(rt_market_cap, 2),
+                "% Change of Market Cap": round(mc_change, 2),
+                "Rating": f"{int(float(row.get('Rating', 5)))}/10" if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else "",
+                "Rating_Num": float(row.get('Rating', 5)) if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else 5.0,
+                "Uploaded By": row.get("Analyst", "Unknown"),
+                "Owner Comment": row.get("Comment", ""),
+                "File ID": row.get("File ID", ""),
+                "File Link": row.get("File Link", "")
+            })
+
+        return pd.DataFrame(enhanced_data)
+    except Exception as e:
+        print(f"Error loading enhanced company list: {e}")
+        return pd.DataFrame()
+
