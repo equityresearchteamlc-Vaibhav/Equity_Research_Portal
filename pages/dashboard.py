@@ -25,6 +25,12 @@ utils.render_page_header(
     "📊"
 )
 
+# Display Game of Thrones banner if theme is selected
+if st.session_state.get("app_theme", "Dark") == "Game of Thrones":
+    import os
+    if os.path.exists("got_banner.png"):
+        st.image("got_banner.png", use_container_width=True)
+
 # Market status + refresh bar
 utils.render_status_bar(refresh_interval_secs=300)
 
