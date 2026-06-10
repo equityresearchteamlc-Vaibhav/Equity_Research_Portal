@@ -15,6 +15,8 @@ utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
 # Initialize local comments list in session state
 if "local_comments" not in st.session_state:
     st.session_state.local_comments = []
+if "deleted_comments" not in st.session_state:
+    st.session_state.deleted_comments = []
 
 # Display Lingual logo in top right corner
 utils.render_lingual_logo(position="top-right", show_tagline=False)
@@ -296,6 +298,16 @@ try:
 except Exception as e:
     comments_df = pd.DataFrame()
 
+# Filter out deleted comments in session state from comments_df
+if "deleted_comments" in st.session_state and not comments_df.empty:
+    for dc in st.session_state.deleted_comments:
+        comments_df = comments_df[~(
+            (comments_df['Ticker'] == dc.get('Ticker')) &
+            (comments_df['User'] == dc.get('User')) &
+            (comments_df['Timestamp'] == dc.get('Timestamp')) &
+            (comments_df['Text'] == dc.get('Text'))
+        )]
+
 # Filter comments for this ticker
 if not comments_df.empty and 'Ticker' in comments_df.columns:
     ticker_comments = comments_df[comments_df['Ticker'] == ticker]
@@ -463,6 +475,14 @@ else:
                             if not (c['Ticker'] == ticker and c['User'] == comment.get('User') and c['Timestamp'] == comment.get('Timestamp') and c['Text'] == comment.get('Text'))
                         ]
 
+                    # Add to session state deleted_comments to filter out instantly on rerun
+                    st.session_state.deleted_comments.append({
+                        "Ticker": ticker,
+                        "User": comment.get('User'),
+                        "Timestamp": comment.get('Timestamp'),
+                        "Text": comment.get('Text')
+                    })
+
                     # Filter out this comment from comments database
                     comments_df = comments_df[~(
                         (comments_df['Ticker'] == ticker) &
@@ -496,47 +516,50 @@ else:
 
 # --- Add New Comment ---
 st.write("---")
-with st.form("new_comment_form", clear_on_submit=True):
-    st.markdown("**Add your insight**")
-    new_rating = st.slider("Rating (1-10 Stars)", 1, 10, 10)
-    new_comment = st.text_input("Write a comment...", placeholder="What are your thoughts on this company?")
-    submit_comment = st.form_submit_button("Post Comment")
-    
-    if submit_comment and new_comment:
-        if drive_service and folder_id:
-            username = st.session_state.get("user_email", "user@firm.com").split('@')[0]
-            new_row = {
-                "Ticker": ticker,
-                "User": username,
-                "Avatar": "",
-                "Timestamp": datetime.datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S"),
-                "Rating": new_rating,
-                "Text": new_comment
-            }
-            
-            # Instantly append to session state local comments so it displays instantly
-            st.session_state.local_comments.append(new_row)
-            
-            import pandas as pd
-            if comments_df.empty:
-                full_comments_df = pd.DataFrame([new_row])
-            else:
-                full_comments_df = pd.concat([comments_df, pd.DataFrame([new_row])], ignore_index=True)
-                
-            import threading
-            
-            def save_comments_async(service, df, fid):
-                backend_helper.save_comments_database(service, df, fid)
-                backend_helper.load_csv_database.clear()
-                
-            upload_thread = threading.Thread(
-                target=save_comments_async,
-                args=(drive_service, full_comments_df, folder_id)
-            )
-            upload_thread.daemon = True
-            upload_thread.start()
-            
-            st.success("Comment posted!")
-            st.rerun()
+st.markdown("**Add your insight**")
+new_rating = st.slider("Rating (1-10 Stars)", 1, 10, 10, key="new_comment_rating")
+new_comment = st.text_input("Write a comment...", placeholder="What are your thoughts on this company?", key="new_comment_text")
+submit_comment = st.button("Post Comment", type="primary")
+
+if submit_comment and new_comment:
+    if drive_service and folder_id:
+        username = st.session_state.get("user_email", "user@firm.com").split('@')[0]
+        new_row = {
+            "Ticker": ticker,
+            "User": username,
+            "Avatar": "",
+            "Timestamp": datetime.datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S"),
+            "Rating": new_rating,
+            "Text": new_comment
+        }
+        
+        # Instantly append to session state local comments so it displays instantly
+        st.session_state.local_comments.append(new_row)
+        
+        import pandas as pd
+        if comments_df.empty:
+            full_comments_df = pd.DataFrame([new_row])
         else:
-            st.error("Google Drive not configured.")
+            full_comments_df = pd.concat([comments_df, pd.DataFrame([new_row])], ignore_index=True)
+            
+        import threading
+        
+        def save_comments_async(service, df, fid):
+            backend_helper.save_comments_database(service, df, fid)
+            backend_helper.load_csv_database.clear()
+            
+        upload_thread = threading.Thread(
+            target=save_comments_async,
+            args=(drive_service, full_comments_df, folder_id)
+        )
+        upload_thread.daemon = True
+        upload_thread.start()
+        
+        # Clear the inputs in session state
+        st.session_state.new_comment_text = ""
+        st.session_state.new_comment_rating = 10
+        
+        st.success("Comment posted!")
+        st.rerun()
+    else:
+        st.error("Google Drive not configured.")
