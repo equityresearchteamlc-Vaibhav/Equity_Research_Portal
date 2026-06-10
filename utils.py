@@ -886,11 +886,333 @@ LIGHT_CSS = """
             }
 """
 
+GOT_CSS = """
+            @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Marcellus&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+            /* ============================================ */
+            /* GAME OF THRONES THEME BASE */
+            /* ============================================ */
+            :root {
+                --primary-bg: #09090b;
+                --secondary-bg: #141416;
+                --card-bg: rgba(20, 20, 24, 0.85);
+                --border-color: rgba(181, 148, 80, 0.35);
+                --text-primary: #dfd5c6; /* parchment */
+                --text-secondary: rgba(223, 213, 198, 0.7);
+                --accent-gold: #b59450;
+                --accent-gold-glow: rgba(181, 148, 80, 0.4);
+                --success: #70a1ff; /* Ice Blue */
+                --danger: #9b2c2c; /* Targaryen Crimson */
+            }
+
+            /* Typography & Headings */
+            h1, h2, h3, h4, h5, h6, .custom-page-subtitle, [data-testid="stSidebarNavLink"] span, [data-testid="stSidebarNavLink"] p {
+                font-family: 'Cinzel', 'Marcellus', serif !important;
+                color: #dfd5c6 !important;
+            }
+
+            /* Special Title styling */
+            h1 span {
+                background: linear-gradient(135deg, #b59450 0%, #e5d5b7 50%, #9a783e 100%) !important;
+                -webkit-background-clip: text !important;
+                -webkit-text-fill-color: transparent !important;
+                text-shadow: 0 0 15px rgba(181, 148, 80, 0.2) !important;
+                font-weight: 700 !important;
+            }
+
+            body, p, li, label, [data-testid="stWidgetLabel"] p, .stMarkdown p, .stMarkdown li {
+                font-family: 'Cormorant Garamond', serif !important;
+                font-size: 1.15rem !important;
+                color: #dfd5c6 !important;
+            }
+
+            /* Force light text color globally on key containers for readability */
+            label, [data-testid="stWidgetLabel"] p {
+                font-size: 1.05rem !important;
+                font-weight: 700 !important;
+                letter-spacing: 0.5px !important;
+                text-transform: uppercase !important;
+                color: #b59450 !important;
+            }
+
+            /* Active sidebar navigation link text color */
+            [data-testid="stSidebarNavLink"][aria-current="page"] span, [data-testid="stSidebarNavLink"][aria-current="page"] p {
+                color: #d4af37 !important;
+                font-weight: 700 !important;
+                text-shadow: 0 0 8px rgba(212, 175, 55, 0.4) !important;
+            }
+
+            /* Dropdowns and select inputs styling for readability */
+            div[data-baseweb="menu"] *, [data-testid="stVirtualDropdown"] *, [data-baseweb="select"] * {
+                color: #dfd5c6 !important;
+                font-family: 'Cormorant Garamond', serif !important;
+            }
+
+            /* Force text input containers to have a dark background and white text */
+            div[data-baseweb="input"] {
+                background-color: rgba(13, 13, 16, 0.95) !important;
+                border: 1px solid rgba(181, 148, 80, 0.4) !important;
+                border-radius: 4px !important;
+                box-shadow: inset 0 0 10px rgba(0,0,0,0.8) !important;
+            }
+            div[data-baseweb="input"] * {
+                color: #dfd5c6 !important;
+            }
+
+            /* Force selectboxes to have a dark background in all themes for readability */
+            div[data-baseweb="select"] > div {
+                background-color: rgba(13, 13, 16, 0.95) !important;
+                border: 1px solid rgba(181, 148, 80, 0.4) !important;
+                border-radius: 4px !important;
+            }
+
+            /* Force dropdown dropdown-menus to have a dark background in all themes */
+            div[data-baseweb="menu"] {
+                background-color: #141416 !important;
+                border: 1px solid rgba(181, 148, 80, 0.5) !important;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.8) !important;
+            }
+
+            /* Main app background with subtle gradient */
+            .stApp {
+                background: linear-gradient(135deg, #09090b 0%, #141416 50%, #0c0c0e 100%) !important;
+                background-attachment: fixed !important;
+            }
+
+            /* Subtle gold-haze background animations */
+            .stApp::before {
+                content: "" !important;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                background-image: 
+                    radial-gradient(circle at 10% 20%, rgba(181, 148, 80, 0.04) 0%, transparent 40%),
+                    radial-gradient(circle at 90% 80%, rgba(155, 44, 44, 0.03) 0%, transparent 50%) !important;
+                pointer-events: none !important;
+                z-index: 0 !important;
+                animation: backgroundShift 25s ease-in-out infinite !important;
+            }
+
+            /* ============================================ */
+            /* METRIC CARDS - OBSIDIAN & GOLD */
+            /* ============================================ */
+            div[data-testid="stMetric"] {
+                background: linear-gradient(135deg, rgba(13, 13, 16, 0.95) 0%, rgba(20, 20, 24, 0.8) 100%) !important;
+                border: 1px solid rgba(181, 148, 80, 0.3) !important;
+                border-radius: 8px !important;
+                padding: 18px 20px !important;
+                box-shadow: 
+                    0 8px 32px rgba(0, 0, 0, 0.6),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                min-height: 135px !important;
+            }
+
+            div[data-testid="stMetric"]:hover {
+                transform: translateY(-4px) !important;
+                border-color: rgba(181, 148, 80, 0.6) !important;
+                box-shadow: 
+                    0 12px 40px rgba(181, 148, 80, 0.15),
+                    0 0 15px rgba(181, 148, 80, 0.25) !important;
+            }
+
+            div[data-testid="stMetricValue"] {
+                font-family: 'Cinzel', serif !important;
+                font-size: 1.45rem !important;
+                font-weight: 700 !important;
+                background: linear-gradient(135deg, #dfd5c6 0%, #b59450 100%) !important;
+                -webkit-background-clip: text !important;
+                -webkit-text-fill-color: transparent !important;
+            }
+
+            div[data-testid="stMetricLabel"] {
+                font-family: 'Cinzel', serif !important;
+                font-size: 0.85rem !important;
+                color: rgba(181, 148, 80, 0.8) !important;
+                letter-spacing: 1px !important;
+            }
+
+            /* Delta coloring */
+            div[data-testid="stMetricDelta"] > div[data-testid="stMetricDeltaIcon-Up"] {
+                color: #70a1ff !important; /* Ice Blue */
+            }
+            div[data-testid="stMetricDelta"] > div:has(div[data-testid="stMetricDeltaIcon-Up"]) {
+                color: #70a1ff !important;
+                text-shadow: 0 0 8px rgba(112, 161, 255, 0.3) !important;
+            }
+            div[data-testid="stMetricDelta"] > div[data-testid="stMetricDeltaIcon-Down"] {
+                color: #9b2c2c !important; /* Fire Red */
+            }
+            div[data-testid="stMetricDelta"] > div:has(div[data-testid="stMetricDeltaIcon-Down"]) {
+                color: #9b2c2c !important;
+                text-shadow: 0 0 8px rgba(155, 44, 44, 0.3) !important;
+            }
+
+            /* ============================================ */
+            /* BUTTONS - MOLTEN VALYRIAN GOLD */
+            /* ============================================ */
+            button[kind="primary"] {
+                background: linear-gradient(135deg, #8a733f 0%, #b59450 50%, #d4af37 100%) !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                color: #09090b !important;
+                font-family: 'Cinzel', serif !important;
+                font-weight: 700 !important;
+                border-radius: 4px !important;
+                box-shadow: 0 4px 14px rgba(181, 148, 80, 0.25) !important;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            }
+
+            button[kind="primary"]:hover {
+                background: linear-gradient(135deg, #a4894c 0%, #d4af37 50%, #f3e5ab 100%) !important;
+                transform: translateY(-2px) !important;
+                box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4) !important;
+            }
+
+            button[kind="secondary"] {
+                background: rgba(13, 13, 16, 0.8) !important;
+                border: 1px solid rgba(181, 148, 80, 0.4) !important;
+                color: #dfd5c6 !important;
+                font-family: 'Cinzel', serif !important;
+                border-radius: 4px !important;
+            }
+
+            button[kind="secondary"]:hover {
+                background: rgba(20, 20, 24, 0.95) !important;
+                border-color: rgba(181, 148, 80, 0.7) !important;
+                transform: translateY(-1px) !important;
+            }
+
+            /* ============================================ */
+            /* FORMS - VALYRIAN STONE */
+            /* ============================================ */
+            div[data-testid="stForm"] {
+                background: linear-gradient(135deg, rgba(13, 13, 16, 0.95) 0%, rgba(20, 20, 24, 0.85) 100%) !important;
+                border: 2px solid rgba(181, 148, 80, 0.3) !important;
+                border-radius: 8px !important;
+                padding: 2rem !important;
+                box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7) !important;
+            }
+
+            /* Input fields */
+            input, textarea, select {
+                background: rgba(13, 13, 16, 0.9) !important;
+                border: 1px solid rgba(181, 148, 80, 0.3) !important;
+                border-radius: 4px !important;
+                color: #dfd5c6 !important;
+            }
+
+            input:focus, textarea:focus, select:focus {
+                border-color: rgba(181, 148, 80, 0.7) !important;
+                box-shadow: 0 0 10px rgba(181, 148, 80, 0.2) !important;
+            }
+
+            div[data-testid="stNumberInput"] button {
+                background-color: rgba(20, 20, 24, 0.9) !important;
+                color: #dfd5c6 !important;
+                border-color: rgba(181, 148, 80, 0.3) !important;
+            }
+
+            div[data-testid="stDateInput"] > div {
+                background-color: rgba(13, 13, 16, 0.9) !important;
+                border-color: rgba(181, 148, 80, 0.3) !important;
+            }
+
+            div[data-testid="stFileUploader"] > section {
+                background-color: rgba(13, 13, 16, 0.9) !important;
+                border: 1px dashed rgba(181, 148, 80, 0.5) !important;
+            }
+            div[data-testid="stFileUploader"] * {
+                color: #dfd5c6 !important;
+            }
+
+            div[data-testid="stSlider"] [role="slider"] {
+                background-color: #b59450 !important;
+            }
+            div[data-testid="stSlider"] > div > div {
+                background-color: rgba(181, 148, 80, 0.2) !important;
+            }
+
+            /* ============================================ */
+            /* DATAFRAME - IRON TABLE */
+            /* ============================================ */
+            div[data-testid="stDataFrame"] {
+                background: rgba(13, 13, 16, 0.9) !important;
+                border: 1px solid rgba(181, 148, 80, 0.3) !important;
+                border-radius: 8px !important;
+            }
+            div[data-testid="stDataFrame"] * {
+                color: #dfd5c6 !important;
+                font-family: 'Cormorant Garamond', serif !important;
+            }
+
+            .stDataFrame thead tr th {
+                background: linear-gradient(135deg, #1c1c22 0%, #131316 100%) !important;
+                color: #b59450 !important;
+                font-family: 'Cinzel', serif !important;
+                border-bottom: 2px solid rgba(181, 148, 80, 0.4) !important;
+            }
+
+            .stDataFrame tbody tr:hover {
+                background: rgba(181, 148, 80, 0.06) !important;
+            }
+
+            /* ============================================ */
+            /* SIDEBAR - CASTLE WALL */
+            /* ============================================ */
+            section[data-testid="stSidebar"] {
+                background: linear-gradient(180deg, #09090b 0%, #101013 100%) !important;
+                border-right: 2px solid rgba(181, 148, 80, 0.3) !important;
+                box-shadow: 8px 0 32px rgba(0, 0, 0, 0.7) !important;
+            }
+
+            /* ============================================ */
+            /* TABS */
+            /* ============================================ */
+            button[data-baseweb="tab"] {
+                font-family: 'Cinzel', serif !important;
+                color: rgba(223, 213, 198, 0.6) !important;
+                letter-spacing: 0.5px !important;
+            }
+
+            button[data-baseweb="tab"]:hover {
+                color: #b59450 !important;
+                border-bottom-color: rgba(181, 148, 80, 0.5) !important;
+            }
+
+            button[data-baseweb="tab"][aria-selected="true"] {
+                color: #dfd5c6 !important;
+                border-bottom-color: #b59450 !important;
+                background: linear-gradient(180deg, transparent, rgba(181, 148, 80, 0.08)) !important;
+            }
+
+            hr {
+                background: linear-gradient(90deg, transparent, #b59450, transparent) !important;
+            }
+
+            /* Status Bar */
+            .custom-status-bar {
+                background: linear-gradient(135deg, rgba(13, 13, 16, 0.95) 0%, rgba(20, 20, 24, 0.85) 100%) !important;
+                border: 1px solid rgba(181, 148, 80, 0.3) !important;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+            }
+            .custom-status-bar-text {
+                color: rgba(223, 213, 198, 0.75) !important;
+            }
+            .custom-status-bar-strong {
+                color: #dfd5c6 !important;
+            }
+
+            .custom-page-subtitle {
+                color: rgba(223, 213, 198, 0.5) !important;
+            }
+"""
+
 
 def inject_custom_css(theme: str = "Dark"):
     """
-    Inject custom theme CSS based on user selection: 'Dark', 'Light', or 'System'.
-    'System' utilizes media queries to respect the OS preference dynamically.
+    Inject custom theme CSS based on user selection: 'Dark', 'Light', 'System', or 'Game of Thrones'.
     """
     theme = str(theme).strip().lower()
     
@@ -898,12 +1220,15 @@ def inject_custom_css(theme: str = "Dark"):
     if theme == "light":
         css_to_inject += LIGHT_CSS
     elif theme == "system":
-        css_to_inject += "\\n@media (prefers-color-scheme: dark) {\\n" + DARK_CSS + "\\n}\\n"
-        css_to_inject += "\\n@media (prefers-color-scheme: light) {\\n" + LIGHT_CSS + "\\n}\\n"
+        css_to_inject += "\n@media (prefers-color-scheme: dark) {\n" + DARK_CSS + "\n}\n"
+        css_to_inject += "\n@media (prefers-color-scheme: light) {\n" + LIGHT_CSS + "\n}\n"
+    elif theme == "game of thrones":
+        css_to_inject += GOT_CSS
     else:  # dark (default)
         css_to_inject += DARK_CSS
         
     st.markdown(f"<style>{css_to_inject}</style>", unsafe_allow_html=True)
+
 
 
 def optimize_dataframe(df: pd.DataFrame) -> pd.DataFrame:

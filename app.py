@@ -389,7 +389,7 @@ else:
         st.markdown(f"**Logged in as:** {st.session_state.user_name}")
         st.selectbox(
             "🎨 App Theme",
-            options=["Dark", "Light", "System"],
+            options=["Dark", "Light", "System", "Game of Thrones"],
             key="app_theme"
         )
         st.write("")
