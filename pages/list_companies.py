@@ -98,6 +98,7 @@ def load_real_companies_db():
                 "Real-time Market Cap (Cr)": round(rt_market_cap, 2),
                 "% Change of Market Cap": round(mc_change, 2),
                 "Rating": f"{int(float(row.get('Rating', 5)))}/10" if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else "",
+                "Rating_Num": float(row.get('Rating', 5)) if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else 5.0,
                 "Uploaded By": row.get("Analyst", "Unknown"),
                 "Owner Comment": row.get("Comment", ""),
                 "File ID": row.get("File ID", ""),
@@ -123,32 +124,51 @@ if df.empty:
     st.info("No companies have been uploaded yet. Go to the Dashboard to upload one!")
 else:
     # --- Filter Section ---
-    st.markdown("### 🏆 Filter & Rank Returns")
-    col_f1, col_f2 = st.columns(2)
+    st.markdown("### 🏆 Filter & Rank Portfolio")
+    col_f1, col_f2, col_f3 = st.columns(3)
+    
     with col_f1:
-        min_return = st.slider(
-            "Filter by Minimum Return (%)",
-            min_value=-100.0,
-            max_value=200.0,
-            value=-100.0,
-            step=5.0,
-            format="%.0f%%"
+        sort_option = st.selectbox(
+            "Sort Portfolio By:",
+            options=[
+                "Highest Return Since Added",
+                "Lowest Return Since Added",
+                "Highest Rating",
+                "Most Recent Submissions",
+                "Highest Real-time Market Cap"
+            ]
         )
+        
     with col_f2:
-        top_gainers_only = st.checkbox("🏆 Show Top 5 Gainers (Highest Returns)")
+        min_rating = st.slider("Min Rating (Stars)", 1, 10, 1)
+        
+    with col_f3:
+        analyst_options = ["All Analysts"] + sorted(df["Uploaded By"].unique().tolist())
+        selected_analyst = st.selectbox("Filter by Analyst:", analyst_options)
 
     # Apply filters
     filtered_df = df.copy()
-    if min_return > -100.0:
-        filtered_df = filtered_df[filtered_df["% Change since added"] >= min_return]
     
-    if top_gainers_only:
-        filtered_df = filtered_df.sort_values(by="% Change since added", ascending=False).head(5)
-    else:
-        # Default sort by return descending to show highest returns first
+    # 1. Filter by Analyst
+    if selected_analyst != "All Analysts":
+        filtered_df = filtered_df[filtered_df["Uploaded By"] == selected_analyst]
+        
+    # 2. Filter by Rating
+    filtered_df = filtered_df[filtered_df["Rating_Num"] >= min_rating]
+    
+    # 3. Apply Sorting
+    if sort_option == "Highest Return Since Added":
         filtered_df = filtered_df.sort_values(by="% Change since added", ascending=False)
+    elif sort_option == "Lowest Return Since Added":
+        filtered_df = filtered_df.sort_values(by="% Change since added", ascending=True)
+    elif sort_option == "Highest Rating":
+        filtered_df = filtered_df.sort_values(by="Rating_Num", ascending=False)
+    elif sort_option == "Most Recent Submissions":
+        filtered_df = filtered_df.sort_values(by="Date Added", ascending=False)
+    elif sort_option == "Highest Real-time Market Cap":
+        filtered_df = filtered_df.sort_values(by="Real-time Market Cap (Cr)", ascending=False)
 
-    display_df = filtered_df.drop(columns=["File ID", "File Link", "Exchange"], errors='ignore')
+    display_df = filtered_df.drop(columns=["File ID", "File Link", "Exchange", "Rating_Num"], errors='ignore')
     st.dataframe(
         display_df,
         use_container_width=True,
