@@ -21,5 +21,6 @@ __pycache__/
 *$py.class
 
 # Listed companies cache
-listed_companies_cache.csv
+listed_companies_cache*.csv
+
 
