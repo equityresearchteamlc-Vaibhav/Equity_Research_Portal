@@ -444,3 +444,34 @@ def get_unified_company_list(cache_path="listed_companies_cache_v2.csv"):
                 pass
         return pd.DataFrame()
 
+
+def fetch_industry_metadata(ticker):
+    """
+    Scrapes the industry and sector for a given ticker from Screener.in.
+    Returns (sector, industry).
+    """
+    import urllib.request
+    import re
+    import html
+    
+    url = f"https://www.screener.in/company/{ticker}/"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+    }
+    
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req) as response:
+            html_content = response.read().decode('utf-8')
+        
+        sector_match = re.search(r'title="Sector"\s*>\s*([^<]+)\s*</a>', html_content, re.IGNORECASE)
+        industry_match = re.search(r'title="Industry"\s*>\s*([^<]+)\s*</a>', html_content, re.IGNORECASE)
+        
+        sector = html.unescape(sector_match.group(1).strip()) if sector_match else ""
+        industry = html.unescape(industry_match.group(1).strip()) if industry_match else ""
+        
+        return sector, industry
+    except Exception as e:
+        print(f"Error fetching industry metadata for {ticker}: {e}")
+        return "", ""
+
