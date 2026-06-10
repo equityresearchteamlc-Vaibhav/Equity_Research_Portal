@@ -325,17 +325,27 @@ def get_avatar_color(name):
     hash_val = sum(ord(c) for c in str(name))
     return colors[hash_val % len(colors)]
 
-def get_user_display_info(username):
-    try:
-        import auth_manager
-        df = auth_manager.get_users_df()
-        matching_user = df[df['Email'].str.startswith(username + '@', na=False)]
-        if not matching_user.empty:
-            full_name = matching_user.iloc[0]['Name']
-            clean_name = full_name.replace(" (Admin)", "")
-            return clean_name, get_initials(clean_name), get_avatar_color(clean_name)
-    except Exception:
-        pass
+def get_user_display_info(username, users_df=None):
+    if users_df is not None and not users_df.empty:
+        try:
+            matching_user = users_df[users_df['Email'].str.startswith(username + '@', na=False)]
+            if not matching_user.empty:
+                full_name = matching_user.iloc[0]['Name']
+                clean_name = full_name.replace(" (Admin)", "")
+                return clean_name, get_initials(clean_name), get_avatar_color(clean_name)
+        except Exception:
+            pass
+    else:
+        try:
+            import auth_manager
+            df = auth_manager.get_users_df()
+            matching_user = df[df['Email'].str.startswith(username + '@', na=False)]
+            if not matching_user.empty:
+                full_name = matching_user.iloc[0]['Name']
+                clean_name = full_name.replace(" (Admin)", "")
+                return clean_name, get_initials(clean_name), get_avatar_color(clean_name)
+        except Exception:
+            pass
     
     clean_username = username.replace('.', ' ').title()
     return clean_username, get_initials(clean_username), get_avatar_color(clean_username)
@@ -395,8 +405,15 @@ st.markdown(dark_mode_compatible_css, unsafe_allow_html=True)
 if ticker_comments.empty:
     st.write("No comments yet. Be the first to share your thoughts!")
 else:
+    # Load users database once to avoid reloading it inside the comments loop
+    try:
+        import auth_manager
+        users_df = auth_manager.get_users_df()
+    except Exception:
+        users_df = None
+
     for idx_row, comment in ticker_comments.iterrows():
-        user_name, initials, avatar_color = get_user_display_info(comment.get('User', 'analyst'))
+        user_name, initials, avatar_color = get_user_display_info(comment.get('User', 'analyst'), users_df)
         rating = int(comment.get('Rating', 10))
         stars_str = "★" * rating + "☆" * (10 - rating)
         html = f"""

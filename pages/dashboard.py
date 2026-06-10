@@ -87,6 +87,7 @@ try:
     total_companies = len(reports_df) if not reports_df.empty else 0
 except Exception:
     total_companies = 0
+    reports_df = pd.DataFrame()
     drive_service = None
     folder_id = None
 
@@ -127,14 +128,7 @@ if "form_version" not in st.session_state:
 st.subheader("🔍 Search Tracked Companies")
 search_query = st.text_input("Type company name or ticker to filter suggestions:", "", key="dashboard_company_search")
 
-try:
-    drive_service = backend_helper.get_drive_service()
-    folder_id = st.secrets["google_drive"]["folder_id"]
-    db_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
-except Exception:
-    db_df = pd.DataFrame()
-    drive_service = None
-    folder_id = None
+db_df = reports_df
 
 if not db_df.empty:
     if search_query:
