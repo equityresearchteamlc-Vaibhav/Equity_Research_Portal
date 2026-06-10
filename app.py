@@ -401,4 +401,7 @@ else:
         st.write("")
         st.button("Logout", on_click=logout, type="primary")
 
+    # Inject custom CSS before running navigation to prevent theme flashing
+    import utils
+    utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
     pg.run()
