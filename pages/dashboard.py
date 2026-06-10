@@ -3,8 +3,11 @@ import pandas as pd
 import datetime
 import io
 from streamlit_autorefresh import st_autorefresh
+import importlib
 import backend_helper
+importlib.reload(backend_helper)
 import utils
+
 
 # Auto-refresh every 5 minutes (300,000 ms)
 st_autorefresh(interval=300_000, key="dashboard_autorefresh")
