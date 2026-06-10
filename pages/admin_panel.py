@@ -194,6 +194,7 @@ with tab_companies:
                             
                         st.success(f"Successfully deleted **{selected_row['Company Name']}**!")
                         backend_helper.load_csv_database.clear()
+                        backend_helper.load_real_companies_db.clear()
                         st.rerun()
                     else:
                         st.error("Failed to update database on Google Drive.")

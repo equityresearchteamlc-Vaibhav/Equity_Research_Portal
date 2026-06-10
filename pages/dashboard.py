@@ -339,6 +339,7 @@ with st.form("upload_research_form"):
                         # Increment form version to clear all fields cleanly without session state errors
                         st.session_state.form_version += 1
                         backend_helper.load_csv_database.clear()
+                        backend_helper.load_real_companies_db.clear()
                         st.rerun()
                     else:
                         st.error("❌ Metadata saved but failed to sync to Google Drive.")
