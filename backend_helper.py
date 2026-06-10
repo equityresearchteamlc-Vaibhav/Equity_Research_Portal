@@ -317,7 +317,7 @@ def get_unified_company_list(cache_path="listed_companies_cache.csv"):
     import io
     import json
     
-    # 1. Download NSE EQUITY_L.csv
+    # 1. Download NSE EQUITY_L.csv and SME_EQUITY_L.csv
     try:
         req_nse = urllib.request.Request(
             "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv",
@@ -331,10 +331,27 @@ def get_unified_company_list(cache_path="listed_companies_cache.csv"):
             'SYMBOL': 'symbol_nse',
             'NAME OF COMPANY': 'company_name'
         })
-        nse_df = nse_df.drop_duplicates(subset=['symbol_nse'])
     except Exception as e:
         print(f"Error fetching NSE list: {e}")
         nse_df = pd.DataFrame(columns=['symbol_nse', 'company_name'])
+        
+    try:
+        req_sme = urllib.request.Request(
+            "https://nsearchives.nseindia.com/content/equities/SME_EQUITY_L.csv",
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        )
+        with urllib.request.urlopen(req_sme) as response:
+            sme_df = pd.read_csv(io.BytesIO(response.read()))
+        sme_df.columns = sme_df.columns.str.strip()
+        sme_df = sme_df[['SYMBOL', 'NAME OF COMPANY']].rename(columns={
+            'SYMBOL': 'symbol_nse',
+            'NAME OF COMPANY': 'company_name'
+        })
+        nse_df = pd.concat([nse_df, sme_df], ignore_index=True)
+    except Exception as e:
+        print(f"Error fetching NSE SME list: {e}")
+
+    nse_df = nse_df.drop_duplicates(subset=['symbol_nse'])
         
     # 2. Download Angel One master JSON
     try:
@@ -353,8 +370,8 @@ def get_unified_company_list(cache_path="listed_companies_cache.csv"):
         return pd.DataFrame()
 
     try:
-        # Filter Angel One for NSE equities (symbol ends with -EQ and exch_seg is NSE)
-        nse_equities = angel_df[(angel_df['exch_seg'] == 'NSE') & (angel_df['symbol'].str.endswith('-EQ'))].copy()
+        # Filter Angel One for NSE equities (symbol ends with -EQ or -SM and exch_seg is NSE)
+        nse_equities = angel_df[(angel_df['exch_seg'] == 'NSE') & (angel_df['symbol'].str.endswith('-EQ') | angel_df['symbol'].str.endswith('-SM'))].copy()
         
         # Filter Angel One for BSE equities (token matches 6-digit starting with 5, exch_seg is BSE, expiry is empty)
         bse_equities = angel_df[(angel_df['exch_seg'] == 'BSE') & (angel_df['expiry'] == '') & (angel_df['token'].str.match(r'^5\d{5}$'))].copy()
@@ -367,6 +384,14 @@ def get_unified_company_list(cache_path="listed_companies_cache.csv"):
             right_on='symbol_nse',
             how='left'
         )
+        
+        # Manual fallback mapping for new or unlisted symbols
+        fallback_names = {
+            "C2C": "C2C Advanced Systems Limited"
+        }
+        for ticker, full_name in fallback_names.items():
+            nse_merged.loc[nse_merged['name'] == ticker, 'company_name'] = full_name
+            
         nse_merged['company_name'] = nse_merged['company_name'].fillna(nse_merged['name'])
         
         # Map BSE equities to nse_df
@@ -377,6 +402,9 @@ def get_unified_company_list(cache_path="listed_companies_cache.csv"):
             right_on='symbol_nse',
             how='left'
         )
+        for ticker, full_name in fallback_names.items():
+            bse_merged.loc[bse_merged['name'] == ticker, 'company_name'] = full_name
+            
         bse_merged['company_name'] = bse_merged['company_name'].fillna(bse_merged['name'])
 
         # Create combined candidates list
