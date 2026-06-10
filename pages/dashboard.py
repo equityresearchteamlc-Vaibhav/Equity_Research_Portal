@@ -177,6 +177,59 @@ if "upload_success_message" in st.session_state:
     del st.session_state.upload_success_message
 
 # We render the form elements with keys linked to st.session_state.form_version
+companies_df = backend_helper.get_unified_company_list()
+company_display_list = []
+if not companies_df.empty:
+    companies_df['display_name'] = (
+        companies_df['company_name'] + " (Ticker: " + companies_df['ticker'] + " | " + companies_df['exchange'] + ")"
+    )
+    company_display_list = companies_df['display_name'].tolist()
+
+# Handle form version changes to reset searchable selector
+if "last_form_version" not in st.session_state:
+    st.session_state.last_form_version = st.session_state.form_version
+
+if st.session_state.last_form_version != st.session_state.form_version:
+    st.session_state.last_form_version = st.session_state.form_version
+    st.session_state.company_search_selector = "-- Select a Company --"
+
+def handle_company_selection():
+    selected = st.session_state.company_search_selector
+    fv = st.session_state.form_version
+    if selected and selected != "-- Select a Company --":
+        row = companies_df[companies_df['display_name'] == selected]
+        if not row.empty:
+            item = row.iloc[0]
+            st.session_state[f"upload_company_name_{fv}"] = item['company_name']
+            st.session_state[f"upload_ticker_{fv}"] = item['ticker']
+            st.session_state[f"upload_exchange_{fv}"] = item['exchange']
+            
+            # Fetch real-time price & market cap
+            if client:
+                token = item['token']
+                exch = item['exchange']
+                with st.spinner("Fetching live market data..."):
+                    live_data = backend_helper.get_live_market_data(client, token, exch)
+                    if live_data:
+                        st.session_state[f"upload_price_{fv}"] = float(live_data['cmp'])
+                        st.session_state[f"upload_market_cap_{fv}"] = float(live_data['market_cap_cr'])
+                    else:
+                        st.session_state[f"upload_price_{fv}"] = 0.0
+                        st.session_state[f"upload_market_cap_{fv}"] = 0.0
+    else:
+        st.session_state[f"upload_company_name_{fv}"] = ""
+        st.session_state[f"upload_ticker_{fv}"] = ""
+        st.session_state[f"upload_exchange_{fv}"] = "NSE"
+        st.session_state[f"upload_price_{fv}"] = 0.0
+        st.session_state[f"upload_market_cap_{fv}"] = 0.0
+
+st.selectbox(
+    "🔍 Search and Select Company to Auto-Fill Form (Optional):",
+    options=["-- Select a Company --"] + company_display_list,
+    key="company_search_selector",
+    on_change=handle_company_selection
+)
+
 with st.form("upload_research_form"):
     col_a, col_b = st.columns(2)
 
@@ -187,9 +240,10 @@ with st.form("upload_research_form"):
         )
         company_name = st.text_input("Company Name", key=f"upload_company_name_{st.session_state.form_version}")
         ticker = st.text_input("Ticker Symbol (e.g., RELIANCE)", key=f"upload_ticker_{st.session_state.form_version}")
-        exchange = st.selectbox("Exchange", ["NSE", "BSE"])
+        exchange = st.selectbox("Exchange", ["NSE", "BSE"], key=f"upload_exchange_{st.session_state.form_version}")
         price_during_research = st.number_input("Price during research (₹)", min_value=0.0, format="%.2f", key=f"upload_price_{st.session_state.form_version}")
         market_cap_research = st.number_input("Market Cap during research (₹ Cr)", min_value=0.0, format="%.2f", key=f"upload_market_cap_{st.session_state.form_version}")
+
 
     with col_b:
         industry = st.text_input("Industry / Sector", key=f"upload_industry_{st.session_state.form_version}")
