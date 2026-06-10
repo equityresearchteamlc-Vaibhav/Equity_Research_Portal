@@ -9,11 +9,11 @@ importlib.reload(backend_helper)
 import utils
 
 
-# Auto-refresh every 5 minutes (300,000 ms)
-st_autorefresh(interval=300_000, key="dashboard_autorefresh")
-
 # Inject premium CSS styling
 utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
+
+# Auto-refresh every 5 minutes (300,000 ms)
+st_autorefresh(interval=300_000, key="dashboard_autorefresh")
 
 # Display Lingual logo in top right corner
 utils.render_lingual_logo(position="top-right", show_tagline=False)

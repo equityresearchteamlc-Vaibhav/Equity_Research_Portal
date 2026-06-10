@@ -6,11 +6,11 @@ import utils
 from streamlit_autorefresh import st_autorefresh
 import pytz
 
-# Auto-refresh every 5 minutes (300,000 ms)
-st_autorefresh(interval=300_000, key="company_profile_autorefresh")
-
 # Inject premium CSS styling
 utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
+
+# Auto-refresh every 5 minutes (300,000 ms)
+st_autorefresh(interval=300_000, key="company_profile_autorefresh")
 
 # Initialize local comments list in session state
 if "local_comments" not in st.session_state:
