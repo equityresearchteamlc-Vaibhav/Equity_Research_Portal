@@ -132,7 +132,7 @@ BASE_CSS = """
             
             /* Global Font Family & Emoji Support */
             html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+                font-family: 'Calibri', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
             }
             
             [data-testid="stDecoration"] {
@@ -888,7 +888,7 @@ LIGHT_CSS = """
 """
 
 GOT_CSS = """
-            @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Marcellus&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+            
 
             /* ============================================ */
             /* GAME OF THRONES THEME BASE */
@@ -908,7 +908,7 @@ GOT_CSS = """
 
             /* Typography & Headings */
             h1, h2, h3, h4, h5, h6, .custom-page-subtitle, [data-testid="stSidebarNavLink"] span, [data-testid="stSidebarNavLink"] p {
-                font-family: 'Cinzel', 'Marcellus', serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+                font-family: 'Calibri', 'Calibri', serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
                 color: #dfd5c6 !important;
             }
 
@@ -930,7 +930,7 @@ GOT_CSS = """
             }
 
             body, p, li, label, [data-testid="stWidgetLabel"] p, .stMarkdown p, .stMarkdown li {
-                font-family: 'Cormorant Garamond', serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+                font-family: 'Calibri', serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
                 font-size: 1.15rem !important;
                 color: #dfd5c6 !important;
             }
@@ -955,7 +955,7 @@ GOT_CSS = """
             /* Dropdowns and select inputs styling for readability */
             div[data-baseweb="menu"] *, [data-testid="stVirtualDropdown"] *, [data-baseweb="select"] * {
                 color: #dfd5c6 !important;
-                font-family: 'Cormorant Garamond', serif !important;
+                font-family: 'Calibri', serif !important;
             }
 
             /* Force text input containers to have a dark background and white text */
@@ -1029,7 +1029,7 @@ GOT_CSS = """
             }
 
             div[data-testid="stMetricValue"] {
-                font-family: 'Cinzel', serif !important;
+                font-family: 'Calibri', serif !important;
                 font-size: 1.45rem !important;
                 font-weight: 700 !important;
                 background: linear-gradient(135deg, #dfd5c6 0%, #b59450 100%) !important;
@@ -1038,7 +1038,7 @@ GOT_CSS = """
             }
 
             div[data-testid="stMetricLabel"] {
-                font-family: 'Cinzel', serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+                font-family: 'Calibri', serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
                 font-size: 0.85rem !important;
                 color: rgba(181, 148, 80, 0.8) !important;
                 letter-spacing: 1px !important;
@@ -1081,7 +1081,7 @@ GOT_CSS = """
                 background: linear-gradient(135deg, #8a733f 0%, #b59450 50%, #d4af37 100%) !important;
                 border: 1px solid rgba(255, 255, 255, 0.1) !important;
                 color: #09090b !important;
-                font-family: 'Cinzel', serif !important;
+                font-family: 'Calibri', serif !important;
                 font-weight: 700 !important;
                 border-radius: 4px !important;
                 box-shadow: 0 4px 14px rgba(181, 148, 80, 0.25) !important;
@@ -1098,7 +1098,7 @@ GOT_CSS = """
                 background: rgba(13, 13, 16, 0.8) !important;
                 border: 1px solid rgba(181, 148, 80, 0.4) !important;
                 color: #dfd5c6 !important;
-                font-family: 'Cinzel', serif !important;
+                font-family: 'Calibri', serif !important;
                 border-radius: 4px !important;
             }
 
@@ -1168,13 +1168,13 @@ GOT_CSS = """
             }
             div[data-testid="stDataFrame"] * {
                 color: #dfd5c6 !important;
-                font-family: 'Cormorant Garamond', serif !important;
+                font-family: 'Calibri', serif !important;
             }
 
             .stDataFrame thead tr th {
                 background: linear-gradient(135deg, #1c1c22 0%, #131316 100%) !important;
                 color: #b59450 !important;
-                font-family: 'Cinzel', serif !important;
+                font-family: 'Calibri', serif !important;
                 border-bottom: 2px solid rgba(181, 148, 80, 0.4) !important;
             }
 
@@ -1195,7 +1195,7 @@ GOT_CSS = """
             /* TABS */
             /* ============================================ */
             button[data-baseweb="tab"] {
-                font-family: 'Cinzel', serif !important;
+                font-family: 'Calibri', serif !important;
                 color: rgba(223, 213, 198, 0.6) !important;
                 letter-spacing: 0.5px !important;
             }
@@ -1293,7 +1293,7 @@ def render_page_header(title: str, subtitle: str = "", icon: str = "📊"):
         f"""
         <div style="margin-bottom: 30px;">
             <h1 style="
-                font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+                font-family: 'Calibri', 'Segoe UI', -apple-system, sans-serif;
                 font-size: 2.5rem;
                 font-weight: 800;
                 margin-bottom: 0;
@@ -1402,7 +1402,7 @@ def render_lingual_logo(position: str = "top-right", show_tagline: bool = False)
                     ">
                         <img src="{base64_logo}" style="height: 60px; width: auto; object-fit: contain;">
                     </div>
-                    {"<p style='color: rgba(249, 250, 251, 0.75); font-family: \"Inter\", \"Segoe UI\", sans-serif; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.5px; margin-top: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);'>Lingual Consultancy Services</p>" if show_tagline else ""}
+                    {"<p style='color: rgba(249, 250, 251, 0.75); font-family: \"Calibri\", \"Segoe UI\", sans-serif; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.5px; margin-top: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);'>Lingual Consultancy Services</p>" if show_tagline else ""}
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -1436,7 +1436,7 @@ def render_lingual_logo(position: str = "top-right", show_tagline: bool = False)
                     <p style="
                         text-align: center;
                         color: rgba(249, 250, 251, 0.75);
-                        font-family: 'Inter', 'Segoe UI', sans-serif;
+                        font-family: 'Calibri', 'Segoe UI', sans-serif;
                         font-size: 0.95rem;
                         font-weight: 500;
                         letter-spacing: 0.5px;
@@ -1472,14 +1472,14 @@ def render_lingual_logo(position: str = "top-right", show_tagline: bool = False)
                         margin-bottom: 8px;
                     ">
                         <span style="
-                            font-family: 'Inter', 'Segoe UI', sans-serif;
+                            font-family: 'Calibri', 'Segoe UI', sans-serif;
                             font-size: 1.5rem;
                             font-weight: 800;
                             color: #0f75bc;
                             letter-spacing: 1px;
                         ">🌐 LINGUAL</span>
                         <span style="
-                            font-family: 'Inter', 'Segoe UI', sans-serif;
+                            font-family: 'Calibri', 'Segoe UI', sans-serif;
                             font-size: 0.8rem;
                             font-weight: 700;
                             color: #3a3a3c;
@@ -1488,7 +1488,7 @@ def render_lingual_logo(position: str = "top-right", show_tagline: bool = False)
                             text-transform: uppercase;
                         ">Consultancy</span>
                     </div>
-                    {"<p style='color: rgba(249, 250, 251, 0.75); font-family: \"Inter\", \"Segoe UI\", sans-serif; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.5px; margin-top: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);'>Lingual Consultancy Services</p>" if show_tagline else ""}
+                    {"<p style='color: rgba(249, 250, 251, 0.75); font-family: \"Calibri\", \"Segoe UI\", sans-serif; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.5px; margin-top: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);'>Lingual Consultancy Services</p>" if show_tagline else ""}
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -1580,8 +1580,8 @@ def render_lingual_logo(position: str = "top-right", show_tagline: bool = False)
                         justify-content: center;
                         align-items: center;
                     ">
-                        <span style="font-family: 'Inter', sans-serif; font-size: 0.75rem; font-weight: 800; color: #0f75bc; letter-spacing: 0.5px;">🌐 LINGUAL</span>
-                        <span style="font-family: 'Inter', sans-serif; font-size: 0.45rem; font-weight: 700; color: #3a3a3c; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px;">Consultancy</span>
+                        <span style="font-family: 'Calibri', sans-serif; font-size: 0.75rem; font-weight: 800; color: #0f75bc; letter-spacing: 0.5px;">🌐 LINGUAL</span>
+                        <span style="font-family: 'Calibri', sans-serif; font-size: 0.45rem; font-weight: 700; color: #3a3a3c; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px;">Consultancy</span>
                     </div>
                     """,
                     unsafe_allow_html=True

@@ -86,7 +86,7 @@ if not st.session_state.authenticated:
                         }
                     </style>
                     <p style="
-                        font-family: 'Space Grotesk', 'Outfit', sans-serif; 
+                        font-family: 'Calibri', 'Calibri', sans-serif; 
                         margin-top: 30px; 
                         font-weight: 600;
                         font-size: 1rem;
@@ -190,8 +190,8 @@ def login_register():
                     </defs>
                 </svg>
             </div>
-            <h1 style="font-family: 'Inter', 'Segoe UI', sans-serif; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.5rem; font-weight: 800; margin-top: 20px; letter-spacing: -1.5px;">EQUITY INTEL</h1>
-            <p style="font-family: 'Inter', 'Segoe UI', sans-serif; color: rgba(249, 250, 251, 0.6); font-size: 0.95rem; margin-top: 8px; font-weight: 500; letter-spacing: 0.5px;">Institutional Equity Research Portal & Database Manager</p>
+            <h1 style="font-family: 'Calibri', 'Segoe UI', sans-serif; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.5rem; font-weight: 800; margin-top: 20px; letter-spacing: -1.5px;">EQUITY INTEL</h1>
+            <p style="font-family: 'Calibri', 'Segoe UI', sans-serif; color: rgba(249, 250, 251, 0.6); font-size: 0.95rem; margin-top: 8px; font-weight: 500; letter-spacing: 0.5px;">Institutional Equity Research Portal & Database Manager</p>
             <div style="width: 60px; height: 3px; background: linear-gradient(90deg, transparent, #8b5cf6, transparent); margin: 20px auto 0; border-radius: 2px;"></div>
         </div>
         """,
