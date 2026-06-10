@@ -208,11 +208,11 @@ def handle_company_selection():
             st.session_state[f"upload_ticker_{fv}"] = item['ticker']
             st.session_state[f"upload_exchange_{fv}"] = item['exchange']
             
-            # Fetch real-time price & market cap
-            if client:
-                token = item['token']
-                exch = item['exchange']
-                with st.spinner("Fetching live market data..."):
+            # Fetch real-time price, market cap, and industry metadata
+            with st.spinner("Fetching live market and industry data..."):
+                if client:
+                    token = item['token']
+                    exch = item['exchange']
                     live_data = backend_helper.get_live_market_data(client, token, exch)
                     if live_data:
                         st.session_state[f"upload_price_{fv}"] = float(live_data['cmp'])
@@ -220,12 +220,20 @@ def handle_company_selection():
                     else:
                         st.session_state[f"upload_price_{fv}"] = 0.0
                         st.session_state[f"upload_market_cap_{fv}"] = 0.0
+                
+                # Fetch industry from Screener
+                try:
+                    _, industry_val = backend_helper.fetch_industry_metadata(item['ticker'])
+                    st.session_state[f"upload_industry_{fv}"] = industry_val if industry_val else ""
+                except Exception:
+                    st.session_state[f"upload_industry_{fv}"] = ""
     else:
         st.session_state[f"upload_company_name_{fv}"] = ""
         st.session_state[f"upload_ticker_{fv}"] = ""
         st.session_state[f"upload_exchange_{fv}"] = "NSE"
         st.session_state[f"upload_price_{fv}"] = 0.0
         st.session_state[f"upload_market_cap_{fv}"] = 0.0
+        st.session_state[f"upload_industry_{fv}"] = ""
 
 st.selectbox(
     "🔍 Search and Select Company to Auto-Fill Form (Optional):",
