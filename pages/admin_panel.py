@@ -8,7 +8,7 @@ import datetime
 import pandas as pd
 
 # Inject premium CSS styling
-utils.inject_custom_css()
+utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
 
 # Display Lingual logo in top right corner
 utils.render_lingual_logo(position="top-right", show_tagline=False)
@@ -193,7 +193,7 @@ with tab_companies:
                             print(f"Error cleaning up comments: {e}")
                             
                         st.success(f"Successfully deleted **{selected_row['Company Name']}**!")
-                        st.cache_data.clear()
+                        backend_helper.load_csv_database.clear()
                         st.rerun()
                     else:
                         st.error("Failed to update database on Google Drive.")

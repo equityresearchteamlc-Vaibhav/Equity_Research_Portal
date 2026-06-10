@@ -8,7 +8,7 @@ from streamlit_autorefresh import st_autorefresh
 st_autorefresh(interval=300_000, key="list_companies_autorefresh")
 
 # Inject premium CSS styling
-utils.inject_custom_css()
+utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
 
 # Display Lingual logo in top right corner
 utils.render_lingual_logo(position="top-right", show_tagline=False)
@@ -44,16 +44,30 @@ def load_real_companies_db():
 
         master_contract = backend_helper.fetch_master_contract()
 
-        enhanced_data = []
+        # Gather tokens to fetch in batch
+        token_exchange_pairs = []
+        row_tokens = []
         for _, row in df.iterrows():
+            ticker   = row.get("Ticker", "")
+            exchange = row.get("Exchange", "NSE")
+            token    = backend_helper.get_token_id(master_contract, ticker, exchange)
+            token_exchange_pairs.append((token, exchange))
+            row_tokens.append((row, token))
+
+        # Batch request market data
+        batch_data = {}
+        if client and token_exchange_pairs:
+            batch_data = backend_helper.get_live_market_data_batch(client, token_exchange_pairs)
+
+        enhanced_data = []
+        for row, token in row_tokens:
             ticker     = row.get("Ticker", "")
             exchange   = row.get("Exchange", "NSE")
             price_added = float(row.get("Price When Added", 0) or 0)
             mc_added    = float(row.get("Market Cap when added", 0) or 0)
 
-            token = backend_helper.get_token_id(master_contract, ticker, exchange)
-            live_data = backend_helper.get_live_market_data(client, token, exchange) \
-                        if (client and token) else None
+            # Look up live data using token string
+            live_data = batch_data.get(str(token)) if token else None
 
             if live_data:
                 cmp       = live_data['cmp']

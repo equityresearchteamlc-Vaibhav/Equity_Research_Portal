@@ -10,7 +10,7 @@ import utils
 st_autorefresh(interval=300_000, key="dashboard_autorefresh")
 
 # Inject premium CSS styling
-utils.inject_custom_css()
+utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
 
 # Display Lingual logo in top right corner
 utils.render_lingual_logo(position="top-right", show_tagline=False)
@@ -278,7 +278,7 @@ with st.form("upload_research_form"):
                         
                         # Increment form version to clear all fields cleanly without session state errors
                         st.session_state.form_version += 1
-                        st.cache_data.clear()
+                        backend_helper.load_csv_database.clear()
                         st.rerun()
                     else:
                         st.error("❌ Metadata saved but failed to sync to Google Drive.")

@@ -10,7 +10,7 @@ import pytz
 st_autorefresh(interval=300_000, key="company_profile_autorefresh")
 
 # Inject premium CSS styling
-utils.inject_custom_css()
+utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
 
 # Display Lingual logo in top right corner
 utils.render_lingual_logo(position="top-right", show_tagline=False)
@@ -434,7 +434,7 @@ else:
                     
                     if drive_service and folder_id:
                         backend_helper.save_comments_database(drive_service, comments_df, folder_id)
-                        st.cache_data.clear()
+                        backend_helper.load_csv_database.clear()
                         st.success("Comment deleted!")
                         st.rerun()
                     else:
@@ -471,7 +471,7 @@ with st.form("new_comment_form", clear_on_submit=True):
                 comments_df = pd.concat([comments_df, pd.DataFrame([new_row])], ignore_index=True)
                 
             backend_helper.save_comments_database(drive_service, comments_df, folder_id)
-            st.cache_data.clear()
+            backend_helper.load_csv_database.clear()
             st.success("Comment posted!")
             st.rerun()
         else:
