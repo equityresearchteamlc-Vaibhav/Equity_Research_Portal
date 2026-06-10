@@ -1,0 +1,25 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Google Drive API Credentials (CRITICAL)
+google_credentials.json
+*credentials*.json
+
+# API keys / Secrets
+secrets.toml
+.streamlit/secrets.toml
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Listed companies cache
+listed_companies_cache.csv
+

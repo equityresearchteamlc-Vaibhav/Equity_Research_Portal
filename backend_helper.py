@@ -292,3 +292,127 @@ def save_comments_database(service, dataframe, folder_id):
     Save the comments database back to Drive.
     """
     return save_csv_database(service, dataframe, folder_id, db_name='comments_db.csv')
+
+def get_unified_company_list(cache_path="listed_companies_cache.csv"):
+    """
+    Returns a DataFrame of all active companies listed on NSE and BSE, merged with names from NSE.
+    Caches the processed list locally to speed up subsequent loads.
+    """
+    import os
+    import time
+    
+    # Check if local cache is fresh (less than 24 hours old)
+    if os.path.exists(cache_path):
+        mtime = os.path.getmtime(cache_path)
+        if (time.time() - mtime) < 86400: # 24 hours
+            try:
+                df = pd.read_csv(cache_path)
+                if not df.empty:
+                    return df
+            except Exception as e:
+                print(f"Error reading local company cache: {e}")
+                
+    # Cache is either missing, empty, or stale. Let's rebuild it.
+    import urllib.request
+    import io
+    import json
+    
+    # 1. Download NSE EQUITY_L.csv
+    try:
+        req_nse = urllib.request.Request(
+            "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv",
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        )
+        with urllib.request.urlopen(req_nse) as response:
+            nse_df = pd.read_csv(io.BytesIO(response.read()))
+        # Clean columns: strip whitespace
+        nse_df.columns = nse_df.columns.str.strip()
+        nse_df = nse_df[['SYMBOL', 'NAME OF COMPANY']].rename(columns={
+            'SYMBOL': 'symbol_nse',
+            'NAME OF COMPANY': 'company_name'
+        })
+        nse_df = nse_df.drop_duplicates(subset=['symbol_nse'])
+    except Exception as e:
+        print(f"Error fetching NSE list: {e}")
+        nse_df = pd.DataFrame(columns=['symbol_nse', 'company_name'])
+        
+    # 2. Download Angel One master JSON
+    try:
+        url_angel = "https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json"
+        response = urllib.request.urlopen(url_angel)
+        angel_data = json.loads(response.read())
+        angel_df = pd.DataFrame(angel_data)
+    except Exception as e:
+        print(f"Error fetching Angel One master list: {e}")
+        # If we failed to get Angel One list, return whatever we have from local cache or empty
+        if os.path.exists(cache_path):
+            try:
+                return pd.read_csv(cache_path)
+            except Exception:
+                pass
+        return pd.DataFrame()
+
+    try:
+        # Filter Angel One for NSE equities (symbol ends with -EQ and exch_seg is NSE)
+        nse_equities = angel_df[(angel_df['exch_seg'] == 'NSE') & (angel_df['symbol'].str.endswith('-EQ'))].copy()
+        
+        # Filter Angel One for BSE equities (token matches 6-digit starting with 5, exch_seg is BSE, expiry is empty)
+        bse_equities = angel_df[(angel_df['exch_seg'] == 'BSE') & (angel_df['expiry'] == '') & (angel_df['token'].str.match(r'^5\d{5}$'))].copy()
+
+        # Map company name from nse_df to nse_equities
+        nse_merged = pd.merge(
+            nse_equities,
+            nse_df,
+            left_on='name',
+            right_on='symbol_nse',
+            how='left'
+        )
+        nse_merged['company_name'] = nse_merged['company_name'].fillna(nse_merged['name'])
+        
+        # Map BSE equities to nse_df
+        bse_merged = pd.merge(
+            bse_equities,
+            nse_df,
+            left_on='name',
+            right_on='symbol_nse',
+            how='left'
+        )
+        bse_merged['company_name'] = bse_merged['company_name'].fillna(bse_merged['name'])
+
+        # Create combined candidates list
+        nse_candidates = nse_merged[['company_name', 'name', 'exch_seg', 'symbol', 'token']].rename(columns={
+            'name': 'ticker',
+            'exch_seg': 'exchange',
+            'symbol': 'exchange_symbol'
+        })
+        
+        bse_candidates = bse_merged[['company_name', 'name', 'exch_seg', 'symbol', 'token']].rename(columns={
+            'name': 'ticker',
+            'exch_seg': 'exchange',
+            'symbol': 'exchange_symbol'
+        })
+        
+        combined = pd.concat([nse_candidates, bse_candidates], ignore_index=True)
+        
+        # Sort so that NSE comes first (primary)
+        combined['exchange_priority'] = combined['exchange'].apply(lambda x: 0 if x == 'NSE' else 1)
+        combined = combined.sort_values(by=['ticker', 'exchange_priority'])
+        
+        # Drop duplicates by ticker, keeping the first (which will be NSE if available, else BSE)
+        final_df = combined.drop_duplicates(subset=['ticker'], keep='first')
+        
+        # Sort alphabetically by company_name for dropdown
+        final_df = final_df.sort_values(by='company_name')
+        
+        # Save to local cache
+        final_df.to_csv(cache_path, index=False)
+        return final_df
+    except Exception as e:
+        print(f"Error building unified company list: {e}")
+        if os.path.exists(cache_path):
+            try:
+                return pd.read_csv(cache_path)
+            except Exception:
+                pass
+        return pd.DataFrame()
+
