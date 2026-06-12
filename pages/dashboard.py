@@ -308,31 +308,27 @@ with col_search:
         # Create display list: "Company Name (Ticker)"
         display_options = (db_df['Company Name'] + " (" + db_df['Ticker'] + ")").tolist()
         
-        # Callback for selection change to instantly view profile
-        def redirect_to_profile():
-            selected = st.session_state.get("dashboard_search_select")
-            if selected and selected != "-- Select a Company --":
-                selected_ticker = selected.split("(")[-1].replace(")", "").strip()
-                matching_rows = db_df[db_df['Ticker'] == selected_ticker]
-                if not matching_rows.empty:
-                    selected_row = matching_rows.iloc[0]
-                    st.session_state.selected_ticker = selected_row['Ticker']
-                    st.session_state.selected_company  = selected_row['Company Name']
-                    st.session_state.selected_exchange = selected_row.get('Exchange', 'NSE')
-                    st.session_state.selected_file_id  = selected_row.get('File ID', '')
-                    st.session_state.selected_file_link = selected_row.get('File Link', '')
-                    st.session_state.selected_price_added = selected_row.get('Price When Added', 0)
-                    st.session_state.selected_mc_added    = selected_row.get('Market Cap when added', 0)
-                    # Reset the dropdown value for the next time dashboard is loaded
-                    st.session_state.dashboard_search_select = "-- Select a Company --"
-                    st.switch_page("pages/company_profile.py")
-
-        st.selectbox(
+        selected = st.selectbox(
             "Select a company from the list:",
             options=["-- Select a Company --"] + display_options,
-            key="dashboard_search_select",
-            on_change=redirect_to_profile
+            key="dashboard_search_select"
         )
+        
+        if selected and selected != "-- Select a Company --":
+            selected_ticker = selected.split("(")[-1].replace(")", "").strip()
+            matching_rows = db_df[db_df['Ticker'] == selected_ticker]
+            if not matching_rows.empty:
+                selected_row = matching_rows.iloc[0]
+                st.session_state.selected_ticker = selected_row['Ticker']
+                st.session_state.selected_company  = selected_row['Company Name']
+                st.session_state.selected_exchange = selected_row.get('Exchange', 'NSE')
+                st.session_state.selected_file_id  = selected_row.get('File ID', '')
+                st.session_state.selected_file_link = selected_row.get('File Link', '')
+                st.session_state.selected_price_added = selected_row.get('Price When Added', 0)
+                st.session_state.selected_mc_added    = selected_row.get('Market Cap when added', 0)
+                # Reset the dropdown value for the next time dashboard is loaded
+                st.session_state.dashboard_search_select = "-- Select a Company --"
+                st.switch_page("pages/company_profile.py")
     else:
         st.info("No tracked companies in the database.")
 
