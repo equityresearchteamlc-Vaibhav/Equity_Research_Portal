@@ -96,8 +96,7 @@ try:
     )
     
     if client:
-        master_contract = backend_helper.fetch_master_contract()
-        token = backend_helper.get_token_id(master_contract, ticker, exchange)
+        token = backend_helper.get_cached_token_id(ticker, exchange)
         if token:
             live_data = backend_helper.get_live_market_data(client, token, exchange)
             if live_data:
