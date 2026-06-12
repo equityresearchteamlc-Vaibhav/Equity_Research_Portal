@@ -478,6 +478,27 @@ def fetch_industry_metadata(ticker):
         return "", ""
 
 
+def get_cached_token_id(ticker, exchange="NSE"):
+    """
+    Looks up the Token ID of a ticker locally from the cached unified company list.
+    Saves loading the massive 25MB Angel One scrip master contract.
+    """
+    try:
+        unified = get_unified_company_list()
+        if unified.empty:
+            return None
+        # Clean ticker and exchange values
+        t_clean = str(ticker).strip().upper()
+        e_clean = str(exchange).strip().upper()
+        
+        res = unified[(unified['ticker'] == t_clean) & (unified['exchange'] == e_clean)]
+        if not res.empty:
+            return str(res.iloc[0]['token'])
+    except Exception as e:
+        print(f"Error looking up cached token for {ticker}: {e}")
+    return None
+
+
 @st.cache_data(ttl=300, show_spinner="Loading your data...")
 def load_real_companies_db():
     """
@@ -501,15 +522,13 @@ def load_real_companies_db():
             totp_secret=angel_secrets["totp_secret"]
         )
 
-        master_contract = fetch_master_contract()
-
-        # Gather tokens to fetch in batch
+        # Gather tokens to fetch in batch using local memory lookup
         token_exchange_pairs = []
         row_tokens = []
         for _, row in df.iterrows():
             ticker   = row.get("Ticker", "")
             exchange = row.get("Exchange", "NSE")
-            token    = get_token_id(master_contract, ticker, exchange)
+            token    = get_cached_token_id(ticker, exchange)
             token_exchange_pairs.append((token, exchange))
             row_tokens.append((row, token))
 
