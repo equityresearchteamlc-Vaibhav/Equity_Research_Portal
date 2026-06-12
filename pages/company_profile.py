@@ -9,9 +9,6 @@ import pytz
 # Inject premium CSS styling
 utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
 
-# Auto-refresh every 5 minutes (300,000 ms)
-st_autorefresh(interval=300_000, key="company_profile_autorefresh")
-
 # Initialize local comments list in session state
 if "local_comments" not in st.session_state:
     st.session_state.local_comments = []
@@ -568,3 +565,6 @@ st.button("Post Comment", type="primary", on_click=handle_post_comment, args=(dr
 if st.session_state.get("comment_success_message"):
     st.success(st.session_state.comment_success_message)
     st.session_state.comment_success_message = ""
+
+# Auto-refresh every 5 minutes (300,000 ms) in the background
+st_autorefresh(interval=300_000, key="company_profile_autorefresh")

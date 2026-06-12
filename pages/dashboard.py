@@ -12,9 +12,6 @@ import utils
 # Inject premium CSS styling
 utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
 
-# Auto-refresh every 5 minutes (300,000 ms)
-st_autorefresh(interval=300_000, key="dashboard_autorefresh")
-
 # Display Lingual logo in top right corner
 utils.render_lingual_logo(position="top-right", show_tagline=False)
 
@@ -349,5 +346,8 @@ with col_actions:
             st.switch_page("pages/list_companies.py")
         if st.button("📤 Submit Research Form", use_container_width=True, key="btn_open_upload_dialog"):
             show_upload_dialog(client, drive_service, folder_id)
+
+# Auto-refresh every 5 minutes (300,000 ms) in the background
+st_autorefresh(interval=300_000, key="dashboard_autorefresh")
 
 # End of Dashboard file

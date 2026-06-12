@@ -7,9 +7,6 @@ from streamlit_autorefresh import st_autorefresh
 # Inject premium CSS styling
 utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
 
-# Auto-refresh every 5 minutes (300,000 ms)
-st_autorefresh(interval=300_000, key="list_companies_autorefresh")
-
 # Display Lingual logo in top right corner
 utils.render_lingual_logo(position="top-right", show_tagline=False)
 
@@ -111,3 +108,6 @@ else:
             st.session_state.selected_price_added = selected_row.get('Price When Added', 0)
             st.session_state.selected_mc_added    = selected_row.get('Market Cap when added (Cr)', 0)
             st.switch_page("pages/company_profile.py")
+
+# Auto-refresh every 5 minutes (300,000 ms) in the background
+st_autorefresh(interval=300_000, key="list_companies_autorefresh")
