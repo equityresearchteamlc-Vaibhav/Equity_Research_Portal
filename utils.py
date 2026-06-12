@@ -352,6 +352,44 @@ DARK_CSS = """
                     inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
             }
             
+            /* Premium Bordered Containers (Used for single metric + action card) */
+            div[data-testid="stVerticalBlockBorderWrapper"] {
+                background: linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(31, 41, 55, 0.6) 100%) !important;
+                border: 1px solid rgba(99, 102, 241, 0.2) !important;
+                border-radius: 16px !important;
+                padding: 16px !important;
+                backdrop-filter: blur(10px) !important;
+                -webkit-backdrop-filter: blur(10px) !important;
+                box-shadow: 
+                    0 4px 24px rgba(0, 0, 0, 0.4),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            }
+            
+            div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+                transform: translateY(-4px) scale(1.02) !important;
+                border-color: rgba(99, 102, 241, 0.4) !important;
+                box-shadow: 
+                    0 8px 32px rgba(59, 130, 246, 0.2),
+                    0 0 0 1px rgba(99, 102, 241, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+            }
+            
+            /* Make nested metrics blend seamlessly within the bordered container */
+            div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stMetric"] {
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                min-height: auto !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            
+            div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stMetricValue"] {
+                margin-bottom: 8px !important;
+            }
+            
             div[data-testid="stMetricValue"] {
                 font-size: 1.4rem !important;
                 font-weight: 700 !important;
@@ -687,6 +725,43 @@ LIGHT_CSS = """
                 box-shadow: 
                     0 8px 24px rgba(99, 102, 241, 0.1),
                     0 0 0 1px rgba(99, 102, 241, 0.15) !important;
+            }
+            
+            /* Premium Bordered Containers (Used for single metric + action card) */
+            div[data-testid="stVerticalBlockBorderWrapper"] {
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(243, 244, 246, 0.7) 100%) !important;
+                border: 1px solid rgba(0, 0, 0, 0.08) !important;
+                border-radius: 16px !important;
+                padding: 16px !important;
+                backdrop-filter: blur(10px) !important;
+                -webkit-backdrop-filter: blur(10px) !important;
+                box-shadow: 
+                    0 4px 20px rgba(0, 0, 0, 0.05),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+                transition: all 0.3s ease !important;
+            }
+            
+            div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+                transform: translateY(-4px) scale(1.02) !important;
+                border-color: rgba(99, 102, 241, 0.3) !important;
+                box-shadow: 
+                    0 8px 24px rgba(99, 102, 241, 0.1),
+                    0 0 0 1px rgba(99, 102, 241, 0.15) !important;
+            }
+            
+            /* Make nested metrics blend seamlessly within the bordered container */
+            div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stMetric"] {
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                min-height: auto !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            
+            div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stMetricValue"] {
+                margin-bottom: 8px !important;
             }
             
             div[data-testid="stMetricValue"] {
@@ -1026,6 +1101,41 @@ GOT_CSS = """
                 box-shadow: 
                     0 12px 40px rgba(181, 148, 80, 0.15),
                     0 0 15px rgba(181, 148, 80, 0.25) !important;
+            }
+            
+            /* Premium Bordered Containers (Used for single metric + action card) */
+            div[data-testid="stVerticalBlockBorderWrapper"] {
+                background: linear-gradient(135deg, rgba(13, 13, 16, 0.95) 0%, rgba(20, 20, 24, 0.8) 100%) !important;
+                border: 1px solid rgba(181, 148, 80, 0.3) !important;
+                border-radius: 8px !important;
+                padding: 16px !important;
+                box-shadow: 
+                    0 8px 32px rgba(0, 0, 0, 0.6),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.02) !important;
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            }
+            
+            div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+                transform: translateY(-4px) !important;
+                border-color: rgba(181, 148, 80, 0.6) !important;
+                box-shadow: 
+                    0 12px 40px rgba(181, 148, 80, 0.15),
+                    0 0 15px rgba(181, 148, 80, 0.25) !important;
+            }
+            
+            /* Make nested metrics blend seamlessly within the bordered container */
+            div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stMetric"] {
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                min-height: auto !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            
+            div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stMetricValue"] {
+                margin-bottom: 8px !important;
             }
 
             div[data-testid="stMetricValue"] {

@@ -293,6 +293,7 @@ def save_comments_database(service, dataframe, folder_id):
     """
     return save_csv_database(service, dataframe, folder_id, db_name='comments_db.csv')
 
+@st.cache_data(ttl=86400, show_spinner=False)
 def get_unified_company_list(cache_path="listed_companies_cache_v2.csv"):
     """
     Returns a DataFrame of all active companies listed on NSE and BSE, merged with names from NSE.
@@ -445,6 +446,7 @@ def get_unified_company_list(cache_path="listed_companies_cache_v2.csv"):
         return pd.DataFrame()
 
 
+@st.cache_data(ttl=604800, show_spinner=False)
 def fetch_industry_metadata(ticker):
     """
     Scrapes the industry and sector for a given ticker from Screener.in.
