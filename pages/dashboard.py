@@ -308,12 +308,8 @@ with col_search:
         # Create display list: "Company Name (Ticker)"
         display_options = (db_df['Company Name'] + " (" + db_df['Ticker'] + ")").tolist()
         
-        selected = st.selectbox(
-            "Select a company from the list:",
-            options=["-- Select a Company --"] + display_options,
-            key="dashboard_search_select"
-        )
-        
+        # Check selection state and redirect BEFORE rendering the selectbox to avoid StreamlitAPIException
+        selected = st.session_state.get("dashboard_search_select")
         if selected and selected != "-- Select a Company --":
             selected_ticker = selected.split("(")[-1].replace(")", "").strip()
             matching_rows = db_df[db_df['Ticker'] == selected_ticker]
@@ -329,6 +325,12 @@ with col_search:
                 # Reset the dropdown value for the next time dashboard is loaded
                 st.session_state.dashboard_search_select = "-- Select a Company --"
                 st.switch_page("pages/company_profile.py")
+
+        st.selectbox(
+            "Select a company from the list:",
+            options=["-- Select a Company --"] + display_options,
+            key="dashboard_search_select"
+        )
     else:
         st.info("No tracked companies in the database.")
 
