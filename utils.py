@@ -163,8 +163,8 @@ BASE_CSS = """
             }
             
             /* Adjust top padding since header is hidden */
-            .main .block-container {
-                padding-top: 2rem !important;
+            .main .block-container, [data-testid="stMainBlockContainer"] {
+                padding-top: 1.25rem !important;
             }
             
             /* ============================================ */
@@ -195,7 +195,7 @@ BASE_CSS = """
             }
             
             /* Apply fade-in to main content */
-            .main .block-container {
+            .main .block-container, [data-testid="stMainBlockContainer"] {
                 animation: fadeIn 0.5s ease-out !important;
             }
             

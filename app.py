@@ -137,9 +137,9 @@ def login_register():
             section[data-testid="stSidebar"] {
                 display: none !important;
             }
-            .main .block-container {
+            .main .block-container, [data-testid="stMainBlockContainer"] {
                 max-width: 600px !important;
-                padding-top: 2rem !important;
+                padding-top: 1.5rem !important;
             }
             @keyframes float {
                 0%, 100% { transform: translateY(0px); }
