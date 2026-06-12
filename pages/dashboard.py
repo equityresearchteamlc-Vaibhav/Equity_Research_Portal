@@ -123,13 +123,41 @@ with col3:
     )
 with col4:
     with st.container(border=True):
-        st.metric(label="Total Companies Uploaded", value=str(total_companies))
-        if st.button("View All Companies ➡️", use_container_width=True):
-            st.switch_page("pages/list_companies.py")
+        st.markdown(
+            "<p style='font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin: 0 0 10px 0; text-align: center;'>Quick Actions</p>", 
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            f"""
+            <div style="text-align: center; margin-bottom: 12px;">
+                <a href="/list_companies" target="_self" style="
+                    display: block;
+                    font-size: 0.85rem; 
+                    font-weight: 700; 
+                    color: #3b82f6; 
+                    text-decoration: none; 
+                    padding: 8px 10px;
+                    border: 1px solid rgba(59, 130, 246, 0.3);
+                    border-radius: 8px;
+                    background: rgba(59, 130, 246, 0.05);
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='rgba(59, 130, 246, 0.12)'; this.style.borderColor='#3b82f6';" onmouseout="this.style.background='rgba(59, 130, 246, 0.05)'; this.style.borderColor='rgba(59, 130, 246, 0.3)';">
+                    📁 Total Companies Uploaded - ({total_companies})
+                </a>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        if st.button("📤 Submit Research Form", use_container_width=True, key="btn_open_upload_form"):
+            st.session_state.expand_upload_form = True
+            st.rerun()
 
 st.divider()
 
 # --- Initialize Form Session States ---
+if "expand_upload_form" not in st.session_state:
+    st.session_state.expand_upload_form = False
+
 # --- Initialize Form Version counter ---
 if "form_version" not in st.session_state:
     st.session_state.form_version = 0
@@ -181,7 +209,7 @@ if "upload_success_message" in st.session_state:
     st.success(st.session_state.upload_success_message)
     del st.session_state.upload_success_message
 
-    with st.expander("📤 Click to Open Research Submission Form", expanded=False):
+    with st.expander("📤 Click to Open Research Submission Form", expanded=st.session_state.expand_upload_form):
         # We render the form elements with keys linked to st.session_state.form_version
         companies_df = backend_helper.get_unified_company_list()
         company_display_list = []
@@ -340,6 +368,7 @@ if "upload_success_message" in st.session_state:
                                 
                                 # Increment form version to clear all fields cleanly without session state errors
                                 st.session_state.form_version += 1
+                                st.session_state.expand_upload_form = False
                                 backend_helper.load_csv_database.clear()
                                 backend_helper.load_real_companies_db.clear()
                                 st.rerun()
