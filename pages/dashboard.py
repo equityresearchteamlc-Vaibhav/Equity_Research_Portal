@@ -122,9 +122,10 @@ with col3:
         delta=f"{indices_data['NIFTY SMALLCAP 100']['pct_change']:.2f}%"
     )
 with col4:
-    st.metric(label="Total Companies Uploaded", value=str(total_companies))
-    if st.button("View All Companies ➡️", use_container_width=True):
-        st.switch_page("pages/list_companies.py")
+    with st.container(border=True):
+        st.metric(label="Total Companies Uploaded", value=str(total_companies))
+        if st.button("View All Companies ➡️", use_container_width=True):
+            st.switch_page("pages/list_companies.py")
 
 st.divider()
 
@@ -180,174 +181,175 @@ if "upload_success_message" in st.session_state:
     st.success(st.session_state.upload_success_message)
     del st.session_state.upload_success_message
 
-# We render the form elements with keys linked to st.session_state.form_version
-companies_df = backend_helper.get_unified_company_list()
-company_display_list = []
-if not companies_df.empty:
-    companies_df['display_name'] = (
-        companies_df['company_name'] + " (Ticker: " + companies_df['ticker'] + " | " + companies_df['exchange'] + ")"
-    )
-    company_display_list = companies_df['display_name'].tolist()
+    with st.expander("📤 Click to Open Research Submission Form", expanded=False):
+        # We render the form elements with keys linked to st.session_state.form_version
+        companies_df = backend_helper.get_unified_company_list()
+        company_display_list = []
+        if not companies_df.empty:
+            companies_df['display_name'] = (
+                companies_df['company_name'] + " (Ticker: " + companies_df['ticker'] + " | " + companies_df['exchange'] + ")"
+            )
+            company_display_list = companies_df['display_name'].tolist()
 
-# Handle form version changes to reset searchable selector
-if "last_form_version" not in st.session_state:
-    st.session_state.last_form_version = st.session_state.form_version
+        # Handle form version changes to reset searchable selector
+        if "last_form_version" not in st.session_state:
+            st.session_state.last_form_version = st.session_state.form_version
 
-if st.session_state.last_form_version != st.session_state.form_version:
-    st.session_state.last_form_version = st.session_state.form_version
-    st.session_state.company_search_selector = "-- Select a Company --"
+        if st.session_state.last_form_version != st.session_state.form_version:
+            st.session_state.last_form_version = st.session_state.form_version
+            st.session_state.company_search_selector = "-- Select a Company --"
 
-def handle_company_selection():
-    selected = st.session_state.company_search_selector
-    fv = st.session_state.form_version
-    if selected and selected != "-- Select a Company --":
-        row = companies_df[companies_df['display_name'] == selected]
-        if not row.empty:
-            item = row.iloc[0]
-            st.session_state[f"upload_company_name_{fv}"] = item['company_name']
-            st.session_state[f"upload_ticker_{fv}"] = item['ticker']
-            st.session_state[f"upload_exchange_{fv}"] = item['exchange']
-            
-            # Fetch real-time price, market cap, and industry metadata
-            with st.spinner("Fetching live market and industry data..."):
-                if client:
-                    token = item['token']
-                    exch = item['exchange']
-                    live_data = backend_helper.get_live_market_data(client, token, exch)
-                    if live_data:
-                        st.session_state[f"upload_price_{fv}"] = float(live_data['cmp'])
-                        st.session_state[f"upload_market_cap_{fv}"] = float(live_data['market_cap_cr'])
-                    else:
-                        st.session_state[f"upload_price_{fv}"] = 0.0
-                        st.session_state[f"upload_market_cap_{fv}"] = 0.0
-                
-                # Fetch industry from Screener
-                try:
-                    _, industry_val = backend_helper.fetch_industry_metadata(item['ticker'])
-                    st.session_state[f"upload_industry_{fv}"] = industry_val if industry_val else ""
-                except Exception:
-                    st.session_state[f"upload_industry_{fv}"] = ""
-    else:
-        st.session_state[f"upload_company_name_{fv}"] = ""
-        st.session_state[f"upload_ticker_{fv}"] = ""
-        st.session_state[f"upload_exchange_{fv}"] = "NSE"
-        st.session_state[f"upload_price_{fv}"] = 0.0
-        st.session_state[f"upload_market_cap_{fv}"] = 0.0
-        st.session_state[f"upload_industry_{fv}"] = ""
-
-st.selectbox(
-    "🔍 Search and Select Company to Auto-Fill Form (Optional):",
-    options=["-- Select a Company --"] + company_display_list,
-    key="company_search_selector",
-    on_change=handle_company_selection
-)
-
-with st.form("upload_research_form"):
-    col_a, col_b = st.columns(2)
-
-    with col_a:
-        analyst_name = st.text_input(
-            "Analyst Name",
-            value=st.session_state.get('user_name', 'Analyst')
-        )
-        company_name = st.text_input("Company Name", key=f"upload_company_name_{st.session_state.form_version}")
-        ticker = st.text_input("Ticker Symbol (e.g., RELIANCE)", key=f"upload_ticker_{st.session_state.form_version}")
-        exchange = st.selectbox("Exchange", ["NSE", "BSE"], key=f"upload_exchange_{st.session_state.form_version}")
-        price_during_research = st.number_input("Price during research (₹)", min_value=0.0, format="%.2f", key=f"upload_price_{st.session_state.form_version}")
-        market_cap_research = st.number_input("Market Cap during research (₹ Cr)", min_value=0.0, format="%.2f", key=f"upload_market_cap_{st.session_state.form_version}")
-
-
-    with col_b:
-        industry = st.text_input("Industry / Sector", key=f"upload_industry_{st.session_state.form_version}")
-        research_type = st.selectbox("Research Type", ["Fundamental only", "Technical only", "Both"])
-        latest_qtr = st.text_input("Latest Qtr Result available (e.g., Q4 FY24)", key=f"upload_qtr_{st.session_state.form_version}")
-        import pytz
-        ist_today = datetime.datetime.now(pytz.timezone('Asia/Kolkata')).date()
-        date_submission = st.date_input("Date of submission", ist_today)
-        rating = st.slider("Rating by Owner (1-10 Stars)", 1, 10, 5)
-        comment_by_owner = st.text_area("Comment by Owner", key=f"upload_comment_{st.session_state.form_version}")
-
-    uploaded_file = st.file_uploader(
-        "📎 Upload Research File (PDF, PPTX, DOCX, XLSX...)",
-        key=f"file_uploader_{st.session_state.form_version}"
-    )
-
-    submit_upload = st.form_submit_button("Submit Research & Sync to Drive", type="primary")
-
-    if submit_upload:
-        if company_name and ticker and uploaded_file:
-            if not drive_service or not folder_id:
-                st.error("Google Drive is not configured properly in st.secrets.")
+        def handle_company_selection():
+            selected = st.session_state.company_search_selector
+            fv = st.session_state.form_version
+            if selected and selected != "-- Select a Company --":
+                row = companies_df[companies_df['display_name'] == selected]
+                if not row.empty:
+                    item = row.iloc[0]
+                    st.session_state[f"upload_company_name_{fv}"] = item['company_name']
+                    st.session_state[f"upload_ticker_{fv}"] = item['ticker']
+                    st.session_state[f"upload_exchange_{fv}"] = item['exchange']
+                    
+                    # Fetch real-time price, market cap, and industry metadata
+                    with st.spinner("Fetching live market and industry data..."):
+                        if client:
+                            token = item['token']
+                            exch = item['exchange']
+                            live_data = backend_helper.get_live_market_data(client, token, exch)
+                            if live_data:
+                                st.session_state[f"upload_price_{fv}"] = float(live_data['cmp'])
+                                st.session_state[f"upload_market_cap_{fv}"] = float(live_data['market_cap_cr'])
+                            else:
+                                st.session_state[f"upload_price_{fv}"] = 0.0
+                                st.session_state[f"upload_market_cap_{fv}"] = 0.0
+                        
+                        # Fetch industry from Screener
+                        try:
+                            _, industry_val = backend_helper.fetch_industry_metadata(item['ticker'])
+                            st.session_state[f"upload_industry_{fv}"] = industry_val if industry_val else ""
+                        except Exception:
+                            st.session_state[f"upload_industry_{fv}"] = ""
             else:
-                status_placeholder = st.empty()
-                with status_placeholder.container():
-                    col_l, col_c, col_r = st.columns([2, 1, 2])
-                    with col_c:
-                        import os
-                        gif_path = os.path.join(os.getcwd(), "loading.gif")
-                        if not os.path.exists(gif_path):
-                            gif_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "loading.gif")
-                        
-                        if os.path.exists(gif_path):
-                            st.image(gif_path, use_container_width=True)
-                        else:
-                            st.info("🔄 Uploading...")
-                    st.info("Uploading research file and syncing metadata...")
-                try:
-                    # --- Upload file to Google Drive ---
-                    file_id = ""
-                    file_link = ""
-                    if uploaded_file:
-                        file_bytes = uploaded_file.getvalue()
-                        file_ext   = uploaded_file.name.rsplit('.', 1)[-1]
-                        safe_name  = f"{ticker.upper().strip()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
-                        file_id    = backend_helper.upload_file_to_drive(drive_service, file_bytes, safe_name, folder_id)
-                        if file_id:
-                            file_link = f"https://drive.google.com/file/d/{file_id}/view?usp=drivesdk"
+                st.session_state[f"upload_company_name_{fv}"] = ""
+                st.session_state[f"upload_ticker_{fv}"] = ""
+                st.session_state[f"upload_exchange_{fv}"] = "NSE"
+                st.session_state[f"upload_price_{fv}"] = 0.0
+                st.session_state[f"upload_market_cap_{fv}"] = 0.0
+                st.session_state[f"upload_industry_{fv}"] = ""
 
-                    new_data = {
-                        "Company Name": company_name,
-                        "Ticker": ticker.upper().strip(),
-                        "Exchange": exchange,
-                        "Date Added": str(date_submission),
-                        "Price When Added": price_during_research,
-                        "Market Cap when added": market_cap_research,
-                        "Industry": industry,
-                        "Research Type": research_type,
-                        "Latest Qtr": latest_qtr,
-                        "Rating": rating,
-                        "Analyst": analyst_name,
-                        "Comment": comment_by_owner,
-                        "File ID": file_id,
-                        "File Link": file_link
-                    }
+        st.selectbox(
+            "🔍 Search and Select Company to Auto-Fill Form (Optional):",
+            options=["-- Select a Company --"] + company_display_list,
+            key="company_search_selector",
+            on_change=handle_company_selection
+        )
 
-                    # Load existing DB or create new
-                    df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
-                    if df.empty:
-                        df = pd.DataFrame([new_data])
+        with st.form("upload_research_form"):
+            col_a, col_b = st.columns(2)
+
+            with col_a:
+                analyst_name = st.text_input(
+                    "Analyst Name",
+                    value=st.session_state.get('user_name', 'Analyst')
+                )
+                company_name = st.text_input("Company Name", key=f"upload_company_name_{st.session_state.form_version}")
+                ticker = st.text_input("Ticker Symbol (e.g., RELIANCE)", key=f"upload_ticker_{st.session_state.form_version}")
+                exchange = st.selectbox("Exchange", ["NSE", "BSE"], key=f"upload_exchange_{st.session_state.form_version}")
+                price_during_research = st.number_input("Price during research (₹)", min_value=0.0, format="%.2f", key=f"upload_price_{st.session_state.form_version}")
+                market_cap_research = st.number_input("Market Cap during research (₹ Cr)", min_value=0.0, format="%.2f", key=f"upload_market_cap_{st.session_state.form_version}")
+
+
+            with col_b:
+                industry = st.text_input("Industry / Sector", key=f"upload_industry_{st.session_state.form_version}")
+                research_type = st.selectbox("Research Type", ["Fundamental only", "Technical only", "Both"])
+                latest_qtr = st.text_input("Latest Qtr Result available (e.g., Q4 FY24)", key=f"upload_qtr_{st.session_state.form_version}")
+                import pytz
+                ist_today = datetime.datetime.now(pytz.timezone('Asia/Kolkata')).date()
+                date_submission = st.date_input("Date of submission", ist_today)
+                rating = st.slider("Rating by Owner (1-10 Stars)", 1, 10, 5)
+                comment_by_owner = st.text_area("Comment by Owner", key=f"upload_comment_{st.session_state.form_version}")
+
+            uploaded_file = st.file_uploader(
+                "📎 Upload Research File (PDF, PPTX, DOCX, XLSX...)",
+                key=f"file_uploader_{st.session_state.form_version}"
+            )
+
+            submit_upload = st.form_submit_button("Submit Research & Sync to Drive", type="primary")
+
+            if submit_upload:
+                if company_name and ticker and uploaded_file:
+                    if not drive_service or not folder_id:
+                        st.error("Google Drive is not configured properly in st.secrets.")
                     else:
-                        df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+                        status_placeholder = st.empty()
+                        with status_placeholder.container():
+                            col_l, col_c, col_r = st.columns([2, 1, 2])
+                            with col_c:
+                                import os
+                                gif_path = os.path.join(os.getcwd(), "loading.gif")
+                                if not os.path.exists(gif_path):
+                                    gif_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "loading.gif")
+                                
+                                if os.path.exists(gif_path):
+                                    st.image(gif_path, use_container_width=True)
+                                else:
+                                    st.info("🔄 Uploading...")
+                            st.info("Uploading research file and syncing metadata...")
+                        try:
+                            # --- Upload file to Google Drive ---
+                            file_id = ""
+                            file_link = ""
+                            if uploaded_file:
+                                file_bytes = uploaded_file.getvalue()
+                                file_ext   = uploaded_file.name.rsplit('.', 1)[-1]
+                                safe_name  = f"{ticker.upper().strip()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
+                                file_id    = backend_helper.upload_file_to_drive(drive_service, file_bytes, safe_name, folder_id)
+                                if file_id:
+                                    file_link = f"https://drive.google.com/file/d/{file_id}/view?usp=drivesdk"
 
-                    # Save back to Drive
-                    success = backend_helper.save_csv_database(drive_service, df, folder_id, 'reports_db.csv')
-                    status_placeholder.empty()
+                            new_data = {
+                                "Company Name": company_name,
+                                "Ticker": ticker.upper().strip(),
+                                "Exchange": exchange,
+                                "Date Added": str(date_submission),
+                                "Price When Added": price_during_research,
+                                "Market Cap when added": market_cap_research,
+                                "Industry": industry,
+                                "Research Type": research_type,
+                                "Latest Qtr": latest_qtr,
+                                "Rating": rating,
+                                "Analyst": analyst_name,
+                                "Comment": comment_by_owner,
+                                "File ID": file_id,
+                                "File Link": file_link
+                            }
 
-                    if success:
-                        st.session_state.upload_success_message = f"✅ Research for **{company_name}** saved successfully!"
-                        
-                        # Increment form version to clear all fields cleanly without session state errors
-                        st.session_state.form_version += 1
-                        backend_helper.load_csv_database.clear()
-                        backend_helper.load_real_companies_db.clear()
-                        st.rerun()
-                    else:
-                        st.error("❌ Metadata saved but failed to sync to Google Drive.")
+                            # Load existing DB or create new
+                            df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+                            if df.empty:
+                                df = pd.DataFrame([new_data])
+                            else:
+                                df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
 
-                except Exception as e:
-                    status_placeholder.empty()
-                    st.error(f"❌ Error: {e}")
-        else:
-            st.error("Please fill in all fields (Company Name, Ticker) and upload a research file.")
+                            # Save back to Drive
+                            success = backend_helper.save_csv_database(drive_service, df, folder_id, 'reports_db.csv')
+                            status_placeholder.empty()
+
+                            if success:
+                                st.session_state.upload_success_message = f"✅ Research for **{company_name}** saved successfully!"
+                                
+                                # Increment form version to clear all fields cleanly without session state errors
+                                st.session_state.form_version += 1
+                                backend_helper.load_csv_database.clear()
+                                backend_helper.load_real_companies_db.clear()
+                                st.rerun()
+                            else:
+                                st.error("❌ Metadata saved but failed to sync to Google Drive.")
+
+                        except Exception as e:
+                            status_placeholder.empty()
+                            st.error(f"❌ Error: {e}")
+                else:
+                    st.error("Please fill in all fields (Company Name, Ticker) and upload a research file.")
 
 
