@@ -49,6 +49,9 @@ try:
 except KeyError:
     st.error("⚠️ Angel One secrets not configured in .streamlit/secrets.toml!")
     client = None
+except Exception as e:
+    st.error(f"⚠️ Angel One Connection Failed: {e}")
+    client = None
 
 # --- Real Angel One Data Fetcher (Batch & Cached) ---
 @st.cache_data(ttl=30, show_spinner=False)
