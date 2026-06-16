@@ -24,11 +24,10 @@ def get_angel_client(api_key, client_code, password, totp_secret):
         if data['status']:
             return obj
         else:
-            print(f"Login Failed: {data['message']}")
-            return None
+            raise Exception(f"Angel One Login Failed: {data.get('message', 'Unknown error')}")
     except Exception as e:
-        print(f"Error during Angel One authentication: {e}")
-        return None
+        # Re-raise so Streamlit doesn't cache the failure
+        raise e
 
 @st.cache_data(ttl=3600, show_spinner="Loading your data...")
 def fetch_master_contract():
