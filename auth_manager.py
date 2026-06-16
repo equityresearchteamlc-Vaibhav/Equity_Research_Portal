@@ -49,7 +49,8 @@ def save_db(df):
         except Exception as e:
             print(f"Error saving {DB_FILE} to Google Drive: {e}")
 
-@st.cache_resource
+_DB_INITIALIZED = False
+
 def init_db():
     df = load_db()
     
@@ -85,7 +86,7 @@ def init_db():
             updated = True
             
     # Explicitly make sure vaibhavgupta@lingualconsultancy.in is admin and named Vaibhav Gupta
-    idx = df[df['Email'] == "vaibhavgupta@lingualconsultancy.in"].index
+    idx = df[df['Email'].str.lower() == "vaibhavgupta@lingualconsultancy.in"].index
     if not idx.empty:
         if not df.loc[idx[0], 'Is_Admin']:
             df.loc[idx, 'Is_Admin'] = True
@@ -98,12 +99,16 @@ def init_db():
         save_db(df)
 
 def get_users_df():
-    init_db()
+    global _DB_INITIALIZED
+    if not _DB_INITIALIZED:
+        init_db()
+        _DB_INITIALIZED = True
     return load_db()
 
 def verify_login(email, password):
     df = get_users_df()
-    user_row = df[df['Email'] == email]
+    email_clean = str(email).strip().lower()
+    user_row = df[df['Email'].str.lower() == email_clean]
     if user_row.empty:
         return False, "User not found. Have you registered?"
     
@@ -120,7 +125,8 @@ def verify_login(email, password):
 
 def change_password(email, new_password):
     df = get_users_df()
-    idx = df[df['Email'] == email].index
+    email_clean = str(email).strip().lower()
+    idx = df[df['Email'].str.lower() == email_clean].index
     if not idx.empty:
         new_hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         df.loc[idx, 'Password'] = new_hashed
@@ -131,13 +137,14 @@ def change_password(email, new_password):
 
 def register_user(name, email, password):
     df = get_users_df()
-    if not df[df['Email'] == email].empty:
+    email_clean = str(email).strip().lower()
+    if not df[df['Email'].str.lower() == email_clean].empty:
         return False, "Email already exists."
     
     new_hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     new_user = {
         "Name": name, 
-        "Email": email, 
+        "Email": email_clean, 
         "Password": new_hashed, 
         "Is_First_Login": False, 
         "Is_Approved": False,
@@ -154,7 +161,8 @@ def get_pending_approvals():
 
 def approve_user(email):
     df = get_users_df()
-    idx = df[df['Email'] == email].index
+    email_clean = str(email).strip().lower()
+    idx = df[df['Email'].str.lower() == email_clean].index
     if not idx.empty:
         df.loc[idx, 'Is_Approved'] = True
         save_db(df)
@@ -163,7 +171,8 @@ def approve_user(email):
 
 def reject_user(email):
     df = get_users_df()
-    idx = df[df['Email'] == email].index
+    email_clean = str(email).strip().lower()
+    idx = df[df['Email'].str.lower() == email_clean].index
     if not idx.empty:
         df = df.drop(idx)
         save_db(df)
@@ -172,7 +181,8 @@ def reject_user(email):
 
 def get_user_by_email(email):
     df = get_users_df()
-    user_row = df[df['Email'] == email]
+    email_clean = str(email).strip().lower()
+    user_row = df[df['Email'].str.lower() == email_clean]
     if user_row.empty:
         return None
     return user_row.iloc[0].to_dict()
@@ -188,7 +198,8 @@ def update_user_activity(email):
         return True
         
     df = get_users_df()
-    idx = df[df['Email'] == email].index
+    email_clean = str(email).strip().lower()
+    idx = df[df['Email'].str.lower() == email_clean].index
     if not idx.empty:
         # Cast Last_Seen to object type to support string assignment on empty/float columns
         df['Last_Seen'] = df['Last_Seen'].astype(object)
@@ -200,7 +211,8 @@ def update_user_activity(email):
 
 def reset_user_password(email):
     df = get_users_df()
-    idx = df[df['Email'] == email].index
+    email_clean = str(email).strip().lower()
+    idx = df[df['Email'].str.lower() == email_clean].index
     if not idx.empty:
         default_pwd = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         df.loc[idx, 'Password'] = default_pwd
@@ -211,7 +223,8 @@ def reset_user_password(email):
 
 def toggle_admin_status(email):
     df = get_users_df()
-    idx = df[df['Email'] == email].index
+    email_clean = str(email).strip().lower()
+    idx = df[df['Email'].str.lower() == email_clean].index
     if not idx.empty:
         new_val = not bool(df.loc[idx[0], 'Is_Admin'])
         df.loc[idx, 'Is_Admin'] = new_val
@@ -221,7 +234,8 @@ def toggle_admin_status(email):
 
 def remove_user(email):
     df = get_users_df()
-    idx = df[df['Email'] == email].index
+    email_clean = str(email).strip().lower()
+    idx = df[df['Email'].str.lower() == email_clean].index
     if not idx.empty:
         df = df.drop(idx)
         save_db(df)
@@ -237,6 +251,3 @@ def verify_mfa(code):
         return totp.verify(str(code).strip(), valid_window=1)
     except Exception:
         return False
-
-# Ensure DB is initialized on import
-init_db()

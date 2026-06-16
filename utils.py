@@ -189,14 +189,14 @@ BASE_CSS = """
                 50% { opacity: 1; transform: scale(1.02); }
             }
             
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(10px); }
-                to { opacity: 1; transform: translateY(0); }
+            @keyframes pageTransition {
+                from { opacity: 0; filter: blur(4px); transform: translateY(8px); }
+                to { opacity: 1; filter: blur(0); transform: translateY(0); }
             }
             
-            /* Apply fade-in to main content */
+            /* Apply slide-up and blur page transition to main content */
             .main .block-container, [data-testid="stMainBlockContainer"] {
-                animation: fadeIn 0.5s ease-out !important;
+                animation: pageTransition 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
             }
             
             /* ============================================ */

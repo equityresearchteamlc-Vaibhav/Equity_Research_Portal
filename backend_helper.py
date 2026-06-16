@@ -522,13 +522,22 @@ def load_real_companies_db():
             totp_secret=angel_secrets["totp_secret"]
         )
 
+        # Load unified list once and build a fast hash map lookup in memory
+        unified = get_unified_company_list()
+        token_map = {}
+        if not unified.empty:
+            for _, u_row in unified.iterrows():
+                t = str(u_row.get('ticker', '')).strip().upper()
+                e = str(u_row.get('exchange', '')).strip().upper()
+                token_map[(t, e)] = str(u_row.get('token', ''))
+
         # Gather tokens to fetch in batch using local memory lookup
         token_exchange_pairs = []
         row_tokens = []
         for _, row in df.iterrows():
-            ticker   = row.get("Ticker", "")
-            exchange = row.get("Exchange", "NSE")
-            token    = get_cached_token_id(ticker, exchange)
+            ticker   = str(row.get("Ticker", "")).strip().upper()
+            exchange = str(row.get("Exchange", "NSE")).strip().upper()
+            token    = token_map.get((ticker, exchange))
             token_exchange_pairs.append((token, exchange))
             row_tokens.append((row, token))
 
