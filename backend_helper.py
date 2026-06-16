@@ -513,13 +513,17 @@ def load_real_companies_db():
         if df.empty:
             return pd.DataFrame()
 
-        angel_secrets = st.secrets["angel_one"]
-        client = get_angel_client(
-            api_key=angel_secrets["api_key"],
-            client_code=angel_secrets["client_code"],
-            password=angel_secrets["password"],
-            totp_secret=angel_secrets["totp_secret"]
-        )
+        try:
+            angel_secrets = st.secrets["angel_one"]
+            client = get_angel_client(
+                api_key=angel_secrets["api_key"],
+                client_code=angel_secrets["client_code"],
+                password=angel_secrets["password"],
+                totp_secret=angel_secrets["totp_secret"]
+            )
+        except Exception as e:
+            print(f"Warning: Angel One login failed in load_real_companies_db: {e}")
+            client = None
 
         # Load unified list once and build a fast hash map lookup in memory
         unified = get_unified_company_list()
