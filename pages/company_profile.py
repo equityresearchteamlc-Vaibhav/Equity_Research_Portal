@@ -82,6 +82,7 @@ cmp = 0.0
 pct_change = 0.0
 high_52 = 0.0
 low_52 = 0.0
+live_data = None
 
 try:
     angel_secrets = st.secrets["angel_one"]
