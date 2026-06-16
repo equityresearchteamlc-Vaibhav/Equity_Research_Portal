@@ -114,6 +114,9 @@ def show_upload_dialog(client, drive_service, folder_id):
         company_display_list = companies_df['display_name'].tolist()
 
     # Handle form version changes to reset searchable selector
+    if "form_version" not in st.session_state:
+        st.session_state.form_version = 0
+
     if "last_form_version" not in st.session_state:
         st.session_state.last_form_version = st.session_state.form_version
 
