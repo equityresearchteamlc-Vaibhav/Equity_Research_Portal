@@ -51,8 +51,8 @@ def get_token_id(_df, ticker, exchange="NSE"):
     Example ticker format: 'RELIANCE-EQ' or just 'RELIANCE'.
     """
     if exchange == "NSE":
-        # Usually NSE equities end with '-EQ' in the symbol
-        res = _df[(_df['name'] == ticker) & (_df['exch_seg'] == exchange) & (_df['symbol'].str.endswith('-EQ'))]
+        # Usually NSE equities end with '-EQ', '-BE', '-SM', '-ST', or '-BZ' in the symbol
+        res = _df[(_df['name'] == ticker) & (_df['exch_seg'] == exchange) & (_df['symbol'].str.endswith(('-EQ', '-BE', '-SM', '-ST', '-BZ')))]
         if not res.empty:
              return res.iloc[0]['token']
     res = _df[(_df['name'] == ticker) & (_df['exch_seg'] == exchange)]
@@ -76,8 +76,8 @@ def get_live_market_data(_obj, token, exchange="NSE"):
         if res and res.get('status') and res.get('data'):
             unpacked = res['data']['fetched'][0]
             cmp = unpacked.get('ltp', 0.0)
-            high_52 = unpacked.get('52weekhigh', unpacked.get('high52', 0.0))
-            low_52 = unpacked.get('52weeklow', unpacked.get('low52', 0.0))
+            high_52 = unpacked.get('52WeekHigh', unpacked.get('52weekhigh', unpacked.get('high52', 0.0)))
+            low_52 = unpacked.get('52WeekLow', unpacked.get('52weeklow', unpacked.get('low52', 0.0)))
             close = unpacked.get('close', 0.0)
             # marketCap from Angel One API is in raw rupees; divide by 1 Cr (10,000,000)
             raw_mc = unpacked.get('marketCap', 0.0) or 0.0
@@ -371,8 +371,8 @@ def get_unified_company_list(cache_path="listed_companies_cache_v2.csv"):
         return pd.DataFrame()
 
     try:
-        # Filter Angel One for NSE equities (symbol ends with -EQ or -SM and exch_seg is NSE)
-        nse_equities = angel_df[(angel_df['exch_seg'] == 'NSE') & (angel_df['symbol'].str.endswith('-EQ') | angel_df['symbol'].str.endswith('-SM'))].copy()
+        # Filter Angel One for NSE equities (symbol ends with -EQ, -BE, -SM, -ST, or -BZ and exch_seg is NSE)
+        nse_equities = angel_df[(angel_df['exch_seg'] == 'NSE') & (angel_df['symbol'].str.endswith(('-EQ', '-BE', '-SM', '-ST', '-BZ')))].copy()
         
         # Filter Angel One for BSE equities (token matches 6-digit starting with 5, exch_seg is BSE, expiry is empty)
         bse_equities = angel_df[(angel_df['exch_seg'] == 'BSE') & (angel_df['expiry'] == '') & (angel_df['token'].str.match(r'^5\d{5}$'))].copy()
