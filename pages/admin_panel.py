@@ -1,7 +1,5 @@
 import streamlit as st
-import importlib
 import auth_manager
-importlib.reload(auth_manager)
 import backend_helper
 import utils
 import datetime

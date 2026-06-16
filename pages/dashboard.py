@@ -3,11 +3,12 @@ import pandas as pd
 import datetime
 import io
 from streamlit_autorefresh import st_autorefresh
-import importlib
 import backend_helper
-importlib.reload(backend_helper)
 import utils
 
+# Initialize form_version at page level to avoid AttributeError in callbacks
+if "form_version" not in st.session_state:
+    st.session_state.form_version = 0
 
 # Inject premium CSS styling
 utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
