@@ -239,13 +239,22 @@ def show_upload_dialog(client, drive_service, folder_id):
                             
                         # Fetch historical price based on date_research
                         hist_price = backend_helper.get_historical_price(ticker, final_exchange, date_research)
-                        live_cmp = float(st.session_state.get(f"upload_price_{st.session_state.form_version}", 0.0))
+                        # We need live_cmp and live_mc in case historical fetching fails
+                        live_cmp = 0.0
+                        live_mc = 0.0
+                        
+                        if client:
+                            tk = backend_helper.get_cached_token_id(ticker, final_exchange)
+                            if tk:
+                                ld = backend_helper.get_live_market_data(client, tk, final_exchange)
+                                if ld:
+                                    live_cmp = ld.get('cmp', 0.0)
+                                    live_mc = ld.get('market_cap_cr', 0.0)
                         
                         if hist_price == 0.0:
                             hist_price = live_cmp
                             
                         # Estimate historical market cap
-                        live_mc = float(st.session_state.get(f"upload_market_cap_{st.session_state.form_version}", 0.0))
                         if live_mc > 0 and live_cmp > 0:
                             hist_mc = live_mc * (hist_price / live_cmp)
                         else:
@@ -329,249 +338,52 @@ with col3:
 
 st.divider()
 
-tab_dashboard, tab_pipeline = st.tabs(["📊 Portfolio Dashboard", "🚀 Pipeline & Shortlist"])
+# --- Search & Quick Actions Section ---
+col_search, col_actions = st.columns([2, 1])
 
-with tab_dashboard:
-    # --- Search & Quick Actions Section ---
-    col_search, col_actions = st.columns([2, 1])
+with col_search:
+    st.subheader("🔍 Search Tracked Companies")
+    db_df = reports_df
+    if not db_df.empty:
+        # Create display list: "Company Name (Ticker)"
+        display_options = (db_df['Company Name'] + " (" + db_df['Ticker'] + ")").tolist()
+        
+        # Check selection state and redirect BEFORE rendering the selectbox to avoid StreamlitAPIException
+        selected = st.session_state.get("dashboard_search_select")
+        if selected and selected != "-- Select a Company --":
+            selected_ticker = selected.split("(")[-1].replace(")", "").strip()
+            matching_rows = db_df[db_df['Ticker'] == selected_ticker]
+            if not matching_rows.empty:
+                selected_row = matching_rows.iloc[0]
+                st.session_state.selected_ticker = selected_row['Ticker']
+                st.session_state.selected_company  = selected_row['Company Name']
+                st.session_state.selected_exchange = selected_row.get('Exchange', 'NSE')
+                st.session_state.selected_file_id  = selected_row.get('File ID', '')
+                st.session_state.selected_file_link = selected_row.get('File Link', '')
+                st.session_state.selected_price_added = selected_row.get('Price When Added', 0)
+                st.session_state.selected_mc_added    = selected_row.get('Market Cap when added', 0)
+                # Reset the dropdown value for the next time dashboard is loaded
+                st.session_state.dashboard_search_select = "-- Select a Company --"
+                st.switch_page("pages/company_profile.py")
 
-    with col_search:
-        st.subheader("🔍 Search Tracked Companies")
-        db_df = reports_df
-        if not db_df.empty:
-            # Create display list: "Company Name (Ticker)"
-            display_options = (db_df['Company Name'] + " (" + db_df['Ticker'] + ")").tolist()
-            
-            # Check selection state and redirect BEFORE rendering the selectbox to avoid StreamlitAPIException
-            selected = st.session_state.get("dashboard_search_select")
-            if selected and selected != "-- Select a Company --":
-                selected_ticker = selected.split("(")[-1].replace(")", "").strip()
-                matching_rows = db_df[db_df['Ticker'] == selected_ticker]
-                if not matching_rows.empty:
-                    selected_row = matching_rows.iloc[0]
-                    st.session_state.selected_ticker = selected_row['Ticker']
-                    st.session_state.selected_company  = selected_row['Company Name']
-                    st.session_state.selected_exchange = selected_row.get('Exchange', 'NSE')
-                    st.session_state.selected_file_id  = selected_row.get('File ID', '')
-                    st.session_state.selected_file_link = selected_row.get('File Link', '')
-                    st.session_state.selected_price_added = selected_row.get('Price When Added', 0)
-                    st.session_state.selected_mc_added    = selected_row.get('Market Cap when added', 0)
-                    # Reset the dropdown value for the next time dashboard is loaded
-                    st.session_state.dashboard_search_select = "-- Select a Company --"
-                    st.switch_page("pages/company_profile.py")
-
-            st.selectbox(
-                "Select a company from the list:",
-                options=["-- Select a Company --"] + display_options,
-                key="dashboard_search_select"
-            )
-        else:
-            st.info("No tracked companies in the database.")
-
-    with col_actions:
-        with st.container(border=True):
-            st.markdown(
-                "<p style='font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin: 0 0 10px 0; text-align: center;'>Quick Actions</p>", 
-                unsafe_allow_html=True
-            )
-            if st.button(f"📁 Total Companies Uploaded - ({total_companies})", use_container_width=True, type="primary", key="btn_total_cos_list"):
-                st.switch_page("pages/list_companies.py")
-            if st.button("📤 Submit Research Form", use_container_width=True, key="btn_open_upload_dialog"):
-                show_upload_dialog(client, drive_service, folder_id)
-
-with tab_pipeline:
-    st.subheader("🚀 Pipeline Management")
-    
-    # Load pipeline and shortlisted
-    pipeline_df = backend_helper.load_pipeline_database(drive_service, folder_id)
-    shortlisted_df = backend_helper.load_shortlisted_database(drive_service, folder_id)
-
-    with st.expander("➕ Add Company to Pipeline", expanded=False):
-        # We can use the same company search mechanism using AngelOne / local unified list
-        companies_df = backend_helper.get_unified_company_list()
-        company_display_list = []
-        if not companies_df.empty:
-            companies_df['display_name'] = (
-                companies_df['company_name'] + " (Ticker: " + companies_df['ticker'] + " | " + companies_df['exchange'] + ")"
-            )
-            company_display_list = companies_df['display_name'].tolist()
-
-        def handle_pipeline_selection():
-            selected = st.session_state.pipeline_search_selector
-            if selected and selected != "-- Select a Company --":
-                row = companies_df[companies_df['display_name'] == selected]
-                if not row.empty:
-                    item = row.iloc[0]
-                    st.session_state.pipe_company_name = item['company_name']
-                    st.session_state.pipe_ticker = item['ticker']
-                    st.session_state.pipe_exchange = item['exchange']
-                    
         st.selectbox(
-            "🔍 Search Company (AngelOne DB):",
-            options=["-- Select a Company --"] + company_display_list,
-            key="pipeline_search_selector",
-            on_change=handle_pipeline_selection
+            "Select a company from the list:",
+            options=["-- Select a Company --"] + display_options,
+            key="dashboard_search_select"
         )
-        
-        with st.form("pipeline_add_form"):
-            p_comp = st.text_input("Company Name", key="pipe_company_name")
-            p_tick = st.text_input("Ticker", key="pipe_ticker")
-            p_exch = st.text_input("Exchange (NSE/BSE)", value=st.session_state.get("pipe_exchange", "NSE"))
-            p_sugg = st.text_input("Suggested By (Person Name)", value=st.session_state.get("user_name", "Unknown"))
-            
-            p_submit = st.form_submit_button("Add to Pipeline")
-            if p_submit and p_comp and p_tick:
-                import datetime
-                import pytz
-                today_date = datetime.datetime.now(pytz.timezone('Asia/Kolkata')).date()
-                
-                # Fetch current live data for the token
-                p_cmp = 0.0
-                p_mc = 0.0
-                if client:
-                    tk = backend_helper.get_cached_token_id(p_tick, p_exch)
-                    if tk:
-                        ld = backend_helper.get_live_market_data(client, tk, p_exch)
-                        if ld:
-                            p_cmp = ld.get('cmp', 0.0)
-                            p_mc = ld.get('market_cap_cr', 0.0)
-                
-                new_pipe = {
-                    "Company Name": p_comp,
-                    "Ticker": p_tick.upper().strip(),
-                    "Exchange": p_exch.upper().strip(),
-                    "Suggested By": p_sugg,
-                    "Date Added": str(today_date),
-                    "Price When Added": p_cmp,
-                    "Market Cap when added": p_mc
-                }
-                
-                import pandas as pd
-                if pipeline_df.empty:
-                    pipeline_df = pd.DataFrame([new_pipe])
-                else:
-                    pipeline_df = pd.concat([pipeline_df, pd.DataFrame([new_pipe])], ignore_index=True)
-                
-                if backend_helper.save_pipeline_database(drive_service, pipeline_df, folder_id):
-                    st.success(f"Added {p_comp} to Pipeline!")
-                    st.rerun()
-
-    st.markdown("### 📋 Current Pipeline")
-    if pipeline_df.empty:
-        st.info("No companies in pipeline.")
     else:
-        # Fetch live data for pipeline companies to compare
-        token_exchange_pairs = []
-        token_map = {}
-        for _, row in pipeline_df.iterrows():
-            t = str(row['Ticker']).upper()
-            e = str(row.get('Exchange', 'NSE')).upper()
-            tk = backend_helper.get_cached_token_id(t, e)
-            if tk:
-                token_exchange_pairs.append((tk, e))
-                token_map[t] = tk
-                
-        batch_data = {}
-        if client and token_exchange_pairs:
-            batch_data = backend_helper.get_live_market_data_batch(client, token_exchange_pairs)
-            
-        pipe_display = []
-        for _, row in pipeline_df.iterrows():
-            t = str(row['Ticker']).upper()
-            tk = token_map.get(t)
-            ld = batch_data.get(tk) if tk else None
-            
-            p_added = float(row.get("Price When Added", 0))
-            if ld:
-                live_cmp = ld.get('cmp', 0.0)
-                live_mc = ld.get('market_cap_cr', 0.0)
-            else:
-                live_cmp = p_added
-                live_mc = float(row.get("Market Cap when added", 0))
-                
-            pct_change = ((live_cmp - p_added) / p_added * 100) if p_added > 0 else 0
-            
-            pipe_display.append({
-                "Company": row["Company Name"],
-                "Ticker": t,
-                "Suggested By": row.get("Suggested By", ""),
-                "Date Added": row.get("Date Added", ""),
-                "Price When Added": p_added,
-                "Live CMP": live_cmp,
-                "% Change": pct_change,
-                "Live Market Cap (Cr)": live_mc
-            })
-            
-        pipe_df_display = pd.DataFrame(pipe_display)
-        
-        # Display as table
-        st.dataframe(
-            pipe_df_display,
-            use_container_width=True,
-            column_config={
-                "Price When Added": st.column_config.NumberColumn(format="₹%.2f"),
-                "Live CMP": st.column_config.NumberColumn(format="₹%.2f"),
-                "% Change": st.column_config.NumberColumn(format="%.2f%%"),
-                "Live Market Cap (Cr)": st.column_config.NumberColumn(format="₹%.2f Cr"),
-            },
-            hide_index=True
+        st.info("No tracked companies in the database.")
+
+with col_actions:
+    with st.container(border=True):
+        st.markdown(
+            "<p style='font-size: 0.8rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin: 0 0 10px 0; text-align: center;'>Quick Actions</p>", 
+            unsafe_allow_html=True
         )
-        
-        # Actions for pipeline: Nominate or Comment
-        st.markdown("#### Actions")
-        action_col1, action_col2 = st.columns(2)
-        with action_col1:
-            sel_pipe_tick = st.selectbox("Select Pipeline Company:", options=pipe_df_display['Ticker'].tolist())
-        with action_col2:
-            st.write("")
-            st.write("")
-            if st.button("⭐ Nominate to Shortlisted", type="primary", use_container_width=True):
-                # Move to shortlisted
-                row_to_move = pipeline_df[pipeline_df['Ticker'] == sel_pipe_tick].iloc[0]
-                
-                if shortlisted_df.empty:
-                    shortlisted_df = pd.DataFrame([row_to_move])
-                else:
-                    shortlisted_df = pd.concat([shortlisted_df, pd.DataFrame([row_to_move])], ignore_index=True)
-                    
-                pipeline_df = pipeline_df[pipeline_df['Ticker'] != sel_pipe_tick]
-                
-                backend_helper.save_shortlisted_database(drive_service, shortlisted_df, folder_id)
-                backend_helper.save_pipeline_database(drive_service, pipeline_df, folder_id)
-                st.success(f"{sel_pipe_tick} Nominated and moved to Shortlisted!")
-                st.rerun()
-
-        # Comment timeline for pipeline
-        with st.expander(f"💬 Comments for {sel_pipe_tick}"):
-            comments_df = backend_helper.load_comments_database(drive_service, folder_id)
-            if not comments_df.empty and 'Ticker' in comments_df.columns:
-                tick_comments = comments_df[(comments_df['Ticker'] == f"PIPE_{sel_pipe_tick}")]
-                for _, c in tick_comments.iterrows():
-                    st.markdown(f"**{c.get('User', 'Unknown')}** ({c.get('Timestamp', '')}): {c.get('Text', '')}")
-            
-            with st.form(f"pipe_comment_{sel_pipe_tick}"):
-                new_c = st.text_input("Add a comment:")
-                if st.form_submit_button("Post Comment") and new_c:
-                    n_row = {
-                        "Ticker": f"PIPE_{sel_pipe_tick}",
-                        "User": st.session_state.get("user_email", "user").split('@')[0],
-                        "Timestamp": datetime.datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S"),
-                        "Text": new_c,
-                        "Rating": 0, "Avatar": ""
-                    }
-                    if comments_df.empty:
-                        comments_df = pd.DataFrame([n_row])
-                    else:
-                        comments_df = pd.concat([comments_df, pd.DataFrame([n_row])], ignore_index=True)
-                    backend_helper.save_comments_database(drive_service, comments_df, folder_id)
-                    st.success("Comment added!")
-                    st.rerun()
-
-    st.markdown("### ⭐ Shortlisted Companies")
-    if shortlisted_df.empty:
-        st.info("No shortlisted companies yet.")
-    else:
-        st.dataframe(shortlisted_df, use_container_width=True, hide_index=True)
+        if st.button(f"📁 Total Companies Uploaded - ({total_companies})", use_container_width=True, type="primary", key="btn_total_cos_list"):
+            st.switch_page("pages/list_companies.py")
+        if st.button("📤 Submit Research Form", use_container_width=True, key="btn_open_upload_dialog"):
+            show_upload_dialog(client, drive_service, folder_id)
 
 # Auto-refresh every 5 minutes (300,000 ms) in the background
 st_autorefresh(interval=300_000, key="dashboard_autorefresh")
