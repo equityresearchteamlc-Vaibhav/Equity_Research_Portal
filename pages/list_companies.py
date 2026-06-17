@@ -82,11 +82,6 @@ else:
     target_achieved_count = len(filtered_df[filtered_df['Target Achieved'] == "✅ Achieved"])
     st.markdown(f"**🎯 Total Targets Achieved:** {target_achieved_count}")
 
-    # 5. Make Company Name a Clickable Link to Screener
-    filtered_df['Company Name'] = filtered_df.apply(
-        lambda row: f"[{row['Company Name']}](https://www.screener.in/company/{row['Ticker']}/)", axis=1
-    )
-
     # Select and order columns
     cols_to_keep = [
         "Company Name", "Rating", "Industry", "Date Added", 
@@ -96,23 +91,64 @@ else:
     ]
     # Ensure columns exist before filtering
     available_cols = [c for c in cols_to_keep if c in filtered_df.columns]
-    display_df = filtered_df[available_cols]
+    
+    # Add Ticker to available_cols so we can identify the clicked row
+    if "Ticker" not in available_cols and "Ticker" in filtered_df.columns:
+        available_cols.append("Ticker")
+        
+    display_df = filtered_df[available_cols].copy()
 
-    st.dataframe(
-        display_df,
-        use_container_width=True,
-        column_config={
-            "Price When Added":            st.column_config.NumberColumn(format="₹%.2f"),
-            "CMP (Real-time)":             st.column_config.NumberColumn(format="₹%.2f"),
-            "% Change since added":        st.column_config.NumberColumn(format="%.2f%%"),
-            "Today's % Change":            st.column_config.NumberColumn(format="%.2f%%"),
-            "Market Cap when added (Cr)":  st.column_config.NumberColumn(format="₹%.2f Cr"),
-            "Real-time Market Cap (Cr)":   st.column_config.NumberColumn(format="₹%.2f Cr"),
-            "Target Price":                st.column_config.NumberColumn(format="₹%.2f"),
-            "Expected Return":             st.column_config.NumberColumn(format="%.2f%%"),
-        },
-        hide_index=True
-    )
+    try:
+        event = st.dataframe(
+            display_df,
+            use_container_width=True,
+            selection_mode="single-row",
+            on_select="rerun",
+            column_config={
+                "Ticker": None, # Hide Ticker column from view
+                "Price When Added":            st.column_config.NumberColumn(format="₹%.2f"),
+                "CMP (Real-time)":             st.column_config.NumberColumn(format="₹%.2f"),
+                "% Change since added":        st.column_config.NumberColumn(format="%.2f%%"),
+                "Today's % Change":            st.column_config.NumberColumn(format="%.2f%%"),
+                "Market Cap when added (Cr)":  st.column_config.NumberColumn(format="₹%.2f Cr"),
+                "Real-time Market Cap (Cr)":   st.column_config.NumberColumn(format="₹%.2f Cr"),
+                "Target Price":                st.column_config.NumberColumn(format="₹%.2f"),
+                "Expected Return":             st.column_config.NumberColumn(format="%.2f%%"),
+            },
+            hide_index=True
+        )
+        
+        if event and hasattr(event, 'selection') and event.selection.rows:
+            row_idx = event.selection.rows[0]
+            selected_ticker = display_df.iloc[row_idx]['Ticker']
+            st.session_state.selected_ticker = selected_ticker
+            selected_row = df[df['Ticker'] == selected_ticker].iloc[0]
+            st.session_state.selected_company  = selected_row['Company Name']
+            st.session_state.selected_exchange = selected_row.get('Exchange', 'NSE')
+            st.session_state.selected_file_id  = selected_row.get('File ID', '')
+            st.session_state.selected_file_link = selected_row.get('File Link', '')
+            st.session_state.selected_price_added = selected_row.get('Price When Added', 0)
+            st.session_state.selected_mc_added    = selected_row.get('Market Cap when added (Cr)', 0)
+            st.switch_page("pages/company_profile.py")
+            
+    except Exception:
+        # Fallback for older Streamlit versions that don't support on_select
+        st.dataframe(
+            display_df,
+            use_container_width=True,
+            column_config={
+                "Ticker": None,
+                "Price When Added":            st.column_config.NumberColumn(format="₹%.2f"),
+                "CMP (Real-time)":             st.column_config.NumberColumn(format="₹%.2f"),
+                "% Change since added":        st.column_config.NumberColumn(format="%.2f%%"),
+                "Today's % Change":            st.column_config.NumberColumn(format="%.2f%%"),
+                "Market Cap when added (Cr)":  st.column_config.NumberColumn(format="₹%.2f Cr"),
+                "Real-time Market Cap (Cr)":   st.column_config.NumberColumn(format="₹%.2f Cr"),
+                "Target Price":                st.column_config.NumberColumn(format="₹%.2f"),
+                "Expected Return":             st.column_config.NumberColumn(format="%.2f%%"),
+            },
+            hide_index=True
+        )
 
     st.divider()
 
