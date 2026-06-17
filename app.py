@@ -25,7 +25,7 @@ if "is_admin" not in st.session_state:
 if "cookie_checked" not in st.session_state:
     st.session_state.cookie_checked = False
 if "app_theme" not in st.session_state:
-    st.session_state.app_theme = "Dark"
+    st.session_state.app_theme = "Game of Thrones"
 
 # -------------------------------------------------
 # Restore login from cookie (runs on every reload)
@@ -393,11 +393,7 @@ else:
 
     with st.sidebar:
         st.markdown(f"**Logged in as:** {st.session_state.user_name}")
-        st.selectbox(
-            "🎨 App Theme",
-            options=["Dark", "Light", "System", "Game of Thrones"],
-            key="app_theme"
-        )
+        st.session_state.app_theme = "Game of Thrones"
         st.write("")
         st.button("Logout", on_click=logout, type="primary")
 

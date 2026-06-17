@@ -147,6 +147,29 @@ def get_live_market_data_batch(_obj, token_exchange_pairs):
         print(f"Error fetching batch market data: {e}")
         return {}
 
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_historical_price(ticker, exchange, date_obj):
+    import yfinance as yf
+    import datetime
+    import pandas as pd
+    try:
+        if isinstance(date_obj, str):
+            try:
+                date_obj = datetime.datetime.strptime(date_obj, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+        
+        yf_ticker = f"{ticker}.NS" if exchange == "NSE" else f"{ticker}.BO"
+        start_date = date_obj.strftime('%Y-%m-%d')
+        end_date = (date_obj + datetime.timedelta(days=7)).strftime('%Y-%m-%d')
+        
+        data = yf.download(yf_ticker, start=start_date, end=end_date, progress=False)
+        if not data.empty:
+            return float(data['Close'].iloc[0].item()) if hasattr(data['Close'].iloc[0], 'item') else float(data['Close'].iloc[0])
+    except Exception as e:
+        print(f"Error fetching historical price for {ticker}: {e}")
+    return 0.0
+
 # --- Google Drive Integration ---
 
 @st.cache_resource
@@ -291,6 +314,18 @@ def save_comments_database(service, dataframe, folder_id):
     Save the comments database back to Drive.
     """
     return save_csv_database(service, dataframe, folder_id, db_name='comments_db.csv')
+
+def load_pipeline_database(service, folder_id):
+    return load_csv_database(service, folder_id, db_name='pipeline_db.csv')
+
+def save_pipeline_database(service, dataframe, folder_id):
+    return save_csv_database(service, dataframe, folder_id, db_name='pipeline_db.csv')
+
+def load_shortlisted_database(service, folder_id):
+    return load_csv_database(service, folder_id, db_name='shortlisted_db.csv')
+
+def save_shortlisted_database(service, dataframe, folder_id):
+    return save_csv_database(service, dataframe, folder_id, db_name='shortlisted_db.csv')
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_unified_company_list(cache_path="listed_companies_cache_v2.csv"):
@@ -587,6 +622,9 @@ def load_real_companies_db():
                 "% Change of Market Cap": round(mc_change, 2),
                 "Rating": f"{int(float(row.get('Rating', 5)))}/10" if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else "",
                 "Rating_Num": float(row.get('Rating', 5)) if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else 5.0,
+                "Target Price": float(row.get("Target Price", 0) or 0),
+                "Expected Return": round(((float(row.get("Target Price", 0) or 0) - cmp) / cmp * 100), 2) if cmp > 0 and float(row.get("Target Price", 0) or 0) > 0 else 0.0,
+                "Industry": row.get("Industry", "Unknown"),
                 "Uploaded By": row.get("Analyst", "Unknown"),
                 "Owner Comment": row.get("Comment", ""),
                 "File ID": row.get("File ID", ""),
