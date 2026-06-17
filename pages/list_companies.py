@@ -82,6 +82,11 @@ else:
     target_achieved_count = len(filtered_df[filtered_df['Target Achieved'] == "✅ Achieved"])
     st.markdown(f"**🎯 Total Targets Achieved:** {target_achieved_count}")
 
+    # 5. Make Company Name a Clickable Link to Screener
+    filtered_df['Company Name'] = filtered_df.apply(
+        lambda row: f"[{row['Company Name']}](https://www.screener.in/company/{row['Ticker']}/)", axis=1
+    )
+
     # Select and order columns
     cols_to_keep = [
         "Company Name", "Rating", "Industry", "Date Added", 
