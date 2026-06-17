@@ -73,7 +73,26 @@ else:
     elif sort_option == "Highest Real-time Market Cap":
         filtered_df = filtered_df.sort_values(by="Real-time Market Cap (Cr)", ascending=False)
 
-    display_df = filtered_df.drop(columns=["File ID", "File Link", "Exchange", "Rating_Num"], errors='ignore')
+    # 4. Target Achieved Indicator
+    filtered_df['Target Achieved'] = filtered_df.apply(
+        lambda x: "✅ Achieved" if pd.notna(x.get('Target Price')) and x['Target Price'] > 0 and x['CMP (Real-time)'] >= x['Target Price'] else "⏳ Pending", axis=1
+    )
+
+    # Calculate how many times target achieved
+    target_achieved_count = len(filtered_df[filtered_df['Target Achieved'] == "✅ Achieved"])
+    st.markdown(f"**🎯 Total Targets Achieved:** {target_achieved_count}")
+
+    # Select and order columns
+    cols_to_keep = [
+        "Company Name", "Rating", "Industry", "Date Added", 
+        "Price When Added", "CMP (Real-time)", "% Change since added", 
+        "Today's % Change", "Market Cap when added (Cr)", "Real-time Market Cap (Cr)",
+        "Target Price", "Expected Return", "Target Achieved", "Uploaded By"
+    ]
+    # Ensure columns exist before filtering
+    available_cols = [c for c in cols_to_keep if c in filtered_df.columns]
+    display_df = filtered_df[available_cols]
+
     st.dataframe(
         display_df,
         use_container_width=True,
@@ -84,7 +103,8 @@ else:
             "Today's % Change":            st.column_config.NumberColumn(format="%.2f%%"),
             "Market Cap when added (Cr)":  st.column_config.NumberColumn(format="₹%.2f Cr"),
             "Real-time Market Cap (Cr)":   st.column_config.NumberColumn(format="₹%.2f Cr"),
-            "% Change of Market Cap":      st.column_config.NumberColumn(format="%.2f%%"),
+            "Target Price":                st.column_config.NumberColumn(format="₹%.2f"),
+            "Expected Return":             st.column_config.NumberColumn(format="%.2f%%"),
         },
         hide_index=True
     )

@@ -65,6 +65,9 @@ file_id = selected_row.get('File ID', '')
 file_link = selected_row.get('File Link', '')
 price_when_added = float(selected_row.get('Price When Added', 0))
 mc_added = float(selected_row.get('Market Cap when added', 0))
+industry = selected_row.get('Industry', 'Unknown')
+target_price = float(selected_row.get('Target Price', 0) or 0)
+expected_return = float(selected_row.get('Expected Return', 0) or 0)
 
 # Save back to session state
 st.session_state.selected_ticker = ticker
@@ -76,6 +79,7 @@ st.session_state.selected_price_added = price_when_added
 st.session_state.selected_mc_added = mc_added
 
 st.header(f"{company_name} ({ticker})")
+st.markdown(f"<span style='color: var(--faded-text-60); font-size: 1.1rem;'>**Exchange:** {exchange} &nbsp;&nbsp;|&nbsp;&nbsp; **Industry:** {industry}</span>", unsafe_allow_html=True)
 
 # Fetch Real Data
 cmp = 0.0
@@ -183,7 +187,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3 = st.columns(3)
 
 # Card 1: CMP (Real-time)
 cmp_delta_class = "delta-positive" if pct_change >= 0 else "delta-negative"
@@ -191,7 +195,7 @@ cmp_arrow = "▲" if pct_change >= 0 else "▼"
 cmp_delta_text = f"{cmp_arrow} {abs(pct_change):.2f}% / ₹{abs(rs_change):,.2f}"
 
 card_cmp_html = f"""
-<div class="metric-card">
+<div class="metric-card" style="margin-bottom: 16px;">
     <div class="metric-title">CMP (Real-time)</div>
     <div class="metric-value">₹{cmp:,.2f}</div>
     <div class="metric-delta {cmp_delta_class}">{cmp_delta_text}</div>
@@ -200,7 +204,7 @@ card_cmp_html = f"""
 
 # Card 2: Real-time Market Cap
 card_mcap_html = f"""
-<div class="metric-card">
+<div class="metric-card" style="margin-bottom: 16px;">
     <div class="metric-title">Real-time Market Cap</div>
     <div class="metric-value">₹{market_cap:,.2f} Cr</div>
     <div class="metric-delta delta-neutral">📊 Live Cap</div>
@@ -213,21 +217,42 @@ added_arrow = "▲" if pct_change_since >= 0 else "▼"
 added_delta_text = f"{added_arrow} {abs(pct_change_since):.2f}% since added"
 
 card_added_html = f"""
-<div class="metric-card">
+<div class="metric-card" style="margin-bottom: 16px;">
     <div class="metric-title">Price When Added</div>
     <div class="metric-value">₹{price_when_added:,.2f}</div>
     <div class="metric-delta {added_delta_class}">{added_delta_text}</div>
 </div>
 """
 
-# Card 4: 52-Week Range
+# Card 4: Target Price
+card_tp_html = f"""
+<div class="metric-card" style="margin-bottom: 16px;">
+    <div class="metric-title">Target Price</div>
+    <div class="metric-value">₹{target_price:,.2f}</div>
+    <div class="metric-delta delta-neutral">🎯 Analyst Target</div>
+</div>
+"""
+
+# Card 5: Expected Return
+exp_delta_class = "delta-positive" if expected_return >= 0 else "delta-negative"
+exp_arrow = "▲" if expected_return >= 0 else "▼"
+
+card_exp_html = f"""
+<div class="metric-card" style="margin-bottom: 16px;">
+    <div class="metric-title">Expected Return</div>
+    <div class="metric-value">{expected_return:,.2f}%</div>
+    <div class="metric-delta {exp_delta_class}">{exp_arrow} vs Target</div>
+</div>
+"""
+
+# Card 6: 52-Week Range
 try:
     range_val = f"₹{float(low_52):,.2f} - ₹{float(high_52):,.2f}"
 except Exception:
     range_val = f"₹{low_52} - ₹{high_52}"
 
 card_range_html = f"""
-<div class="metric-card">
+<div class="metric-card" style="margin-bottom: 16px;">
     <div class="metric-title">52-Week Range</div>
     <div class="metric-value" style="font-size: 1.12rem; white-space: normal;">{range_val}</div>
     <div class="metric-delta delta-neutral">📅 52-W Range</div>
@@ -236,11 +261,12 @@ card_range_html = f"""
 
 with col1:
     st.markdown(card_cmp_html, unsafe_allow_html=True)
+    st.markdown(card_tp_html, unsafe_allow_html=True)
 with col2:
     st.markdown(card_mcap_html, unsafe_allow_html=True)
+    st.markdown(card_exp_html, unsafe_allow_html=True)
 with col3:
     st.markdown(card_added_html, unsafe_allow_html=True)
-with col4:
     st.markdown(card_range_html, unsafe_allow_html=True)
 
 st.divider()
