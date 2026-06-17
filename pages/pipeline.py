@@ -199,6 +199,13 @@ else:
             backend_helper.save_pipeline_database(drive_service, pipeline_df, folder_id)
             st.success(f"{sel_pipe_tick} Nominated and moved to Shortlisted!")
             st.rerun()
+            
+        if st.session_state.get("is_admin"):
+            if st.button("❌ Remove from Pipeline", use_container_width=True):
+                pipeline_df = pipeline_df[pipeline_df['Ticker'] != sel_pipe_tick]
+                backend_helper.save_pipeline_database(drive_service, pipeline_df, folder_id)
+                st.success(f"Removed {sel_pipe_tick} from Pipeline!")
+                st.rerun()
 
     # Comment timeline for pipeline
     with st.expander(f"💬 Comments for {sel_pipe_tick}"):
@@ -231,6 +238,20 @@ if shortlisted_df.empty:
     st.info("No shortlisted companies yet.")
 else:
     st.dataframe(shortlisted_df, use_container_width=True, hide_index=True)
+    
+    if st.session_state.get("is_admin"):
+        st.markdown("#### Admin Actions")
+        short_col1, short_col2 = st.columns(2)
+        with short_col1:
+            sel_short_tick = st.selectbox("Select Shortlisted Company:", options=shortlisted_df['Ticker'].tolist())
+        with short_col2:
+            st.write("")
+            st.write("")
+            if st.button("❌ Remove from Shortlisted", use_container_width=True):
+                shortlisted_df = shortlisted_df[shortlisted_df['Ticker'] != sel_short_tick]
+                backend_helper.save_shortlisted_database(drive_service, shortlisted_df, folder_id)
+                st.success(f"Removed {sel_short_tick} from Shortlisted!")
+                st.rerun()
 
 # Auto-refresh every 5 minutes (300,000 ms) in the background
 st_autorefresh(interval=300_000, key="pipeline_autorefresh")
