@@ -296,6 +296,7 @@ def save_csv_database(service, dataframe, folder_id, db_name='reports_db.csv'):
         with urllib.request.urlopen(req) as response:
             res_data = json.loads(response.read().decode('utf-8'))
             if res_data.get('success'):
+                load_csv_database.clear()
                 return True
             else:
                 raise Exception(res_data.get('error', 'Unknown Apps Script error'))
