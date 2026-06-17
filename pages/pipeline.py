@@ -5,6 +5,8 @@ import pytz
 import backend_helper
 import utils
 from streamlit_autorefresh import st_autorefresh
+import threading
+import time
 
 # Inject premium CSS styling
 utils.inject_custom_css(st.session_state.get("app_theme", "Game of Thrones"))
@@ -33,9 +35,33 @@ if not drive_service or not folder_id:
     st.error("Google Drive is not configured properly in st.secrets.")
     st.stop()
 
+# Helper for instant background saving
+def save_async(df, db_name, override_key):
+    # Set the session state override immediately so the UI is instant
+    st.session_state[override_key] = df
+    st.session_state[f"{override_key}_time"] = time.time()
+    
+    # Run the Google Drive save in a background thread
+    def run_save():
+        backend_helper.save_csv_database(drive_service, df, folder_id, db_name=db_name)
+    threading.Thread(target=run_save).start()
+
+# Expire old overrides (older than 15 seconds)
+current_time = time.time()
+for key in ['override_pipeline_df', 'override_shortlisted_df', 'override_comments_df']:
+    if key in st.session_state:
+        if current_time - st.session_state.get(f"{key}_time", 0) > 15:
+            del st.session_state[key]
+            del st.session_state[f"{key}_time"]
+
 # Load pipeline and shortlisted
 pipeline_df = backend_helper.load_pipeline_database(drive_service, folder_id)
+if 'override_pipeline_df' in st.session_state:
+    pipeline_df = st.session_state['override_pipeline_df']
+
 shortlisted_df = backend_helper.load_shortlisted_database(drive_service, folder_id)
+if 'override_shortlisted_df' in st.session_state:
+    shortlisted_df = st.session_state['override_shortlisted_df']
 
 try:
     angel_secrets = st.secrets["angel_one"]
@@ -111,9 +137,9 @@ with st.expander("➕ Add Company to Pipeline", expanded=False):
             else:
                 pipeline_df = pd.concat([pipeline_df, pd.DataFrame([new_pipe])], ignore_index=True)
             
-            if backend_helper.save_pipeline_database(drive_service, pipeline_df, folder_id):
-                st.success(f"Added {p_comp} to Pipeline!")
-                st.rerun()
+            save_async(pipeline_df, 'pipeline_db.csv', 'override_pipeline_df')
+            st.success(f"Added {p_comp} to Pipeline!")
+            st.rerun()
 
 st.markdown("### 📋 Current Pipeline")
 if pipeline_df.empty:
@@ -195,21 +221,25 @@ else:
                 
             pipeline_df = pipeline_df[pipeline_df['Ticker'] != sel_pipe_tick]
             
-            backend_helper.save_shortlisted_database(drive_service, shortlisted_df, folder_id)
-            backend_helper.save_pipeline_database(drive_service, pipeline_df, folder_id)
+            save_async(shortlisted_df, 'shortlisted_db.csv', 'override_shortlisted_df')
+            save_async(pipeline_df, 'pipeline_db.csv', 'override_pipeline_df')
+            
             st.success(f"{sel_pipe_tick} Nominated and moved to Shortlisted!")
             st.rerun()
             
         if st.session_state.get("is_admin"):
             if st.button("❌ Remove from Pipeline", use_container_width=True):
                 pipeline_df = pipeline_df[pipeline_df['Ticker'] != sel_pipe_tick]
-                backend_helper.save_pipeline_database(drive_service, pipeline_df, folder_id)
+                save_async(pipeline_df, 'pipeline_db.csv', 'override_pipeline_df')
                 st.success(f"Removed {sel_pipe_tick} from Pipeline!")
                 st.rerun()
 
     # Comment timeline for pipeline
     with st.expander(f"💬 Comments for {sel_pipe_tick}"):
         comments_df = backend_helper.load_comments_database(drive_service, folder_id)
+        if 'override_comments_df' in st.session_state:
+            comments_df = st.session_state['override_comments_df']
+            
         if not comments_df.empty and 'Ticker' in comments_df.columns:
             tick_comments = comments_df[(comments_df['Ticker'] == f"PIPE_{sel_pipe_tick}")]
             for _, c in tick_comments.iterrows():
@@ -229,7 +259,8 @@ else:
                     comments_df = pd.DataFrame([n_row])
                 else:
                     comments_df = pd.concat([comments_df, pd.DataFrame([n_row])], ignore_index=True)
-                backend_helper.save_comments_database(drive_service, comments_df, folder_id)
+                
+                save_async(comments_df, 'comments_db.csv', 'override_comments_df')
                 st.success("Comment added!")
                 st.rerun()
 
@@ -249,7 +280,7 @@ else:
             st.write("")
             if st.button("❌ Remove from Shortlisted", use_container_width=True):
                 shortlisted_df = shortlisted_df[shortlisted_df['Ticker'] != sel_short_tick]
-                backend_helper.save_shortlisted_database(drive_service, shortlisted_df, folder_id)
+                save_async(shortlisted_df, 'shortlisted_db.csv', 'override_shortlisted_df')
                 st.success(f"Removed {sel_short_tick} from Shortlisted!")
                 st.rerun()
 
