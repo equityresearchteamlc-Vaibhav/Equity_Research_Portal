@@ -376,6 +376,7 @@ else:
     pages = {
         "Dashboard": [
             st.Page("pages/dashboard.py", title="Dashboard", icon="📊", default=True),
+            st.Page("pages/pipeline.py", title="Pipeline & Shortlist", icon="🚀"),
             st.Page("pages/list_companies.py", title="Company List", icon="🏢"),
         ],
         "Details": [
