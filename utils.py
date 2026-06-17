@@ -189,14 +189,19 @@ BASE_CSS = """
                 50% { opacity: 1; transform: scale(1.02); }
             }
             
-            @keyframes pageTransition {
-                from { opacity: 0; filter: blur(4px); transform: translateY(8px); }
-                to { opacity: 1; filter: blur(0); transform: translateY(0); }
+            @keyframes fastPageTransition {
+                from { opacity: 0; transform: translateY(10px) scale(0.99); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
             }
             
-            /* Apply slide-up and blur page transition to main content */
+            /* Apply ultra-fast, snappy transition to the main content area AND individual elements so it triggers on page switch */
             .main .block-container, [data-testid="stMainBlockContainer"] {
-                animation: pageTransition 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                animation: fastPageTransition 0.2s cubic-bezier(0.1, 0.9, 0.2, 1) forwards !important;
+            }
+            
+            /* This ensures elements that are dynamically swapped also animate in fast */
+            [data-testid="element-container"], [data-testid="stVerticalBlock"] > div {
+                animation: fastPageTransition 0.25s cubic-bezier(0.1, 0.9, 0.2, 1) forwards !important;
             }
             
             /* ============================================ */
