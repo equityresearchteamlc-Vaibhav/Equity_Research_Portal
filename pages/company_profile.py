@@ -359,14 +359,11 @@ with st.expander("✏️ Edit Research Parameters"):
         edit_rating = st.slider("Rating (1-10 Stars)", 1, 10, int(float(owner_rating)) if pd.notna(owner_rating) and str(owner_rating).strip() != "" else 5)
         edit_comment = st.text_area("Comment by Owner", value=owner_comment)
         
-        # Checkbox and file uploader to update the research file
-        update_file = st.checkbox("🔄 Upload the updated research file (if required)", value=False)
-        edit_uploaded_file = None
-        if update_file:
-            edit_uploaded_file = st.file_uploader(
-                "📎 Browse and upload the updated research file",
-                key="edit_file_uploader"
-            )
+        # File uploader to update the research file (optional)
+        edit_uploaded_file = st.file_uploader(
+            "📎 Upload the updated research file (if required)",
+            key="edit_file_uploader"
+        )
         
         save_changes = st.form_submit_button("Save Changes & Sync to Drive", type="primary")
         
@@ -385,7 +382,7 @@ with st.expander("✏️ Edit Research Parameters"):
                                 final_file_id = file_id
                                 final_file_link = file_link
                                 
-                                if update_file and edit_uploaded_file:
+                                if edit_uploaded_file is not None:
                                     file_bytes = edit_uploaded_file.getvalue()
                                     file_ext   = edit_uploaded_file.name.rsplit('.', 1)[-1]
                                     safe_name  = f"{edit_ticker.upper().strip()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
