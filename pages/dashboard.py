@@ -100,8 +100,7 @@ def get_cached_index_data(_obj):
         
     return result
 
-indices_data = get_cached_index_data(client)
-
+# Global fetch removed; will fetch inside fragment
 # --- Total Companies Metric ---
 try:
     drive_service = backend_helper.get_drive_service()
@@ -337,26 +336,31 @@ def show_upload_dialog(client, drive_service, folder_id):
 
 
 # --- Real-Time Metric Cards (Indices Only) ---
-col1, col2, col3 = st.columns(3)
+@fragment(run_every=300)
+def render_indices():
+    indices_data = get_cached_index_data(client)
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric(
+            label="NIFTY 50",
+            value=f"₹{indices_data['NIFTY 50']['cmp']:,.2f}",
+            delta=f"{indices_data['NIFTY 50']['pct_change']:.2f}%"
+        )
+    with col2:
+        st.metric(
+            label="SENSEX",
+            value=f"₹{indices_data['SENSEX']['cmp']:,.2f}",
+            delta=f"{indices_data['SENSEX']['pct_change']:.2f}%"
+        )
+    with col3:
+        st.metric(
+            label="NIFTY SMALLCAP 100",
+            value=f"₹{indices_data['NIFTY SMALLCAP 100']['cmp']:,.2f}",
+            delta=f"{indices_data['NIFTY SMALLCAP 100']['pct_change']:.2f}%"
+        )
 
-with col1:
-    st.metric(
-        label="NIFTY 50",
-        value=f"₹{indices_data['NIFTY 50']['cmp']:,.2f}",
-        delta=f"{indices_data['NIFTY 50']['pct_change']:.2f}%"
-    )
-with col2:
-    st.metric(
-        label="SENSEX",
-        value=f"₹{indices_data['SENSEX']['cmp']:,.2f}",
-        delta=f"{indices_data['SENSEX']['pct_change']:.2f}%"
-    )
-with col3:
-    st.metric(
-        label="NIFTY SMALLCAP 100",
-        value=f"₹{indices_data['NIFTY SMALLCAP 100']['cmp']:,.2f}",
-        delta=f"{indices_data['NIFTY SMALLCAP 100']['pct_change']:.2f}%"
-    )
+render_indices()
 
 st.divider()
 
@@ -412,7 +416,5 @@ with col_actions:
         if st.button("📤 Submit Research Form", use_container_width=True, key="btn_open_upload_dialog"):
             show_upload_dialog(client, drive_service, folder_id)
 
-# Auto-refresh every 5 minutes (300,000 ms) in the background
-st_autorefresh(interval=300_000, key="dashboard_autorefresh")
-
+# Auto-refresh removed from global scope to prevent dialog closing
 # End of Dashboard file
