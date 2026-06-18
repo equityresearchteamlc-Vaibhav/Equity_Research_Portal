@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import datetime
 import io
-from streamlit_autorefresh import st_autorefresh
 import backend_helper
 import utils
 
@@ -14,9 +13,12 @@ else:
     fragment = lambda func: func
 
 
-# Initialize form_version at page level to avoid AttributeError in callbacks
+# Initialize form_version and upload_dialog_open at page level to avoid AttributeError in callbacks
 if "form_version" not in st.session_state:
     st.session_state.form_version = 0
+
+if "upload_dialog_open" not in st.session_state:
+    st.session_state.upload_dialog_open = False
 
 # Inject premium CSS styling
 utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
@@ -113,7 +115,10 @@ except Exception:
     drive_service = None
     folder_id = None
 
-@st.dialog("📤 Upload New Research", width="large")
+def reset_dialog_state():
+    st.session_state.upload_dialog_open = False
+
+@st.dialog("📤 Upload New Research", width="large", on_dismiss=reset_dialog_state)
 def show_upload_dialog(client, drive_service, folder_id):
     # We render the form elements with keys linked to st.session_state.form_version
     companies_df = backend_helper.get_unified_company_list()
@@ -319,7 +324,7 @@ def show_upload_dialog(client, drive_service, folder_id):
 
                         if success:
                             st.session_state.upload_success_message = f"✅ Research for **{company_name}** saved successfully!"
-                            
+                            st.session_state.upload_dialog_open = False
                             # Increment form version to clear all fields cleanly
                             st.session_state.form_version += 1
                             backend_helper.load_csv_database.clear()
@@ -336,8 +341,7 @@ def show_upload_dialog(client, drive_service, folder_id):
 
 
 # --- Real-Time Metric Cards (Indices Only) ---
-@fragment(run_every=300)
-def render_indices():
+def render_indices_content():
     indices_data = get_cached_index_data(client)
     col1, col2, col3 = st.columns(3)
     
@@ -360,7 +364,18 @@ def render_indices():
             delta=f"{indices_data['NIFTY SMALLCAP 100']['pct_change']:.2f}%"
         )
 
-render_indices()
+@fragment(run_every=300)
+def render_indices_auto():
+    render_indices_content()
+
+@fragment
+def render_indices_static():
+    render_indices_content()
+
+if st.session_state.get("upload_dialog_open", False):
+    render_indices_static()
+else:
+    render_indices_auto()
 
 st.divider()
 
@@ -414,7 +429,12 @@ with col_actions:
         if st.button(f"📁 Total Companies Uploaded - ({total_companies})", use_container_width=True, type="primary", key="btn_total_cos_list"):
             st.switch_page("pages/list_companies.py")
         if st.button("📤 Submit Research Form", use_container_width=True, key="btn_open_upload_dialog"):
-            show_upload_dialog(client, drive_service, folder_id)
+            st.session_state.upload_dialog_open = True
+            st.rerun()
+
+# If the dialog open flag is True, render the dialog
+if st.session_state.get("upload_dialog_open", False):
+    show_upload_dialog(client, drive_service, folder_id)
 
 # Auto-refresh removed from global scope to prevent dialog closing
 # End of Dashboard file
