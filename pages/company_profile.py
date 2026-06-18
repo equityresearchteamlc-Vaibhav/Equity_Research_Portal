@@ -360,11 +360,11 @@ with st.expander("✏️ Edit Research Parameters"):
         edit_comment = st.text_area("Comment by Owner", value=owner_comment)
         
         # Checkbox and file uploader to update the research file
-        update_file = st.checkbox("🔄 Update Research File?", value=False)
+        update_file = st.checkbox("🔄 Upload the updated research file (if required)", value=False)
         edit_uploaded_file = None
         if update_file:
             edit_uploaded_file = st.file_uploader(
-                "📎 Upload New Research File (PDF, PPTX, DOCX, XLSX...)",
+                "📎 Browse and upload the updated research file",
                 key="edit_file_uploader"
             )
         
