@@ -293,6 +293,14 @@ def show_upload_dialog(client, drive_service, folder_id):
                             if len(short_df) < before_len:
                                 backend_helper.save_shortlisted_database(drive_service, short_df, folder_id)
 
+                        # Remove from pipeline if it exists
+                        pipe_df = backend_helper.load_pipeline_database(drive_service, folder_id)
+                        if not pipe_df.empty and 'Ticker' in pipe_df.columns:
+                            before_len = len(pipe_df)
+                            pipe_df = pipe_df[pipe_df['Ticker'] != ticker.upper().strip()]
+                            if len(pipe_df) < before_len:
+                                backend_helper.save_pipeline_database(drive_service, pipe_df, folder_id)
+
                         new_data = {
                             "Company Name": company_name,
                             "Ticker": ticker.upper().strip(),
