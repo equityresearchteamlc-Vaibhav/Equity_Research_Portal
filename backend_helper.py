@@ -484,8 +484,8 @@ def get_unified_company_list(cache_path="listed_companies_cache_v2.csv"):
 @st.cache_data(ttl=604800, show_spinner=False)
 def fetch_industry_metadata(ticker):
     """
-    Scrapes the industry and sector for a given ticker from Screener.in.
-    Returns (sector, industry).
+    Scrapes the industry, sector, and market cap for a given ticker from Screener.in.
+    Returns (sector, industry, market_cap_cr).
     """
     import urllib.request
     import re
@@ -503,14 +503,22 @@ def fetch_industry_metadata(ticker):
         
         sector_match = re.search(r'title="Sector"\s*>\s*([^<]+)\s*</a>', html_content, re.IGNORECASE)
         industry_match = re.search(r'title="Industry"\s*>\s*([^<]+)\s*</a>', html_content, re.IGNORECASE)
+        mc_match = re.search(r'Market Cap.*?<span class="number">([^<]+)</span>', html_content, re.IGNORECASE | re.DOTALL)
         
         sector = html.unescape(sector_match.group(1).strip()) if sector_match else ""
         industry = html.unescape(industry_match.group(1).strip()) if industry_match else ""
         
-        return sector, industry
+        mc_cr = 0.0
+        if mc_match:
+            try:
+                mc_cr = float(mc_match.group(1).strip().replace(',', ''))
+            except ValueError:
+                pass
+        
+        return sector, industry, mc_cr
     except Exception as e:
         print(f"Error fetching industry metadata for {ticker}: {e}")
-        return "", ""
+        return "", "", 0.0
 
 
 def get_cached_token_id(ticker, exchange="NSE"):
