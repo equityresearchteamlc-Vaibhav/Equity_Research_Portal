@@ -374,7 +374,7 @@ with st.expander("✏️ Edit Research Parameters"):
                         latest_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
                         
                         if not latest_df.empty and 'Ticker' in latest_df.columns:
-                            match_mask = latest_df['Ticker'].str.upper().strip() == ticker.upper().strip()
+                            match_mask = latest_df['Ticker'].str.strip().str.upper() == ticker.upper().strip()
                             if match_mask.any():
                                 match_idx = latest_df[match_mask].index[0]
                                 
