@@ -6,6 +6,14 @@ from streamlit_autorefresh import st_autorefresh
 import backend_helper
 import utils
 
+if hasattr(st, "fragment"):
+    fragment = st.fragment
+elif hasattr(st, "experimental_fragment"):
+    fragment = st.experimental_fragment
+else:
+    fragment = lambda func: func
+
+
 # Initialize form_version at page level to avoid AttributeError in callbacks
 if "form_version" not in st.session_state:
     st.session_state.form_version = 0
@@ -342,37 +350,42 @@ st.divider()
 col_search, col_actions = st.columns([2, 1])
 
 with col_search:
-    st.subheader("🔍 Search Tracked Companies")
-    db_df = reports_df
-    if not db_df.empty:
-        # Create display list: "Company Name (Ticker)"
-        display_options = (db_df['Company Name'] + " (" + db_df['Ticker'] + ")").tolist()
-        
-        # Check selection state and redirect BEFORE rendering the selectbox to avoid StreamlitAPIException
-        selected = st.session_state.get("dashboard_search_select")
-        if selected and selected != "-- Select a Company --":
-            selected_ticker = selected.split("(")[-1].replace(")", "").strip()
-            matching_rows = db_df[db_df['Ticker'] == selected_ticker]
-            if not matching_rows.empty:
-                selected_row = matching_rows.iloc[0]
-                st.session_state.selected_ticker = selected_row['Ticker']
-                st.session_state.selected_company  = selected_row['Company Name']
-                st.session_state.selected_exchange = selected_row.get('Exchange', 'NSE')
-                st.session_state.selected_file_id  = selected_row.get('File ID', '')
-                st.session_state.selected_file_link = selected_row.get('File Link', '')
-                st.session_state.selected_price_added = selected_row.get('Price When Added', 0)
-                st.session_state.selected_mc_added    = selected_row.get('Market Cap when added', 0)
-                # Reset the dropdown value for the next time dashboard is loaded
-                st.session_state.dashboard_search_select = "-- Select a Company --"
-                st.switch_page("pages/company_profile.py")
+    @fragment
+    def render_company_search(db_df):
+        st.subheader("🔍 Search Tracked Companies")
+        db_df = reports_df
+        if not db_df.empty:
+            # Create display list: "Company Name (Ticker)"
+            display_options = (db_df['Company Name'] + " (" + db_df['Ticker'] + ")").tolist()
 
-        st.selectbox(
-            "Select a company from the list:",
-            options=["-- Select a Company --"] + display_options,
-            key="dashboard_search_select"
-        )
-    else:
-        st.info("No tracked companies in the database.")
+            # Check selection state and redirect BEFORE rendering the selectbox to avoid StreamlitAPIException
+            selected = st.session_state.get("dashboard_search_select")
+            if selected and selected != "-- Select a Company --":
+                selected_ticker = selected.split("(")[-1].replace(")", "").strip()
+                matching_rows = db_df[db_df['Ticker'] == selected_ticker]
+                if not matching_rows.empty:
+                    selected_row = matching_rows.iloc[0]
+                    st.session_state.selected_ticker = selected_row['Ticker']
+                    st.session_state.selected_company  = selected_row['Company Name']
+                    st.session_state.selected_exchange = selected_row.get('Exchange', 'NSE')
+                    st.session_state.selected_file_id  = selected_row.get('File ID', '')
+                    st.session_state.selected_file_link = selected_row.get('File Link', '')
+                    st.session_state.selected_price_added = selected_row.get('Price When Added', 0)
+                    st.session_state.selected_mc_added    = selected_row.get('Market Cap when added', 0)
+                    # Reset the dropdown value for the next time dashboard is loaded
+                    st.session_state.dashboard_search_select = "-- Select a Company --"
+                    st.switch_page("pages/company_profile.py")
+
+            st.selectbox(
+                "Select a company from the list:",
+                options=["-- Select a Company --"] + display_options,
+                key="dashboard_search_select"
+            )
+        else:
+            st.info("No tracked companies in the database.")
+
+
+    render_company_search(reports_df)
 
 with col_actions:
     with st.container(border=True):
