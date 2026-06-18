@@ -358,7 +358,15 @@ with st.expander("✏️ Edit Research Parameters"):
         edit_latest_qtr = st.text_input("Latest Qtr Result available", value=selected_row.get("Latest Qtr", ""))
         edit_rating = st.slider("Rating (1-10 Stars)", 1, 10, int(float(owner_rating)) if pd.notna(owner_rating) and str(owner_rating).strip() != "" else 5)
         edit_comment = st.text_area("Comment by Owner", value=owner_comment)
-        edit_file_link = st.text_input("File Link", value=file_link)
+        
+        # Checkbox and file uploader to update the research file
+        update_file = st.checkbox("🔄 Update Research File?", value=False)
+        edit_uploaded_file = None
+        if update_file:
+            edit_uploaded_file = st.file_uploader(
+                "📎 Upload New Research File (PDF, PPTX, DOCX, XLSX...)",
+                key="edit_file_uploader"
+            )
         
         save_changes = st.form_submit_button("Save Changes & Sync to Drive", type="primary")
         
@@ -373,6 +381,19 @@ with st.expander("✏️ Edit Research Parameters"):
                             if match_mask.any():
                                 match_idx = latest_df[match_mask].index[0]
                                 
+                                # Handle file update or keep existing
+                                final_file_id = file_id
+                                final_file_link = file_link
+                                
+                                if update_file and edit_uploaded_file:
+                                    file_bytes = edit_uploaded_file.getvalue()
+                                    file_ext   = edit_uploaded_file.name.rsplit('.', 1)[-1]
+                                    safe_name  = f"{edit_ticker.upper().strip()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
+                                    uploaded_file_id = backend_helper.upload_file_to_drive(drive_service, file_bytes, safe_name, folder_id)
+                                    if uploaded_file_id:
+                                        final_file_id = uploaded_file_id
+                                        final_file_link = f"https://drive.google.com/file/d/{uploaded_file_id}/view?usp=drivesdk"
+                                
                                 latest_df.at[match_idx, "Company Name"] = edit_company_name
                                 latest_df.at[match_idx, "Ticker"] = edit_ticker.upper().strip()
                                 latest_df.at[match_idx, "Exchange"] = edit_exchange
@@ -386,7 +407,8 @@ with st.expander("✏️ Edit Research Parameters"):
                                 latest_df.at[match_idx, "Rating"] = edit_rating
                                 latest_df.at[match_idx, "Analyst"] = edit_analyst_name
                                 latest_df.at[match_idx, "Comment"] = edit_comment
-                                latest_df.at[match_idx, "File Link"] = edit_file_link
+                                latest_df.at[match_idx, "File ID"] = final_file_id
+                                latest_df.at[match_idx, "File Link"] = final_file_link
                                 
                                 success = backend_helper.save_csv_database(drive_service, latest_df, folder_id, 'reports_db.csv')
                                 
