@@ -323,6 +323,91 @@ with st.container(border=True):
     else:
         st.write("📝 **Analyst Comment:** *No comment provided*")
 
+# --- Edit Research Parameters (Only available for logged in approved users) ---
+with st.expander("✏️ Edit Research Parameters"):
+    st.markdown("Modify the research data for this company. Updates will be saved to Google Drive and synced instantly.")
+    
+    with st.form("edit_research_form"):
+        col_edit_a, col_edit_b = st.columns(2)
+        
+        with col_edit_a:
+            edit_analyst_name = st.text_input("Analyst Name", value=analyst_name)
+            edit_company_name = st.text_input("Company Name", value=company_name)
+            edit_ticker = st.text_input("Ticker Symbol", value=ticker)
+            edit_exchange = st.selectbox("Exchange", options=["NSE", "BSE"], index=0 if exchange == "NSE" else 1)
+            try:
+                parsed_date = datetime.datetime.strptime(str(selected_row.get("Date Added", "")), "%Y-%m-%d").date()
+            except Exception:
+                parsed_date = datetime.date.today()
+            edit_date_research = st.date_input("Date of Research", parsed_date)
+            
+        with col_edit_b:
+            edit_price_when_added = st.number_input("Price When Added (₹)", min_value=0.0, value=price_when_added, format="%.2f")
+            edit_mc_added = st.number_input("Market Cap when added (Cr)", min_value=0.0, value=mc_added, format="%.2f")
+            edit_industry = st.text_input("Industry", value=industry)
+            edit_target_price = st.number_input("Target Price (₹)", min_value=0.0, value=target_price, format="%.2f")
+            
+            timeframe_options = [3, 6, 12, 18, 24, 36]
+            curr_timeframe = int(selected_row.get("Target Timeframe (Months)", 12))
+            if curr_timeframe not in timeframe_options:
+                timeframe_options.append(curr_timeframe)
+                timeframe_options.sort()
+            tf_index = timeframe_options.index(curr_timeframe)
+            edit_target_timeframe = st.selectbox("Target Timeframe (Months)", options=timeframe_options, index=tf_index)
+            
+        edit_latest_qtr = st.text_input("Latest Qtr Result available", value=selected_row.get("Latest Qtr", ""))
+        edit_rating = st.slider("Rating (1-10 Stars)", 1, 10, int(float(owner_rating)) if pd.notna(owner_rating) and str(owner_rating).strip() != "" else 5)
+        edit_comment = st.text_area("Comment by Owner", value=owner_comment)
+        edit_file_link = st.text_input("File Link", value=file_link)
+        
+        save_changes = st.form_submit_button("Save Changes & Sync to Drive", type="primary")
+        
+        if save_changes:
+            if edit_company_name and edit_ticker:
+                with st.spinner("Saving changes and updating database on Google Drive..."):
+                    try:
+                        latest_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+                        
+                        if not latest_df.empty and 'Ticker' in latest_df.columns:
+                            match_mask = latest_df['Ticker'].str.upper().strip() == ticker.upper().strip()
+                            if match_mask.any():
+                                match_idx = latest_df[match_mask].index[0]
+                                
+                                latest_df.at[match_idx, "Company Name"] = edit_company_name
+                                latest_df.at[match_idx, "Ticker"] = edit_ticker.upper().strip()
+                                latest_df.at[match_idx, "Exchange"] = edit_exchange
+                                latest_df.at[match_idx, "Date Added"] = str(edit_date_research)
+                                latest_df.at[match_idx, "Price When Added"] = edit_price_when_added
+                                latest_df.at[match_idx, "Market Cap when added"] = edit_mc_added
+                                latest_df.at[match_idx, "Industry"] = edit_industry
+                                latest_df.at[match_idx, "Target Price"] = edit_target_price
+                                latest_df.at[match_idx, "Target Timeframe (Months)"] = edit_target_timeframe
+                                latest_df.at[match_idx, "Latest Qtr"] = edit_latest_qtr
+                                latest_df.at[match_idx, "Rating"] = edit_rating
+                                latest_df.at[match_idx, "Analyst"] = edit_analyst_name
+                                latest_df.at[match_idx, "Comment"] = edit_comment
+                                latest_df.at[match_idx, "File Link"] = edit_file_link
+                                
+                                success = backend_helper.save_csv_database(drive_service, latest_df, folder_id, 'reports_db.csv')
+                                
+                                if success:
+                                    st.success("Changes saved successfully!")
+                                    backend_helper.load_csv_database.clear()
+                                    backend_helper.load_real_companies_db.clear()
+                                    
+                                    st.session_state.selected_ticker = edit_ticker.upper().strip()
+                                    st.rerun()
+                                else:
+                                    st.error("Failed to save updated database to Google Drive.")
+                            else:
+                                st.error("Could not find the company to update in the database.")
+                        else:
+                            st.error("Database is empty or missing 'Ticker' column.")
+                    except Exception as ex:
+                        st.error(f"Error saving changes: {ex}")
+            else:
+                st.error("Company Name and Ticker cannot be empty.")
+
 st.divider()
 
 # --- Team Discussion (Drive Backed) ---
