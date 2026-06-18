@@ -75,7 +75,7 @@ price_when_added = float(selected_row.get('Price When Added', 0))
 mc_added = float(selected_row.get('Market Cap when added', 0))
 industry = selected_row.get('Industry', 'Unknown')
 target_price = float(selected_row.get('Target Price', 0) or 0)
-expected_return = float(selected_row.get('Expected Return', 0) or 0)
+target_achieved_pct = float(selected_row.get('Target Achieved %', 0) or 0)
 target_status = selected_row.get('Target Status', '⏳ Pending')
 target_end_date = selected_row.get('Target End Date', '')
 
@@ -247,15 +247,15 @@ card_tp_html = f"""
 </div>
 """
 
-# Card 5: Expected Return
-exp_delta_class = "delta-positive" if expected_return >= 0 else "delta-negative"
-exp_arrow = "▲" if expected_return >= 0 else "▼"
+# Card 5: Target Achieved %
+achieved_delta_class = "delta-positive" if target_achieved_pct >= 100 else "delta-neutral"
+achieved_icon = "🎯" if target_achieved_pct >= 100 else "📈"
 
 card_exp_html = f"""
 <div class="metric-card" style="margin-bottom: 16px;">
-    <div class="metric-title">Expected Return</div>
-    <div class="metric-value">{expected_return:,.2f}%</div>
-    <div class="metric-delta {exp_delta_class}">{exp_arrow} vs Target</div>
+    <div class="metric-title">Target Achieved %</div>
+    <div class="metric-value">{target_achieved_pct:,.2f}%</div>
+    <div class="metric-delta {achieved_delta_class}">{achieved_icon} Progress</div>
 </div>
 """
 

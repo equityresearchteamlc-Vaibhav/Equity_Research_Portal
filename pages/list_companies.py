@@ -88,7 +88,7 @@ else:
         "Company Name", "Rating", "Industry", "Date Added", 
         "Price When Added", "CMP (Real-time)", "% Change since added", 
         "Today's % Change", "Market Cap when added (Cr)", "Real-time Market Cap (Cr)",
-        "Target Price", "Expected Return", "Target End Date", "Target Achieved", "Uploaded By"
+        "Target Price", "Target Achieved %", "Target End Date", "Target Achieved", "Uploaded By"
     ]
     # Ensure columns exist before filtering
     available_cols = [c for c in cols_to_keep if c in filtered_df.columns]
@@ -114,7 +114,7 @@ else:
                 "Market Cap when added (Cr)":  st.column_config.NumberColumn(format="₹%.2f Cr"),
                 "Real-time Market Cap (Cr)":   st.column_config.NumberColumn(format="₹%.2f Cr"),
                 "Target Price":                st.column_config.NumberColumn(format="₹%.2f"),
-                "Expected Return":             st.column_config.NumberColumn(format="%.2f%%"),
+                "Target Achieved %":            st.column_config.NumberColumn(format="%.2f%%"),
             },
             hide_index=True
         )
@@ -146,7 +146,7 @@ else:
                 "Market Cap when added (Cr)":  st.column_config.NumberColumn(format="₹%.2f Cr"),
                 "Real-time Market Cap (Cr)":   st.column_config.NumberColumn(format="₹%.2f Cr"),
                 "Target Price":                st.column_config.NumberColumn(format="₹%.2f"),
-                "Expected Return":             st.column_config.NumberColumn(format="%.2f%%"),
+                "Target Achieved %":            st.column_config.NumberColumn(format="%.2f%%"),
             },
             hide_index=True
         )
