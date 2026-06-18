@@ -666,7 +666,7 @@ def load_real_companies_db():
                 "Rating": f"{int(float(row.get('Rating', 5)))}/10" if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else "",
                 "Rating_Num": float(row.get('Rating', 5)) if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else 5.0,
                 "Target Price": target_price,
-                "Expected Return": round(((target_price - cmp) / cmp * 100), 2) if cmp > 0 and target_price > 0 else 0.0,
+                "Target Achieved %": round((cmp / target_price * 100), 2) if target_price > 0 else 0.0,
                 "Target Timeframe (Months)": target_timeframe,
                 "Target End Date": target_end_date,
                 "Target Status": target_status,
