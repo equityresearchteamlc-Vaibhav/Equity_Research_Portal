@@ -599,6 +599,14 @@ def load_real_companies_db():
             exchange   = row.get("Exchange", "NSE")
             price_added = float(row.get("Price When Added", 0) or 0)
             mc_added    = float(row.get("Market Cap when added", 0) or 0)
+            
+            # --- Target Timeframe & Status Calculation ---
+            import datetime
+            date_added_str = row.get("Date Added", "")
+            target_timeframe = int(float(row.get("Target Timeframe (Months)", 12) or 12))
+            target_price = float(row.get("Target Price", 0) or 0)
+            target_end_date = ""
+            target_status = "⏳ Pending"
 
             # Look up live data using token string
             live_data = batch_data.get(str(token)) if token else None
@@ -617,6 +625,32 @@ def load_real_companies_db():
             pct_change_added = ((cmp - price_added) / price_added * 100) if price_added > 0 else 0
             mc_change        = ((rt_market_cap - mc_added) / mc_added * 100) if mc_added > 0 else 0
 
+            # Evaluate Target Status
+            if date_added_str:
+                try:
+                    date_added_obj = datetime.datetime.strptime(date_added_str, "%Y-%m-%d").date()
+                    month = date_added_obj.month - 1 + target_timeframe
+                    year = date_added_obj.year + month // 12
+                    month = month % 12 + 1
+                    days_in_month = [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+                    day = min(date_added_obj.day, days_in_month[month - 1])
+                    end_date_obj = datetime.date(year, month, day)
+                    target_end_date = end_date_obj.strftime("%Y-%m-%d")
+                    
+                    if target_price > 0:
+                        if cmp >= target_price:
+                            target_status = "✅ Achieved"
+                        elif datetime.date.today() > end_date_obj:
+                            target_status = "❌ Missed Deadline"
+                        else:
+                            days_left = (end_date_obj - datetime.date.today()).days
+                            target_status = f"⏳ Pending ({days_left}d left)"
+                except Exception:
+                    pass
+            else:
+                if target_price > 0 and cmp >= target_price:
+                    target_status = "✅ Achieved"
+
             enhanced_data.append({
                 "Company Name": row.get("Company Name", ticker),
                 "Ticker": ticker,
@@ -631,8 +665,11 @@ def load_real_companies_db():
                 "% Change of Market Cap": round(mc_change, 2),
                 "Rating": f"{int(float(row.get('Rating', 5)))}/10" if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else "",
                 "Rating_Num": float(row.get('Rating', 5)) if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else 5.0,
-                "Target Price": float(row.get("Target Price", 0) or 0),
-                "Expected Return": round(((float(row.get("Target Price", 0) or 0) - cmp) / cmp * 100), 2) if cmp > 0 and float(row.get("Target Price", 0) or 0) > 0 else 0.0,
+                "Target Price": target_price,
+                "Expected Return": round(((target_price - cmp) / cmp * 100), 2) if cmp > 0 and target_price > 0 else 0.0,
+                "Target Timeframe (Months)": target_timeframe,
+                "Target End Date": target_end_date,
+                "Target Status": target_status,
                 "Industry": row.get("Industry", "Unknown"),
                 "Uploaded By": row.get("Analyst", "Unknown"),
                 "Owner Comment": row.get("Comment", ""),
