@@ -162,8 +162,10 @@ def show_upload_dialog(client, drive_service, folder_id):
                     
                     # Fetch industry from Screener
                     try:
-                        _, industry_val = backend_helper.fetch_industry_metadata(item['ticker'])
+                        _, industry_val, screener_mc = backend_helper.fetch_industry_metadata(item['ticker'])
                         st.session_state[f"upload_industry_{fv}"] = industry_val if industry_val else ""
+                        if st.session_state[f"upload_market_cap_{fv}"] == 0.0 and screener_mc > 0:
+                            st.session_state[f"upload_market_cap_{fv}"] = screener_mc
                     except Exception:
                         st.session_state[f"upload_industry_{fv}"] = ""
         else:
@@ -242,12 +244,15 @@ def show_upload_dialog(client, drive_service, folder_id):
                         # --- Logic for fetching missing data ---
                         final_exchange = st.session_state.get(f"upload_exchange_{st.session_state.form_version}", "NSE")
                         final_industry = st.session_state.get(f"upload_industry_{st.session_state.form_version}", "")
+                        pre_filled_mc = st.session_state.get(f"upload_market_cap_{st.session_state.form_version}", 0.0)
+                        
+                        _, screener_ind, screener_mc = backend_helper.fetch_industry_metadata(ticker)
                         if not final_industry:
-                            _, final_industry = backend_helper.fetch_industry_metadata(ticker)
+                            final_industry = screener_ind
                             
                         # Fetch historical price based on date_research
                         hist_price = backend_helper.get_historical_price(ticker, final_exchange, date_research)
-                        # We need live_cmp and live_mc in case historical fetching fails
+                        
                         live_cmp = 0.0
                         live_mc = 0.0
                         
@@ -258,6 +263,13 @@ def show_upload_dialog(client, drive_service, folder_id):
                                 if ld:
                                     live_cmp = ld.get('cmp', 0.0)
                                     live_mc = ld.get('market_cap_cr', 0.0)
+                        
+                        # Determine actual market cap to save
+                        if live_mc == 0.0:
+                            if pre_filled_mc > 0:
+                                live_mc = pre_filled_mc
+                            elif screener_mc > 0:
+                                live_mc = screener_mc
                         
                         if hist_price == 0.0:
                             hist_price = live_cmp
