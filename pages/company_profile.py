@@ -76,6 +76,8 @@ mc_added = float(selected_row.get('Market Cap when added', 0))
 industry = selected_row.get('Industry', 'Unknown')
 target_price = float(selected_row.get('Target Price', 0) or 0)
 expected_return = float(selected_row.get('Expected Return', 0) or 0)
+target_status = selected_row.get('Target Status', '⏳ Pending')
+target_end_date = selected_row.get('Target End Date', '')
 
 # Save back to session state
 st.session_state.selected_ticker = ticker
@@ -233,11 +235,15 @@ card_added_html = f"""
 """
 
 # Card 4: Target Price
+status_emoji = "✅" if "Achieved" in target_status else "❌" if "Missed" in target_status else "⏳"
+tp_status_color = "delta-positive" if "Achieved" in target_status else "delta-negative" if "Missed" in target_status else "delta-neutral"
+
 card_tp_html = f"""
 <div class="metric-card" style="margin-bottom: 16px;">
     <div class="metric-title">Target Price</div>
     <div class="metric-value">₹{target_price:,.2f}</div>
-    <div class="metric-delta delta-neutral">🎯 Analyst Target</div>
+    <div class="metric-delta {tp_status_color}">{target_status}</div>
+    <div style="font-size: 0.65rem; color: rgba(249, 250, 251, 0.5); margin-top: 4px;">Deadline: {target_end_date if target_end_date else 'N/A'}</div>
 </div>
 """
 

@@ -194,6 +194,7 @@ def show_upload_dialog(client, drive_service, folder_id):
             company_name = st.text_input("Company Name", key=f"upload_company_name_{st.session_state.form_version}")
             ticker = st.text_input("Ticker Symbol (e.g., RELIANCE)", key=f"upload_ticker_{st.session_state.form_version}")
             target_price = st.number_input("Target Price (₹)", min_value=0.0, format="%.2f")
+            target_timeframe = st.selectbox("Target Timeframe (Months)", options=[3, 6, 12, 18, 24, 36], index=2)
 
         with col_b:
             latest_qtr = st.text_input("Latest Qtr Result available (e.g., Q4 FY24)", key=f"upload_qtr_{st.session_state.form_version}")
@@ -297,6 +298,7 @@ def show_upload_dialog(client, drive_service, folder_id):
                             "Market Cap when added": hist_mc,
                             "Industry": final_industry,
                             "Target Price": target_price,
+                            "Target Timeframe (Months)": target_timeframe,
                             "Latest Qtr": latest_qtr,
                             "Rating": rating,
                             "Analyst": analyst_name,

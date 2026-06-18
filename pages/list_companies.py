@@ -74,9 +74,10 @@ else:
         filtered_df = filtered_df.sort_values(by="Real-time Market Cap (Cr)", ascending=False)
 
     # 4. Target Achieved Indicator
-    filtered_df['Target Achieved'] = filtered_df.apply(
-        lambda x: "✅ Achieved" if pd.notna(x.get('Target Price')) and x['Target Price'] > 0 and x['CMP (Real-time)'] >= x['Target Price'] else "⏳ Pending", axis=1
-    )
+    if 'Target Status' in filtered_df.columns:
+        filtered_df['Target Achieved'] = filtered_df['Target Status']
+    else:
+        filtered_df['Target Achieved'] = "⏳ Pending"
 
     # Calculate how many times target achieved
     target_achieved_count = len(filtered_df[filtered_df['Target Achieved'] == "✅ Achieved"])
@@ -87,7 +88,7 @@ else:
         "Company Name", "Rating", "Industry", "Date Added", 
         "Price When Added", "CMP (Real-time)", "% Change since added", 
         "Today's % Change", "Market Cap when added (Cr)", "Real-time Market Cap (Cr)",
-        "Target Price", "Expected Return", "Target Achieved", "Uploaded By"
+        "Target Price", "Expected Return", "Target End Date", "Target Achieved", "Uploaded By"
     ]
     # Ensure columns exist before filtering
     available_cols = [c for c in cols_to_keep if c in filtered_df.columns]
