@@ -1,0 +1,816 @@
+import streamlit as st
+import pandas as pd
+import datetime
+import backend_helper
+import utils
+from streamlit_autorefresh import st_autorefresh
+import pytz
+
+if hasattr(st, "fragment"):
+    fragment = st.fragment
+elif hasattr(st, "experimental_fragment"):
+    fragment = st.experimental_fragment
+else:
+    fragment = lambda func: func
+
+
+# Inject premium CSS styling
+utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
+
+# Initialize local comments list in session state
+if "local_comments" not in st.session_state:
+    st.session_state.local_comments = []
+if "deleted_comments" not in st.session_state:
+    st.session_state.deleted_comments = []
+
+# Display Lingual logo in top right corner
+utils.render_lingual_logo(position="top-right", show_tagline=False)
+
+# Modern page header
+utils.render_page_header(
+    "Company Profile",
+    "Detailed analysis and real-time data",
+    "🔍"
+)
+
+# Market status + refresh bar
+utils.render_status_bar(refresh_interval_secs=300)
+
+# Display persistent success message after rerun
+if "edit_success_message" in st.session_state:
+    st.success(st.session_state.edit_success_message)
+    st.session_state.pop("edit_success_message", None)
+
+# Load uploaded companies database
+try:
+    drive_service = backend_helper.get_drive_service()
+    folder_id = st.secrets["google_drive"]["folder_id"]
+except Exception as e:
+    drive_service = None
+    folder_id = None
+    if "drive_error" not in st.session_state:
+        import traceback
+        st.session_state["drive_error"] = f"{str(e)}\n{traceback.format_exc()}"
+
+if not drive_service or not folder_id:
+    details = st.session_state.get("drive_error", "Unknown initialization error.")
+    st.error(f"Google Drive is not configured properly in st.secrets.\n\n**Error Details:**\n```\n{details}\n```")
+    st.stop()
+
+try:
+    # Expire override if older than 15 seconds
+    if 'override_reports_df' in st.session_state:
+        import time
+        if time.time() - st.session_state.get('override_reports_df_time', 0) > 15:
+            st.session_state.pop('override_reports_df', None)
+            st.session_state.pop('override_reports_df_time', None)
+            
+    if 'override_reports_df' in st.session_state:
+        reports_df = st.session_state['override_reports_df']
+    else:
+        reports_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+except Exception as e:
+    reports_df = pd.DataFrame()
+
+if reports_df.empty:
+    st.info("No companies have been uploaded yet. Go to the Dashboard to upload one!")
+    st.stop()
+
+# Create a list of options: "Company Name (Ticker)"
+reports_df['Display_Name'] = reports_df['Company Name'] + " (" + reports_df['Ticker'] + ")"
+
+# Determine index of currently selected ticker
+current_ticker = st.session_state.get("selected_ticker")
+default_index = 0
+if current_ticker in reports_df['Ticker'].values:
+    default_index = int(reports_df[reports_df['Ticker'] == current_ticker].index[0])
+
+selected_display = st.selectbox(
+    "Select a tracked company:",
+    options=reports_df['Display_Name'].tolist(),
+    index=default_index
+)
+
+# Extract row of chosen company
+selected_row = reports_df[reports_df['Display_Name'] == selected_display].iloc[0]
+
+ticker = selected_row['Ticker']
+company_name = selected_row['Company Name']
+exchange = selected_row.get('Exchange', 'NSE')
+file_id = selected_row.get('File ID', '')
+file_link = selected_row.get('File Link', '')
+price_when_added = float(selected_row.get('Price When Added', 0))
+mc_added = float(selected_row.get('Market Cap when added', 0))
+industry = selected_row.get('Industry', 'Unknown')
+target_price = float(selected_row.get('Target Price', 0) or 0)
+target_achieved_pct = float(selected_row.get('Target Achieved %', 0) or 0)
+target_status = selected_row.get('Target Status', '⏳ Pending')
+target_end_date = selected_row.get('Target End Date', '')
+
+# Save back to session state
+st.session_state.selected_ticker = ticker
+st.session_state.selected_company = company_name
+st.session_state.selected_exchange = exchange
+st.session_state.selected_file_id = file_id
+st.session_state.selected_file_link = file_link
+st.session_state.selected_price_added = price_when_added
+st.session_state.selected_mc_added = mc_added
+
+st.header(f"{company_name} ({ticker})")
+st.markdown(f"<span style='color: var(--faded-text-60); font-size: 1.1rem;'>**Exchange:** {exchange} &nbsp;&nbsp;|&nbsp;&nbsp; **Industry:** {industry}</span>", unsafe_allow_html=True)
+
+# Fetch Real Data
+cmp = 0.0
+pct_change = 0.0
+high_52 = 0.0
+low_52 = 0.0
+live_data = None
+
+try:
+    angel_secrets = st.secrets["angel_one"]
+    client = backend_helper.get_angel_client(
+        api_key=angel_secrets["api_key"],
+        client_code=angel_secrets["client_code"],
+        password=angel_secrets["password"],
+        totp_secret=angel_secrets["totp_secret"]
+    )
+    
+    if client:
+        token = backend_helper.get_cached_token_id(ticker, exchange)
+        if token:
+            live_data = backend_helper.get_live_market_data(client, token, exchange)
+            if live_data:
+                cmp = live_data.get('cmp', 0.0)
+                pct_change = live_data.get('pct_change', 0.0)
+                high_52 = live_data.get('52w_high', 0.0)
+                low_52 = live_data.get('52w_low', 0.0)
+except Exception as e:
+    st.error(f"Could not fetch live data: {e}")
+
+# Calculate Changes
+rs_change = cmp * (pct_change / 100) if cmp else 0
+pct_change_since = ((cmp - price_when_added) / price_when_added) * 100 if price_when_added > 0 else 0
+# Prefer live market cap from API; fall back to proportional estimate
+market_cap = live_data.get('market_cap_cr', 0.0) if live_data and live_data.get('market_cap_cr', 0.0) > 0 \
+             else (mc_added * (cmp / price_when_added) if price_when_added > 0 else mc_added)
+
+# --- Deep-dive Stats (Custom Premium Cards with Perfect Alignment) ---
+st.markdown(
+    """
+    <style>
+    .metric-card {
+        background: rgba(17, 24, 39, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 130px;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+    }
+    .metric-card:hover {
+        border-color: rgba(139, 92, 246, 0.4);
+        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.15);
+        background: rgba(17, 24, 39, 0.6);
+        transform: translateY(-2px);
+    }
+    .metric-title {
+        font-size: 0.75rem;
+        color: rgba(249, 250, 251, 0.6);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0;
+    }
+    .metric-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 8px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
+    }
+    .metric-delta {
+        font-size: 0.72rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        width: fit-content;
+        margin-top: auto;
+    }
+    .delta-positive {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+    .delta-negative {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+    .delta-neutral {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(249, 250, 251, 0.7);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+col1, col2, col3 = st.columns(3)
+
+# Card 1: CMP (Real-time)
+cmp_delta_class = "delta-positive" if pct_change >= 0 else "delta-negative"
+cmp_arrow = "▲" if pct_change >= 0 else "▼"
+cmp_delta_text = f"{cmp_arrow} {abs(pct_change):.2f}% / ₹{abs(rs_change):,.2f}"
+
+card_cmp_html = f"""
+<div class="metric-card" style="margin-bottom: 16px;">
+    <div class="metric-title">CMP (Real-time)</div>
+    <div class="metric-value">₹{cmp:,.2f}</div>
+    <div class="metric-delta {cmp_delta_class}">{cmp_delta_text}</div>
+</div>
+"""
+
+# Card 2: Real-time Market Cap
+card_mcap_html = f"""
+<div class="metric-card" style="margin-bottom: 16px;">
+    <div class="metric-title">Real-time Market Cap</div>
+    <div class="metric-value">₹{market_cap:,.2f} Cr</div>
+    <div class="metric-delta delta-neutral">📊 Live Cap</div>
+</div>
+"""
+
+# Card 3: Price When Added
+added_delta_class = "delta-positive" if pct_change_since >= 0 else "delta-negative"
+added_arrow = "▲" if pct_change_since >= 0 else "▼"
+added_delta_text = f"{added_arrow} {abs(pct_change_since):.2f}% since added"
+
+card_added_html = f"""
+<div class="metric-card" style="margin-bottom: 16px;">
+    <div class="metric-title">Price When Added</div>
+    <div class="metric-value">₹{price_when_added:,.2f}</div>
+    <div class="metric-delta {added_delta_class}">{added_delta_text}</div>
+</div>
+"""
+
+# Card 4: Target Price
+status_emoji = "✅" if "Achieved" in target_status else "❌" if "Missed" in target_status else "⏳"
+tp_status_color = "delta-positive" if "Achieved" in target_status else "delta-negative" if "Missed" in target_status else "delta-neutral"
+
+card_tp_html = f"""
+<div class="metric-card" style="margin-bottom: 16px;">
+    <div class="metric-title">Target Price</div>
+    <div class="metric-value">₹{target_price:,.2f}</div>
+    <div class="metric-delta {tp_status_color}">{target_status}</div>
+    <div style="font-size: 0.65rem; color: rgba(249, 250, 251, 0.5); margin-top: 4px;">Deadline: {target_end_date if target_end_date else 'N/A'}</div>
+</div>
+"""
+
+# Card 5: Target Achieved %
+achieved_delta_class = "delta-positive" if target_achieved_pct >= 100 else "delta-neutral"
+achieved_icon = "🎯" if target_achieved_pct >= 100 else "📈"
+
+card_exp_html = f"""
+<div class="metric-card" style="margin-bottom: 16px;">
+    <div class="metric-title">Target Achieved %</div>
+    <div class="metric-value">{target_achieved_pct:,.2f}%</div>
+    <div class="metric-delta {achieved_delta_class}">{achieved_icon} Progress</div>
+</div>
+"""
+
+# Card 6: 52-Week Range
+try:
+    range_val = f"₹{float(low_52):,.2f} - ₹{float(high_52):,.2f}"
+except Exception:
+    range_val = f"₹{low_52} - ₹{high_52}"
+
+card_range_html = f"""
+<div class="metric-card" style="margin-bottom: 16px;">
+    <div class="metric-title">52-Week Range</div>
+    <div class="metric-value" style="font-size: 1.12rem; white-space: normal;">{range_val}</div>
+    <div class="metric-delta delta-neutral">📅 52-W Range</div>
+</div>
+"""
+
+with col1:
+    st.markdown(card_cmp_html, unsafe_allow_html=True)
+    st.markdown(card_tp_html, unsafe_allow_html=True)
+with col2:
+    st.markdown(card_mcap_html, unsafe_allow_html=True)
+    st.markdown(card_exp_html, unsafe_allow_html=True)
+with col3:
+    st.markdown(card_added_html, unsafe_allow_html=True)
+    st.markdown(card_range_html, unsafe_allow_html=True)
+
+st.divider()
+
+# --- About Company & File ---
+st.subheader("ℹ️ About Company")
+
+analyst_name = selected_row.get("Analyst", "Unknown")
+
+col_a1, col_a2 = st.columns(2)
+with col_a1:
+    st.info(f"{company_name} is currently being tracked by the Equity Research Team.")
+with col_a2:
+    with st.container(border=True):
+        st.markdown(f"🧑‍💻 **Research Uploaded By:** **{analyst_name}**")
+        if file_link:
+            st.markdown(f"📥 **[Click here to open the research file]({file_link})**")
+        elif file_id:
+            # Backward compatibility for old records that used File ID
+            old_drive_link = f"https://drive.google.com/uc?export=download&id={file_id}"
+            st.markdown(f"📥 **[Click here to download the research file]({old_drive_link})**")
+        else:
+            st.warning("No research file attached to this company.")
+
+# --- Analyst Initial Research Notes ---
+st.subheader("💡 Analyst Initial Research Notes")
+analyst_name = selected_row.get("Analyst", "Unknown")
+owner_rating = selected_row.get("Rating", "")
+owner_comment = selected_row.get("Comment", "")
+
+with st.container(border=True):
+    st.write(f"🧑‍💻 **Research Submitted By:** {analyst_name}")
+    if pd.notna(owner_rating) and str(owner_rating).strip() != "":
+        st.write(f"⭐ **Analyst Rating:** **{int(float(owner_rating))}/10**")
+    else:
+        st.write("⭐ **Analyst Rating:** *Not rated*")
+    
+    if pd.notna(owner_comment) and str(owner_comment).strip() != "":
+        st.write(f"📝 **Analyst Comment:** {owner_comment}")
+    else:
+        st.write("📝 **Analyst Comment:** *No comment provided*")
+
+# --- Edit Research Parameters (Only available for logged in approved users) ---
+with st.expander("✏️ Edit Research Parameters"):
+    st.markdown("Modify the research data for this company. Updates will be saved to Google Drive and synced instantly.")
+    
+    with st.form("edit_research_form"):
+        col_edit_a, col_edit_b = st.columns(2)
+        
+        with col_edit_a:
+            edit_analyst_name = st.text_input("Analyst Name", value=analyst_name, key=f"edit_analyst_name_{ticker}")
+            edit_company_name = st.text_input("Company Name", value=company_name, key=f"edit_company_name_{ticker}")
+            edit_ticker = st.text_input("Ticker Symbol", value=ticker, key=f"edit_ticker_{ticker}")
+            edit_exchange = st.selectbox("Exchange", options=["NSE", "BSE"], index=0 if exchange == "NSE" else 1, key=f"edit_exchange_{ticker}")
+            try:
+                parsed_date = datetime.datetime.strptime(str(selected_row.get("Date Added", "")), "%Y-%m-%d").date()
+            except Exception:
+                parsed_date = datetime.date.today()
+            edit_date_research = st.date_input("Date of Research", parsed_date, key=f"edit_date_research_{ticker}")
+            
+        with col_edit_b:
+            edit_price_when_added = st.number_input("Price When Added (₹)", min_value=0.0, value=price_when_added, format="%.2f", key=f"edit_price_added_{ticker}")
+            edit_mc_added = st.number_input("Market Cap when added (Cr)", min_value=0.0, value=mc_added, format="%.2f", key=f"edit_mc_added_{ticker}")
+            edit_industry = st.text_input("Industry", value=industry, key=f"edit_industry_{ticker}")
+            edit_target_price = st.number_input("Target Price (₹)", min_value=0.0, value=target_price, format="%.2f", key=f"edit_target_price_{ticker}")
+            
+            timeframe_options = [3, 6, 12, 18, 24, 36]
+            curr_timeframe = int(selected_row.get("Target Timeframe (Months)", 12))
+            if curr_timeframe not in timeframe_options:
+                timeframe_options.append(curr_timeframe)
+                timeframe_options.sort()
+            tf_index = timeframe_options.index(curr_timeframe)
+            edit_target_timeframe = st.selectbox("Target Timeframe (Months)", options=timeframe_options, index=tf_index, key=f"edit_timeframe_{ticker}")
+            
+        edit_latest_qtr = st.text_input("Latest Qtr Result available", value=selected_row.get("Latest Qtr", ""), key=f"edit_qtr_{ticker}")
+        edit_rating = st.slider("Rating (1-10 Stars)", 1, 10, int(float(owner_rating)) if pd.notna(owner_rating) and str(owner_rating).strip() != "" else 5, key=f"edit_rating_{ticker}")
+        edit_comment = st.text_area("Comment by Owner", value=owner_comment, key=f"edit_comment_{ticker}")
+        
+        # File uploader to update the research file (optional)
+        edit_uploaded_file = st.file_uploader(
+            "📎 Upload the updated research file (if required)",
+            key="edit_file_uploader"
+        )
+        
+        save_changes = st.form_submit_button("Save Changes & Sync to Drive", type="primary")
+        
+        if save_changes:
+            if edit_company_name and edit_ticker:
+                try:
+                    import threading
+                    import time
+                    
+                    # 1. Update the local session state override immediately so the UI update is instant
+                    override_df = reports_df.copy()
+                    match_mask = override_df['Ticker'].str.strip().str.upper() == ticker.upper().strip()
+                    if match_mask.any():
+                        match_idx = override_df[match_mask].index[0]
+                        override_df.at[match_idx, "Company Name"] = edit_company_name
+                        override_df.at[match_idx, "Ticker"] = edit_ticker.upper().strip()
+                        override_df.at[match_idx, "Exchange"] = edit_exchange
+                        override_df.at[match_idx, "Date Added"] = str(edit_date_research)
+                        override_df.at[match_idx, "Price When Added"] = edit_price_when_added
+                        override_df.at[match_idx, "Market Cap when added"] = edit_mc_added
+                        override_df.at[match_idx, "Industry"] = edit_industry
+                        override_df.at[match_idx, "Target Price"] = edit_target_price
+                        override_df.at[match_idx, "Target Timeframe (Months)"] = edit_target_timeframe
+                        override_df.at[match_idx, "Latest Qtr"] = edit_latest_qtr
+                        override_df.at[match_idx, "Rating"] = edit_rating
+                        override_df.at[match_idx, "Analyst"] = edit_analyst_name
+                        override_df.at[match_idx, "Comment"] = edit_comment
+                        # Keep existing file details in local override for now
+                        
+                    st.session_state['override_reports_df'] = override_df
+                    st.session_state['override_reports_df_time'] = time.time()
+                    
+                    # 2. Get file uploader details in the main thread (since streamlit file streams close on rerun)
+                    file_bytes = edit_uploaded_file.getvalue() if edit_uploaded_file is not None else None
+                    file_name = edit_uploaded_file.name if edit_uploaded_file is not None else None
+                    
+                    # 3. Define the background thread target to write to Google Drive
+                    def run_edit_save_async(ds, fid, tick_match, cname, tick, exch, rdate, price, mcap, ind, tprice, tframe, qtr, rat, analyst, comm, fbytes, fname, fid_old, flink_old):
+                        try:
+                            # Load fresh CSV from drive to avoid overwriting other users' edits
+                            latest_df = backend_helper.load_csv_database(ds, fid, 'reports_db.csv')
+                            if not latest_df.empty and 'Ticker' in latest_df.columns:
+                                m_mask = latest_df['Ticker'].str.strip().str.upper() == tick_match.upper().strip()
+                                if m_mask.any():
+                                    m_idx = latest_df[m_mask].index[0]
+                                    
+                                    final_file_id = fid_old
+                                    final_file_link = flink_old
+                                    
+                                    if fbytes is not None and fname is not None:
+                                        f_ext = fname.rsplit('.', 1)[-1]
+                                        safe_name = f"{tick.upper().strip()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{f_ext}"
+                                        uploaded_file_id = backend_helper.upload_file_to_drive(ds, fbytes, safe_name, fid)
+                                        if uploaded_file_id:
+                                            final_file_id = uploaded_file_id
+                                            final_file_link = f"https://drive.google.com/file/d/{uploaded_file_id}/view?usp=drivesdk"
+                                    
+                                    latest_df.at[m_idx, "Company Name"] = cname
+                                    latest_df.at[m_idx, "Ticker"] = tick.upper().strip()
+                                    latest_df.at[m_idx, "Exchange"] = exch
+                                    latest_df.at[m_idx, "Date Added"] = str(rdate)
+                                    latest_df.at[m_idx, "Price When Added"] = price
+                                    latest_df.at[m_idx, "Market Cap when added"] = mcap
+                                    latest_df.at[m_idx, "Industry"] = ind
+                                    latest_df.at[m_idx, "Target Price"] = tprice
+                                    latest_df.at[m_idx, "Target Timeframe (Months)"] = tframe
+                                    latest_df.at[m_idx, "Latest Qtr"] = qtr
+                                    latest_df.at[m_idx, "Rating"] = rat
+                                    latest_df.at[m_idx, "Analyst"] = analyst
+                                    latest_df.at[m_idx, "Comment"] = comm
+                                    latest_df.at[m_idx, "File ID"] = final_file_id
+                                    latest_df.at[m_idx, "File Link"] = final_file_link
+                                    
+                                    backend_helper.save_csv_database(ds, latest_df, fid, 'reports_db.csv')
+                                    backend_helper.load_csv_database.clear()
+                                    backend_helper.load_real_companies_db.clear()
+                        except Exception as ex:
+                            print(f"Error in background edit save: {ex}")
+                            
+                    # 4. Launch the background thread
+                    t = threading.Thread(
+                        target=run_edit_save_async,
+                        args=(
+                            drive_service, folder_id, ticker,
+                            edit_company_name, edit_ticker, edit_exchange, edit_date_research,
+                            edit_price_when_added, edit_mc_added, edit_industry, edit_target_price,
+                            edit_target_timeframe, edit_latest_qtr, edit_rating, edit_analyst_name, edit_comment,
+                            file_bytes, file_name, file_id, file_link
+                        )
+                    )
+                    t.daemon = True
+                    t.start()
+                    
+                    # 5. Show success and rerun immediately
+                    st.session_state.edit_success_message = "✅ Changes updated instantly (Google Drive syncing in background)!"
+                    st.session_state.selected_ticker = edit_ticker.upper().strip()
+                    st.rerun()
+                except Exception as ex:
+                    st.error(f"Error processing changes: {ex}")
+            else:
+                st.error("Company Name and Ticker cannot be empty.")
+
+st.divider()
+
+# --- Team Discussion (Drive Backed) ---
+st.subheader("💬 Team Discussion")
+
+@fragment
+def render_team_discussion(current_ticker, drive_service, folder_id):
+    def handle_post_comment(service, fid):
+        new_comment = st.session_state.get("new_comment_text", "").strip()
+        new_rating = st.session_state.get("new_comment_rating", 10)
+
+        if not new_comment:
+            return
+
+        if service and fid:
+            username = st.session_state.get("user_email", "user@firm.com").split('@')[0]
+            new_row = {
+                "Ticker": current_current_ticker,
+                "User": username,
+                "Avatar": "",
+                "Timestamp": datetime.datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S"),
+                "Rating": new_rating,
+                "Text": new_comment
+            }
+
+            st.session_state.local_comments.append(new_row)
+
+            if 'override_comments_df' in st.session_state:
+                df = st.session_state['override_comments_df']
+            elif 'last_comments_df' in st.session_state:
+                df = st.session_state['last_comments_df']
+            else:
+                df = backend_helper.load_comments_database(service, fid)
+                
+            import pandas as pd
+            if df.empty:
+                full_comments_df = pd.DataFrame([new_row])
+            else:
+                full_comments_df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+                
+            import time
+            st.session_state['override_comments_df'] = full_comments_df
+            st.session_state['override_comments_df_time'] = time.time()
+            st.session_state['last_comments_df'] = full_comments_df
+
+            import threading
+
+            def save_comments_async(s, d, f):
+                backend_helper.save_comments_database(s, d, f)
+                backend_helper.load_csv_database.clear()
+
+            upload_thread = threading.Thread(
+                target=save_comments_async,
+                args=(service, full_comments_df, fid)
+            )
+            upload_thread.daemon = True
+            upload_thread.start()
+
+            # Clear inputs in session state before widget rendering to avoid StreamlitAPIException
+            st.session_state.new_comment_text = ""
+            st.session_state.new_comment_rating = 10
+            st.session_state.comment_success_message = "Comment posted!"
+
+    try:
+        drive_service = backend_helper.get_drive_service()
+        folder_id = st.secrets["google_drive"]["folder_id"]
+        
+        # Expire override if older than 15 seconds
+        if 'override_comments_df' in st.session_state:
+            import time
+            if time.time() - st.session_state.get('override_comments_df_time', 0) > 15:
+                st.session_state.pop('override_comments_df', None)
+                st.session_state.pop('override_comments_df_time', None)
+                
+        if 'override_comments_df' in st.session_state:
+            comments_df = st.session_state['override_comments_df']
+        elif 'last_comments_df' in st.session_state:
+            comments_df = st.session_state['last_comments_df']
+        else:
+            comments_df = backend_helper.load_comments_database(drive_service, folder_id)
+            st.session_state['last_comments_df'] = comments_df
+    except Exception as e:
+        comments_df = pd.DataFrame()
+
+    # Filter out deleted comments in session state from comments_df
+    if "deleted_comments" in st.session_state and not comments_df.empty:
+        for dc in st.session_state.deleted_comments:
+            comments_df = comments_df[~(
+                (comments_df['Ticker'] == dc.get('Ticker')) &
+                (comments_df['User'] == dc.get('User')) &
+                (comments_df['Timestamp'] == dc.get('Timestamp')) &
+                (comments_df['Text'] == dc.get('Text'))
+            )]
+
+    # Filter comments for this current_ticker
+    if not comments_df.empty and 'Ticker' in comments_df.columns:
+        current_ticker_comments = comments_df[comments_df['Ticker'] == current_ticker]
+    else:
+        current_ticker_comments = pd.DataFrame()
+
+    # Append temporary local comments for this current_ticker and remove duplicates
+    if st.session_state.local_comments:
+        local_ticker = [c for c in st.session_state.local_comments if c.get('Ticker') == current_ticker]
+        if local_ticker:
+            local_df = pd.DataFrame(local_ticker)
+            if current_ticker_comments.empty:
+                current_ticker_comments = local_df
+            else:
+                current_ticker_comments = pd.concat([ticker_comments, local_df], ignore_index=True)
+                current_ticker_comments = current_ticker_comments.drop_duplicates(subset=['Ticker', 'User', 'Timestamp', 'Text'])
+
+    def get_initials(name_or_username):
+        name_str = str(name_or_username).replace('.', ' ').replace('_', ' ').replace('-', ' ').strip()
+        parts = name_str.split()
+        if len(parts) >= 2:
+            return (parts[0][0] + parts[-1][0]).upper()
+        elif len(parts) == 1 and len(parts[0]) > 0:
+            import re
+            camel_parts = re.findall('[A-Z][^A-Z]*', parts[0])
+            if len(camel_parts) >= 2:
+                return (camel_parts[0][0] + camel_parts[-1][0]).upper()
+            return parts[0][:2].upper()
+        return "U"
+
+    def get_avatar_color(name):
+        colors = [
+            "#3b82f6", # Blue
+            "#8b5cf6", # Purple
+            "#ec4899", # Pink
+            "#10b981", # Emerald
+            "#f59e0b", # Amber
+            "#ef4444", # Red
+            "#14b8a6", # Teal
+            "#6366f1"  # Indigo
+        ]
+        hash_val = sum(ord(c) for c in str(name))
+        return colors[hash_val % len(colors)]
+
+    def get_user_display_info(username, users_df=None):
+        if users_df is not None and not users_df.empty:
+            try:
+                matching_user = users_df[users_df['Email'].str.startswith(username + '@', na=False)]
+                if not matching_user.empty:
+                    full_name = matching_user.iloc[0]['Name']
+                    clean_name = full_name.replace(" (Admin)", "")
+                    return clean_name, get_initials(clean_name), get_avatar_color(clean_name)
+            except Exception:
+                pass
+        else:
+            try:
+                import auth_manager
+                df = auth_manager.get_users_df()
+                matching_user = df[df['Email'].str.startswith(username + '@', na=False)]
+                if not matching_user.empty:
+                    full_name = matching_user.iloc[0]['Name']
+                    clean_name = full_name.replace(" (Admin)", "")
+                    return clean_name, get_initials(clean_name), get_avatar_color(clean_name)
+            except Exception:
+                pass
+
+        clean_username = username.replace('.', ' ').title()
+        return clean_username, get_initials(clean_username), get_avatar_color(clean_username)
+
+    # Render Comments using HTML/CSS
+    dark_mode_compatible_css = """
+    <style>
+    .comment-box {
+        display: flex; 
+        margin-bottom: 15px; 
+        background-color: var(--secondary-background-color); 
+        padding: 15px; 
+        border-radius: 10px; 
+        border: 1px solid var(--faded-text-40);
+    }
+    .comment-avatar {
+        width: 40px; 
+        height: 40px; 
+        border-radius: 50%; 
+        margin-right: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: white;
+        font-size: 0.95rem;
+        font-family: 'Calibri', 'Calibri', sans-serif;
+        flex-shrink: 0;
+    }
+    .comment-header {
+        display: flex; 
+        justify-content: space-between; 
+        align-items: baseline;
+    }
+    .comment-user {
+        font-weight: bold; 
+        color: var(--text-color);
+    }
+    .comment-time {
+        font-size: 0.8em; 
+        color: var(--faded-text-60);
+    }
+    .comment-stars {
+        color: #FFD700; 
+        font-size: 1.1em; 
+        margin-bottom: 5px;
+    }
+    .comment-text {
+        color: var(--text-color); 
+        font-family: 'Calibri', sans-serif;
+    }
+    </style>
+    """
+
+    st.markdown(dark_mode_compatible_css, unsafe_allow_html=True)
+
+    if current_ticker_comments.empty:
+        st.write("No comments yet. Be the first to share your thoughts!")
+    else:
+        # Load users database once to avoid reloading it inside the comments loop
+        try:
+            import auth_manager
+            users_df = auth_manager.get_users_df()
+        except Exception:
+            users_df = None
+
+        for idx_row, comment in current_ticker_comments.iterrows():
+            user_name, initials, avatar_color = get_user_display_info(comment.get('User', 'analyst'), users_df)
+            rating = int(comment.get('Rating', 10))
+            stars_str = "★" * rating + "☆" * (10 - rating)
+            html = f"""
+            <div class="comment-box" style="margin-bottom: 0px;">
+                <div class="comment-avatar" style="background-color: {avatar_color};">{initials}</div>
+                <div style="flex-grow: 1;">
+                    <div class="comment-header">
+                        <span class="comment-user">{user_name} (@{comment.get('User', 'analyst')})</span>
+                        <span class="comment-time">{comment.get('Timestamp', '')}</span>
+                    </div>
+                    <div class="comment-stars">{stars_str}</div>
+                    <div class="comment-text">{comment.get('Text', '')}</div>
+                </div>
+            </div>
+            """
+
+            # Check if current user is an admin to display the delete button
+            is_user_admin = st.session_state.get("is_admin", False)
+
+            if is_user_admin:
+                col_c1, col_c2 = st.columns([12, 1])
+                with col_c1:
+                    st.markdown(html, unsafe_allow_html=True)
+                with col_c2:
+                    st.write("")
+                    st.write("")
+                    if st.button("🗑️", key=f"del_comment_{idx_row}", help=f"Delete comment by {user_name}"):
+                        # Filter out this comment from local session state comments if present
+                        if "local_comments" in st.session_state:
+                            st.session_state.local_comments = [
+                                c for c in st.session_state.local_comments
+                                if not (c['Ticker'] == current_ticker and c['User'] == comment.get('User') and c['Timestamp'] == comment.get('Timestamp') and c['Text'] == comment.get('Text'))
+                            ]
+
+                        # Add to session state deleted_comments to filter out instantly on rerun
+                        st.session_state.deleted_comments.append({
+                            "Ticker": current_current_ticker,
+                            "User": comment.get('User'),
+                            "Timestamp": comment.get('Timestamp'),
+                            "Text": comment.get('Text')
+                        })
+
+                        # Filter out this comment from comments database
+                        comments_df = comments_df[~(
+                            (comments_df['Ticker'] == current_ticker) &
+                            (comments_df['User'] == comment.get('User')) &
+                            (comments_df['Timestamp'] == comment.get('Timestamp')) &
+                            (comments_df['Text'] == comment.get('Text'))
+                        )]
+                        
+                        import time
+                        st.session_state['override_comments_df'] = comments_df
+                        st.session_state['override_comments_df_time'] = time.time()
+                        st.session_state['last_comments_df'] = comments_df
+
+                        if drive_service and folder_id:
+                            import threading
+
+                            def delete_comments_async(service, df, fid):
+                                backend_helper.save_comments_database(service, df, fid)
+                                backend_helper.load_csv_database.clear()
+
+                            upload_thread = threading.Thread(
+                                target=delete_comments_async,
+                                args=(drive_service, comments_df, folder_id)
+                            )
+                            upload_thread.daemon = True
+                            upload_thread.start()
+
+                            st.success("Comment deleted!")
+                            st.rerun()
+                        else:
+                            st.error("Google Drive not configured.")
+                st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+            else:
+                st.markdown(html, unsafe_allow_html=True)
+                st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+
+    # --- Add New Comment ---
+    st.write("---")
+    st.markdown("**Add your insight**")
+    new_rating = st.slider("Rating (1-10 Stars)", 1, 10, 10, key="new_comment_rating")
+    new_comment = st.text_input("Write a comment...", placeholder="What are your thoughts on this company?", key="new_comment_text")
+    st.button("Post Comment", type="primary", on_click=handle_post_comment, args=(drive_service, folder_id))
+
+    if st.session_state.get("comment_success_message"):
+        st.success(st.session_state.comment_success_message)
+        st.session_state.comment_success_message = ""
+
+
+render_team_discussion(ticker, drive_service, folder_id)
+# Auto-refresh every 5 minutes (300,000 ms) in the background
+st_autorefresh(interval=300_000, key="company_profile_autorefresh")
