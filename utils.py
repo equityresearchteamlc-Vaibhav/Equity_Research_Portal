@@ -1483,6 +1483,39 @@ def inject_custom_css(theme: str = "Dark"):
         """
         st.markdown(js_theme_override, unsafe_allow_html=True)
 
+    # Self-healing canvas inverter to force dark background on st.dataframe when running in light mode.
+    # Runs periodically to cover reruns, dynamic data rendering, and page navigations.
+    js_canvas_inverter = """
+    <script>
+        (function() {
+            const checkThemeAndInvert = () => {
+                try {
+                    const appEl = document.querySelector('.stApp');
+                    if (!appEl) return;
+                    
+                    // Read Streamlit's active theme background from inline styles
+                    const inlineBg = appEl.style.getPropertyValue('--theme-backgroundColor');
+                    const isLight = inlineBg && (inlineBg.includes('255') || inlineBg.toLowerCase().includes('fff'));
+                    
+                    const dataframes = document.querySelectorAll('[data-testid="stDataFrame"], [data-testid="stDataFrameResizable"]');
+                    dataframes.forEach(df => {
+                        if (isLight) {
+                            // Invert cells to make them dark, shift colors back so green/red returns remain correct
+                            df.style.filter = 'invert(0.92) hue-rotate(180deg)';
+                        } else {
+                            df.style.filter = 'none';
+                        }
+                    });
+                } catch (e) {}
+            };
+            if (!window._themeInvertInterval) {
+                window._themeInvertInterval = setInterval(checkThemeAndInvert, 400);
+            }
+        })();
+    </script>
+    """
+    st.markdown(js_canvas_inverter, unsafe_allow_html=True)
+
 
 
 def optimize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
