@@ -179,12 +179,18 @@ def get_drive_service():
     """
     SCOPES = ['https://www.googleapis.com/auth/drive']
     try:
+        # Copy credentials dictionary and fix any double-escaped newlines (\n) in the private key
+        gcp_info = dict(st.secrets["gcp_service_account"])
+        if "private_key" in gcp_info:
+            gcp_info["private_key"] = gcp_info["private_key"].replace('\\n', '\n')
+            
         creds = service_account.Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"], scopes=SCOPES)
+            gcp_info, scopes=SCOPES)
         service = build('drive', 'v3', credentials=creds)
         return service
     except Exception as e:
-        print(f"Error building Drive service: {e}")
+        import logging
+        logging.error(f"Error building Drive service: {e}")
         return None
 
 def find_file_in_folder(service, folder_id, file_name):
