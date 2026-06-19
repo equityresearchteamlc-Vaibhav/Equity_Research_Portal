@@ -1407,7 +1407,8 @@ def inject_custom_css(theme: str = "Dark"):
     """
     Inject custom theme CSS based on user selection: 'Dark', 'Light', 'System', or 'Game of Thrones'.
     """
-    theme = str(theme).strip().lower()
+    # Unconditionally force theme to "dark" to guarantee black-dark layout everywhere
+    theme = "dark"
     
     css_to_inject = BASE_CSS
     if theme == "light":
