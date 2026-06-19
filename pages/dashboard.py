@@ -122,6 +122,9 @@ if not drive_service or not folder_id:
     st.stop()
 
 try:
+    # Clear stale cache from when Drive was broken
+    backend_helper.load_csv_database.clear()
+    
     # Expire override if older than 15 seconds
     if 'override_reports_df' in st.session_state:
         import time

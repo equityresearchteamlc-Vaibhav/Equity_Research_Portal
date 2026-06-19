@@ -43,11 +43,16 @@ if not drive_service or not folder_id:
     st.error(f"Google Drive is not configured properly in st.secrets.\n\n**Error Details:**\n```\n{details}\n```")
     st.stop()
 
+# Clear stale cache from when Drive was broken, then load fresh
+backend_helper.load_csv_database.clear()
+backend_helper.load_real_companies_db.clear()
+
 # Load and optimize dataframe
 if 'override_reports_df' in st.session_state:
     df = backend_helper.load_real_companies_db_raw(st.session_state['override_reports_df'])
 else:
-    df = backend_helper.load_real_companies_db()
+    raw_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+    df = backend_helper.load_real_companies_db_raw(raw_df)
 
 if not df.empty:
     df = utils.optimize_dataframe(df)

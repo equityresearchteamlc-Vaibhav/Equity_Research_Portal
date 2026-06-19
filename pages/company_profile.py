@@ -377,7 +377,10 @@ with st.expander("✏️ Edit Research Parameters"):
             edit_target_price = st.number_input("Target Price (₹)", min_value=0.0, value=target_price, format="%.2f", key=f"edit_target_price_{ticker}")
             
             timeframe_options = [3, 6, 12, 18, 24, 36]
-            curr_timeframe = int(selected_row.get("Target Timeframe (Months)", 12))
+            try:
+                curr_timeframe = int(float(str(selected_row.get("Target Timeframe (Months)", 12) or 12)))
+            except (ValueError, TypeError):
+                curr_timeframe = 12
             if curr_timeframe not in timeframe_options:
                 timeframe_options.append(curr_timeframe)
                 timeframe_options.sort()
