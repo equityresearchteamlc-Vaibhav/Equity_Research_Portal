@@ -1406,6 +1406,67 @@ def inject_custom_css(theme: str = "Dark"):
         
     st.markdown(f"<style>{css_to_inject}</style>", unsafe_allow_html=True)
 
+    # Programmatically override browser local storage theme settings (stActiveTheme)
+    # to prevent system/local settings from overriding our server-side theme selection.
+    if theme != "system":
+        expected_base = "light" if theme == "light" else "dark"
+        js_theme_override = f"""
+        <script>
+            try {{
+                const expectedBase = "{expected_base}";
+                const themeKey = "stActiveTheme";
+                
+                const checkAndSet = (storage) => {{
+                    if (!storage) return false;
+                    const currentThemeStr = storage.getItem(themeKey);
+                    let needsUpdate = false;
+                    
+                    if (currentThemeStr) {{
+                        try {{
+                            const currentThemeObj = JSON.parse(currentThemeStr);
+                            if (currentThemeObj.base !== expectedBase) {{
+                                currentThemeObj.base = expectedBase;
+                                storage.setItem(themeKey, JSON.stringify(currentThemeObj));
+                                needsUpdate = true;
+                            }}
+                        }} catch (e) {{
+                            storage.setItem(themeKey, JSON.stringify({{ base: expectedBase }}));
+                            needsUpdate = true;
+                        }}
+                    }} else {{
+                        storage.setItem(themeKey, JSON.stringify({{ base: expectedBase }}));
+                        needsUpdate = true;
+                    }}
+                    return needsUpdate;
+                }};
+
+                let updated = false;
+                try {{
+                    if (window.localStorage) {{
+                        updated = checkAndSet(window.localStorage) || updated;
+                    }}
+                }} catch (e) {{}}
+                
+                try {{
+                    if (window.parent && window.parent.localStorage) {{
+                        updated = checkAndSet(window.parent.localStorage) || updated;
+                    }}
+                }} catch (e) {{}}
+
+                if (updated) {{
+                    if (window.parent && window.parent.location) {{
+                        window.parent.location.reload();
+                    }} else {{
+                        window.location.reload();
+                    }}
+                }}
+            }} catch (err) {{
+                console.error("Theme override failed:", err);
+            }}
+        </script>
+        """
+        st.markdown(js_theme_override, unsafe_allow_html=True)
+
 
 
 def optimize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
