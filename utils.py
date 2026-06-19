@@ -256,6 +256,14 @@ DARK_CSS = """
                 --primary-color: #8b5cf6 !important;
                 --faded-text-60: rgba(249, 250, 251, 0.6) !important;
                 --faded-text-40: rgba(249, 250, 251, 0.4) !important;
+
+                /* Streamlit CamelCase variables to force dark mode on Glide Data Grid / Canvas */
+                --theme-backgroundColor: #0f1419 !important;
+                --theme-secondaryBackgroundColor: #1a1f2e !important;
+                --theme-textColor: #f9fafb !important;
+                --theme-primaryColor: #8b5cf6 !important;
+                --theme-fadedText60: rgba(249, 250, 251, 0.6) !important;
+                --theme-fadedText40: rgba(249, 250, 251, 0.4) !important;
             }
             
             /* Force dialogs/modals to have a dark background and white text */
@@ -1013,6 +1021,14 @@ GOT_CSS = """
                 --primary-color: #b59450 !important;
                 --faded-text-60: rgba(223, 213, 198, 0.6) !important;
                 --faded-text-40: rgba(223, 213, 198, 0.4) !important;
+
+                /* Streamlit CamelCase variables to force GoT dark mode on Glide Data Grid / Canvas */
+                --theme-backgroundColor: #09090b !important;
+                --theme-secondaryBackgroundColor: #141416 !important;
+                --theme-textColor: #dfd5c6 !important;
+                --theme-primaryColor: #b59450 !important;
+                --theme-fadedText60: rgba(223, 213, 198, 0.6) !important;
+                --theme-fadedText40: rgba(223, 213, 198, 0.4) !important;
             }
             
             /* Force dialogs/modals to have a dark background and parchment text */
