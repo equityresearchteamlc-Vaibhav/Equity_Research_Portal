@@ -24,15 +24,20 @@ utils.render_page_header(
 # Market status + refresh bar
 utils.render_status_bar(refresh_interval_secs=300)
 
+# Always clear stale error before attempting reconnection
+st.session_state.pop("drive_error", None)
 try:
     drive_service = backend_helper.get_drive_service()
     folder_id = st.secrets["google_drive"]["folder_id"]
-except Exception:
+except Exception as e:
     drive_service = None
     folder_id = None
+    import traceback
+    st.session_state["drive_error"] = f"{str(e)}\n{traceback.format_exc()}"
 
 if not drive_service or not folder_id:
-    st.error("Google Drive is not configured properly in st.secrets.")
+    details = st.session_state.get("drive_error", "Unknown initialization error.")
+    st.error(f"Google Drive is not configured properly in st.secrets.\n\n**Error Details:**\n```\n{details}\n```")
     st.stop()
 
 # Helper for instant background saving

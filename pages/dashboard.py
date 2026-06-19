@@ -105,15 +105,16 @@ def get_cached_index_data(_obj):
 
 # Global fetch removed; will fetch inside fragment
 # --- Total Companies Metric ---
+# Always clear stale error before attempting reconnection
+st.session_state.pop("drive_error", None)
 try:
     drive_service = backend_helper.get_drive_service()
     folder_id = st.secrets["google_drive"]["folder_id"]
 except Exception as e:
     drive_service = None
     folder_id = None
-    if "drive_error" not in st.session_state:
-        import traceback
-        st.session_state["drive_error"] = f"{str(e)}\n{traceback.format_exc()}"
+    import traceback
+    st.session_state["drive_error"] = f"{str(e)}\n{traceback.format_exc()}"
 
 if not drive_service or not folder_id:
     details = st.session_state.get("drive_error", "Unknown initialization error.")
