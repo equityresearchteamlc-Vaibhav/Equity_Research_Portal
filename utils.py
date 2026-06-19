@@ -236,7 +236,7 @@ DARK_CSS = """
             /* ============================================ */
             /* DARK THEME BASE */
             /* ============================================ */
-            :root {
+            :root, .stApp, [data-testid="stDataFrame"], [data-testid="stDataFrameResizable"] {
                 --primary-bg: #0f1419;
                 --secondary-bg: #1a1f2e;
                 --card-bg: rgba(26, 31, 46, 0.6);
@@ -994,7 +994,7 @@ GOT_CSS = """
             /* ============================================ */
             /* GAME OF THRONES THEME BASE */
             /* ============================================ */
-            :root {
+            :root, .stApp, [data-testid="stDataFrame"], [data-testid="stDataFrameResizable"] {
                 --primary-bg: #09090b;
                 --secondary-bg: #141416;
                 --card-bg: rgba(20, 20, 24, 0.85);
