@@ -45,7 +45,19 @@ if "edit_success_message" in st.session_state:
 try:
     drive_service = backend_helper.get_drive_service()
     folder_id = st.secrets["google_drive"]["folder_id"]
-    
+except Exception as e:
+    drive_service = None
+    folder_id = None
+    if "drive_error" not in st.session_state:
+        import traceback
+        st.session_state["drive_error"] = f"{str(e)}\n{traceback.format_exc()}"
+
+if not drive_service or not folder_id:
+    details = st.session_state.get("drive_error", "Unknown initialization error.")
+    st.error(f"Google Drive is not configured properly in st.secrets.\n\n**Error Details:**\n```\n{details}\n```")
+    st.stop()
+
+try:
     # Expire override if older than 15 seconds
     if 'override_reports_df' in st.session_state:
         import time

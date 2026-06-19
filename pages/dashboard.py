@@ -108,7 +108,19 @@ def get_cached_index_data(_obj):
 try:
     drive_service = backend_helper.get_drive_service()
     folder_id = st.secrets["google_drive"]["folder_id"]
-    
+except Exception as e:
+    drive_service = None
+    folder_id = None
+    if "drive_error" not in st.session_state:
+        import traceback
+        st.session_state["drive_error"] = f"{str(e)}\n{traceback.format_exc()}"
+
+if not drive_service or not folder_id:
+    details = st.session_state.get("drive_error", "Unknown initialization error.")
+    st.error(f"Google Drive is not configured properly in st.secrets.\n\n**Error Details:**\n```\n{details}\n```")
+    st.stop()
+
+try:
     # Expire override if older than 15 seconds
     if 'override_reports_df' in st.session_state:
         import time
@@ -122,11 +134,9 @@ try:
         reports_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
         
     total_companies = len(reports_df) if not reports_df.empty else 0
-except Exception:
+except Exception as e:
     total_companies = 0
     reports_df = pd.DataFrame()
-    drive_service = None
-    folder_id = None
 
 def reset_dialog_state():
     st.session_state.upload_dialog_open = False
@@ -231,7 +241,8 @@ def show_upload_dialog(client, drive_service, folder_id):
         if submit_upload:
             if company_name and ticker and uploaded_file:
                 if not drive_service or not folder_id:
-                    st.error("Google Drive is not configured properly in st.secrets.")
+                    details = st.session_state.get("drive_error", "Unknown initialization error.")
+                    st.error(f"Google Drive is not configured properly in st.secrets.\n\n**Error Details:**\n```\n{details}\n```")
                 else:
                     status_placeholder = st.empty()
                     with status_placeholder.container():
