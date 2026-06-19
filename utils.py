@@ -151,21 +151,43 @@ BASE_CSS = """
                 background-color: transparent !important;
             }
             
-            /* Hide Streamlit deploy button, connection status, and options menu to keep a clean interface */
+            /* Hide Streamlit deploy button, connection status, options menu, and top-right Fork/GitHub toolbar elements */
             [data-testid="stAppDeployButton"], 
             [data-testid="stConnectionStatus"], 
             #connection-status, 
-            [data-testid="stMainMenu"] {
+            [data-testid="stMainMenu"],
+            .stActionButton,
+            [data-testid="stActionButton"],
+            [data-testid="stManageAppButton"],
+            button[title*="Fork"],
+            a[href*="/fork/"],
+            a[href*="github.com"],
+            iframe[src*="github.com"] {
                 display: none !important;
                 visibility: hidden !important;
                 width: 0px !important;
+                height: 0px !important;
             }
             
-            /* Hide Streamlit footer, watermark, and host/viewer badges */
-            footer, [data-testid="stViewerBadge"], .viewerBadge, .styles_viewerBadge__, [class*="viewerBadge"], [class*="styles_viewerBadge"] {
+            /* Hide Streamlit footer, watermark, host/viewer badges, and toolbar widgets */
+            footer, 
+            [data-testid="stViewerBadge"], 
+            .viewerBadge, 
+            .styles_viewerBadge__, 
+            [class*="viewerBadge"], 
+            [class*="styles_viewerBadge"],
+            [data-testid="stHostBadge"],
+            .hostBadge,
+            [class*="hostBadge"],
+            [class*="DeployToolbar"],
+            [class*="AppToolbar"],
+            [class*="StatusWidget"],
+            [class*="ReportStatus"],
+            [class*="ReportToolbar"] {
                 display: none !important;
                 visibility: hidden !important;
                 height: 0px !important;
+                width: 0px !important;
             }
             
             /* Adjust top padding since header is hidden */
