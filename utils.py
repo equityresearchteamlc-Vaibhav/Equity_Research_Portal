@@ -130,6 +130,12 @@ BASE_CSS = """
                 image-rendering: -webkit-optimize-contrast !important;
             }
             
+            /* Ensure main content containers are transparent so stApp background always shines through */
+            [data-testid="stAppViewContainer"], .main, [data-testid="stMainBlockContainer"] {
+                background-color: transparent !important;
+                background: transparent !important;
+            }
+            
             /* Global Font Family & Emoji Support */
             html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
                 font-family: 'Calibri', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
@@ -242,6 +248,23 @@ DARK_CSS = """
                 --accent-pink: #ec4899;
                 --success: #10b981;
                 --danger: #ef4444;
+                
+                /* Override Streamlit's theme variables to force dark mode globally */
+                --text-color: #f9fafb !important;
+                --background-color: #0f1419 !important;
+                --secondary-background-color: #1a1f2e !important;
+                --primary-color: #8b5cf6 !important;
+                --faded-text-60: rgba(249, 250, 251, 0.6) !important;
+                --faded-text-40: rgba(249, 250, 251, 0.4) !important;
+            }
+            
+            /* Force dialogs/modals to have a dark background and white text */
+            div[data-testid="stDialog"] [role="dialog"] {
+                background-color: #1a1f2e !important;
+                border: 1px solid rgba(99, 102, 241, 0.3) !important;
+            }
+            div[data-testid="stDialog"] [role="dialog"] * {
+                color: #f9fafb !important;
             }
             
             /* Force light text color globally on key containers for readability */
@@ -968,8 +991,6 @@ LIGHT_CSS = """
 """
 
 GOT_CSS = """
-            
-
             /* ============================================ */
             /* GAME OF THRONES THEME BASE */
             /* ============================================ */
@@ -984,6 +1005,23 @@ GOT_CSS = """
                 --accent-gold-glow: rgba(181, 148, 80, 0.4);
                 --success: #70a1ff; /* Ice Blue */
                 --danger: #9b2c2c; /* Targaryen Crimson */
+                
+                /* Override Streamlit's theme variables to force GoT dark mode globally */
+                --text-color: #dfd5c6 !important;
+                --background-color: #09090b !important;
+                --secondary-background-color: #141416 !important;
+                --primary-color: #b59450 !important;
+                --faded-text-60: rgba(223, 213, 198, 0.6) !important;
+                --faded-text-40: rgba(223, 213, 198, 0.4) !important;
+            }
+            
+            /* Force dialogs/modals to have a dark background and parchment text */
+            div[data-testid="stDialog"] [role="dialog"] {
+                background-color: #141416 !important;
+                border: 1px solid rgba(181, 148, 80, 0.4) !important;
+            }
+            div[data-testid="stDialog"] [role="dialog"] * {
+                color: #dfd5c6 !important;
             }
 
             /* Typography & Headings */
