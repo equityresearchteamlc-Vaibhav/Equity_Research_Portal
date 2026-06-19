@@ -24,8 +24,8 @@ utils.render_status_bar(refresh_interval_secs=300)
 if 'override_reports_df' in st.session_state:
     import time
     if time.time() - st.session_state.get('override_reports_df_time', 0) > 15:
-        del st.session_state['override_reports_df']
-        del st.session_state['override_reports_df_time']
+        st.session_state.pop('override_reports_df', None)
+        st.session_state.pop('override_reports_df_time', None)
 
 # Load and optimize dataframe
 if 'override_reports_df' in st.session_state:

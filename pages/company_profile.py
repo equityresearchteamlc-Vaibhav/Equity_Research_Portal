@@ -39,7 +39,7 @@ utils.render_status_bar(refresh_interval_secs=300)
 # Display persistent success message after rerun
 if "edit_success_message" in st.session_state:
     st.success(st.session_state.edit_success_message)
-    del st.session_state.edit_success_message
+    st.session_state.pop("edit_success_message", None)
 
 # Load uploaded companies database
 try:
@@ -50,8 +50,8 @@ try:
     if 'override_reports_df' in st.session_state:
         import time
         if time.time() - st.session_state.get('override_reports_df_time', 0) > 15:
-            del st.session_state['override_reports_df']
-            del st.session_state['override_reports_df_time']
+            st.session_state.pop('override_reports_df', None)
+            st.session_state.pop('override_reports_df_time', None)
             
     if 'override_reports_df' in st.session_state:
         reports_df = st.session_state['override_reports_df']
@@ -553,8 +553,8 @@ def render_team_discussion(current_ticker, drive_service, folder_id):
         if 'override_comments_df' in st.session_state:
             import time
             if time.time() - st.session_state.get('override_comments_df_time', 0) > 15:
-                del st.session_state['override_comments_df']
-                del st.session_state['override_comments_df_time']
+                st.session_state.pop('override_comments_df', None)
+                st.session_state.pop('override_comments_df_time', None)
                 
         if 'override_comments_df' in st.session_state:
             comments_df = st.session_state['override_comments_df']

@@ -51,8 +51,8 @@ current_time = time.time()
 for key in ['override_pipeline_df', 'override_shortlisted_df', 'override_comments_df']:
     if key in st.session_state:
         if current_time - st.session_state.get(f"{key}_time", 0) > 15:
-            del st.session_state[key]
-            del st.session_state[f"{key}_time"]
+            st.session_state.pop(key, None)
+            st.session_state.pop(f"{key}_time", None)
 
 # Load pipeline and shortlisted
 pipeline_df = backend_helper.load_pipeline_database(drive_service, folder_id)
