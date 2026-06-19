@@ -542,21 +542,14 @@ def get_cached_token_id(ticker, exchange="NSE"):
     return None
 
 
-@st.cache_data(ttl=300, show_spinner="Loading your data...")
-def load_real_companies_db():
+def load_real_companies_db_raw(df):
     """
-    Loads company metadata from Google Drive and merges it with real-time Angel One market data.
-    Caches the results for 5 minutes (300 seconds).
+    Processes the raw company dataframe and merges it with real-time Angel One market data.
+    Does not cache results.
     """
+    if df is None or df.empty:
+        return pd.DataFrame()
     try:
-        drive_service = get_drive_service()
-        folder_id = st.secrets["google_drive"]["folder_id"]
-
-        df = load_csv_database(drive_service, folder_id, 'reports_db.csv')
-
-        if df.empty:
-            return pd.DataFrame()
-
         try:
             angel_secrets = st.secrets["angel_one"]
             client = get_angel_client(
@@ -566,7 +559,7 @@ def load_real_companies_db():
                 totp_secret=angel_secrets["totp_secret"]
             )
         except Exception as e:
-            print(f"Warning: Angel One login failed in load_real_companies_db: {e}")
+            print(f"Warning: Angel One login failed in load_real_companies_db_raw: {e}")
             client = None
 
         # Load unified list once and build a fast hash map lookup in memory
@@ -680,5 +673,21 @@ def load_real_companies_db():
         return pd.DataFrame(enhanced_data)
     except Exception as e:
         print(f"Error loading enhanced company list: {e}")
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=300, show_spinner="Loading your data...")
+def load_real_companies_db():
+    """
+    Loads company metadata from Google Drive and merges it with real-time Angel One market data.
+    Caches the results for 5 minutes (300 seconds).
+    """
+    try:
+        drive_service = get_drive_service()
+        folder_id = st.secrets["google_drive"]["folder_id"]
+        df = load_csv_database(drive_service, folder_id, 'reports_db.csv')
+        return load_real_companies_db_raw(df)
+    except Exception as e:
+        print(f"Error in load_real_companies_db: {e}")
         return pd.DataFrame()
 
