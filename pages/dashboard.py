@@ -107,7 +107,19 @@ def get_cached_index_data(_obj):
 try:
     drive_service = backend_helper.get_drive_service()
     folder_id = st.secrets["google_drive"]["folder_id"]
-    reports_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+    
+    # Expire override if older than 15 seconds
+    if 'override_reports_df' in st.session_state:
+        import time
+        if time.time() - st.session_state.get('override_reports_df_time', 0) > 15:
+            del st.session_state['override_reports_df']
+            del st.session_state['override_reports_df_time']
+            
+    if 'override_reports_df' in st.session_state:
+        reports_df = st.session_state['override_reports_df']
+    else:
+        reports_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+        
     total_companies = len(reports_df) if not reports_df.empty else 0
 except Exception:
     total_companies = 0
@@ -285,22 +297,6 @@ def show_upload_dialog(client, drive_service, folder_id):
                         else:
                             hist_mc = live_mc
 
-                        # Remove from shortlisted if it exists
-                        short_df = backend_helper.load_shortlisted_database(drive_service, folder_id)
-                        if not short_df.empty and 'Ticker' in short_df.columns:
-                            before_len = len(short_df)
-                            short_df = short_df[short_df['Ticker'] != ticker.upper().strip()]
-                            if len(short_df) < before_len:
-                                backend_helper.save_shortlisted_database(drive_service, short_df, folder_id)
-
-                        # Remove from pipeline if it exists
-                        pipe_df = backend_helper.load_pipeline_database(drive_service, folder_id)
-                        if not pipe_df.empty and 'Ticker' in pipe_df.columns:
-                            before_len = len(pipe_df)
-                            pipe_df = pipe_df[pipe_df['Ticker'] != ticker.upper().strip()]
-                            if len(pipe_df) < before_len:
-                                backend_helper.save_pipeline_database(drive_service, pipe_df, folder_id)
-
                         new_data = {
                             "Company Name": company_name,
                             "Ticker": ticker.upper().strip(),
@@ -319,18 +315,65 @@ def show_upload_dialog(client, drive_service, folder_id):
                             "File Link": file_link
                         }
 
-                        # Load existing DB or create new
-                        df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
-                        if df.empty:
-                            df = pd.DataFrame([new_data])
-                        else:
-                            df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+                        import threading
+                        import time
 
-                        # Save back to Drive
-                        success = backend_helper.save_csv_database(drive_service, df, folder_id, 'reports_db.csv')
+                        # Threads to clean up pipeline and shortlist in parallel with adding to reports database
+                        def clean_pipeline():
+                            try:
+                                pipe_df = backend_helper.load_pipeline_database(drive_service, folder_id)
+                                if not pipe_df.empty and 'Ticker' in pipe_df.columns:
+                                    before_len = len(pipe_df)
+                                    pipe_df = pipe_df[pipe_df['Ticker'] != ticker.upper().strip()]
+                                    if len(pipe_df) < before_len:
+                                        backend_helper.save_pipeline_database(drive_service, pipe_df, folder_id)
+                            except Exception as e:
+                                print(f"Error updating pipeline in background: {e}")
+
+                        def clean_shortlist():
+                            try:
+                                short_df = backend_helper.load_shortlisted_database(drive_service, folder_id)
+                                if not short_df.empty and 'Ticker' in short_df.columns:
+                                    before_len = len(short_df)
+                                    short_df = short_df[short_df['Ticker'] != ticker.upper().strip()]
+                                    if len(short_df) < before_len:
+                                        backend_helper.save_shortlisted_database(drive_service, short_df, folder_id)
+                            except Exception as e:
+                                print(f"Error updating shortlist in background: {e}")
+
+                        reports_status = {"success": False, "df": None}
+                        def save_reports():
+                            try:
+                                df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+                                if df.empty:
+                                    updated_df = pd.DataFrame([new_data])
+                                else:
+                                    updated_df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+                                
+                                success = backend_helper.save_csv_database(drive_service, updated_df, folder_id, 'reports_db.csv')
+                                reports_status["success"] = success
+                                reports_status["df"] = updated_df
+                            except Exception as e:
+                                print(f"Error updating reports in background: {e}")
+
+                        t_pipe = threading.Thread(target=clean_pipeline)
+                        t_short = threading.Thread(target=clean_shortlist)
+                        t_reports = threading.Thread(target=save_reports)
+
+                        t_pipe.start()
+                        t_short.start()
+                        t_reports.start()
+
+                        t_pipe.join()
+                        t_short.join()
+                        t_reports.join()
+
                         status_placeholder.empty()
 
-                        if success:
+                        if reports_status["success"]:
+                            st.session_state['override_reports_df'] = reports_status["df"]
+                            st.session_state['override_reports_df_time'] = time.time()
+
                             st.session_state.upload_success_message = f"✅ Research for **{company_name}** saved successfully!"
                             st.session_state.upload_dialog_open = False
                             # Increment form version to clear all fields cleanly

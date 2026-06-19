@@ -149,7 +149,18 @@ with tab_companies:
     try:
         drive_service = backend_helper.get_drive_service()
         folder_id = st.secrets["google_drive"]["folder_id"]
-        reports_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+        
+        # Expire override if older than 15 seconds
+        if 'override_reports_df' in st.session_state:
+            import time
+            if time.time() - st.session_state.get('override_reports_df_time', 0) > 15:
+                del st.session_state['override_reports_df']
+                del st.session_state['override_reports_df_time']
+                
+        if 'override_reports_df' in st.session_state:
+            reports_df = st.session_state['override_reports_df']
+        else:
+            reports_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
     except Exception as e:
         reports_df = pd.DataFrame()
         drive_service = None

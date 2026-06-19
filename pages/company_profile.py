@@ -45,7 +45,18 @@ if "edit_success_message" in st.session_state:
 try:
     drive_service = backend_helper.get_drive_service()
     folder_id = st.secrets["google_drive"]["folder_id"]
-    reports_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+    
+    # Expire override if older than 15 seconds
+    if 'override_reports_df' in st.session_state:
+        import time
+        if time.time() - st.session_state.get('override_reports_df_time', 0) > 15:
+            del st.session_state['override_reports_df']
+            del st.session_state['override_reports_df_time']
+            
+    if 'override_reports_df' in st.session_state:
+        reports_df = st.session_state['override_reports_df']
+    else:
+        reports_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
 except Exception as e:
     reports_df = pd.DataFrame()
 
@@ -374,61 +385,100 @@ with st.expander("✏️ Edit Research Parameters"):
         
         if save_changes:
             if edit_company_name and edit_ticker:
-                with st.spinner("Saving changes and updating database on Google Drive..."):
-                    try:
-                        latest_df = backend_helper.load_csv_database(drive_service, folder_id, 'reports_db.csv')
+                try:
+                    import threading
+                    import time
+                    
+                    # 1. Update the local session state override immediately so the UI update is instant
+                    override_df = reports_df.copy()
+                    match_mask = override_df['Ticker'].str.strip().str.upper() == ticker.upper().strip()
+                    if match_mask.any():
+                        match_idx = override_df[match_mask].index[0]
+                        override_df.at[match_idx, "Company Name"] = edit_company_name
+                        override_df.at[match_idx, "Ticker"] = edit_ticker.upper().strip()
+                        override_df.at[match_idx, "Exchange"] = edit_exchange
+                        override_df.at[match_idx, "Date Added"] = str(edit_date_research)
+                        override_df.at[match_idx, "Price When Added"] = edit_price_when_added
+                        override_df.at[match_idx, "Market Cap when added"] = edit_mc_added
+                        override_df.at[match_idx, "Industry"] = edit_industry
+                        override_df.at[match_idx, "Target Price"] = edit_target_price
+                        override_df.at[match_idx, "Target Timeframe (Months)"] = edit_target_timeframe
+                        override_df.at[match_idx, "Latest Qtr"] = edit_latest_qtr
+                        override_df.at[match_idx, "Rating"] = edit_rating
+                        override_df.at[match_idx, "Analyst"] = edit_analyst_name
+                        override_df.at[match_idx, "Comment"] = edit_comment
+                        # Keep existing file details in local override for now
                         
-                        if not latest_df.empty and 'Ticker' in latest_df.columns:
-                            match_mask = latest_df['Ticker'].str.strip().str.upper() == ticker.upper().strip()
-                            if match_mask.any():
-                                match_idx = latest_df[match_mask].index[0]
-                                
-                                # Handle file update or keep existing
-                                final_file_id = file_id
-                                final_file_link = file_link
-                                
-                                if edit_uploaded_file is not None:
-                                    file_bytes = edit_uploaded_file.getvalue()
-                                    file_ext   = edit_uploaded_file.name.rsplit('.', 1)[-1]
-                                    safe_name  = f"{edit_ticker.upper().strip()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{file_ext}"
-                                    uploaded_file_id = backend_helper.upload_file_to_drive(drive_service, file_bytes, safe_name, folder_id)
-                                    if uploaded_file_id:
-                                        final_file_id = uploaded_file_id
-                                        final_file_link = f"https://drive.google.com/file/d/{uploaded_file_id}/view?usp=drivesdk"
-                                
-                                latest_df.at[match_idx, "Company Name"] = edit_company_name
-                                latest_df.at[match_idx, "Ticker"] = edit_ticker.upper().strip()
-                                latest_df.at[match_idx, "Exchange"] = edit_exchange
-                                latest_df.at[match_idx, "Date Added"] = str(edit_date_research)
-                                latest_df.at[match_idx, "Price When Added"] = edit_price_when_added
-                                latest_df.at[match_idx, "Market Cap when added"] = edit_mc_added
-                                latest_df.at[match_idx, "Industry"] = edit_industry
-                                latest_df.at[match_idx, "Target Price"] = edit_target_price
-                                latest_df.at[match_idx, "Target Timeframe (Months)"] = edit_target_timeframe
-                                latest_df.at[match_idx, "Latest Qtr"] = edit_latest_qtr
-                                latest_df.at[match_idx, "Rating"] = edit_rating
-                                latest_df.at[match_idx, "Analyst"] = edit_analyst_name
-                                latest_df.at[match_idx, "Comment"] = edit_comment
-                                latest_df.at[match_idx, "File ID"] = final_file_id
-                                latest_df.at[match_idx, "File Link"] = final_file_link
-                                
-                                success = backend_helper.save_csv_database(drive_service, latest_df, folder_id, 'reports_db.csv')
-                                
-                                if success:
-                                    st.session_state.edit_success_message = "✅ Changes saved successfully!"
+                    st.session_state['override_reports_df'] = override_df
+                    st.session_state['override_reports_df_time'] = time.time()
+                    
+                    # 2. Get file uploader details in the main thread (since streamlit file streams close on rerun)
+                    file_bytes = edit_uploaded_file.getvalue() if edit_uploaded_file is not None else None
+                    file_name = edit_uploaded_file.name if edit_uploaded_file is not None else None
+                    
+                    # 3. Define the background thread target to write to Google Drive
+                    def run_edit_save_async(ds, fid, tick_match, cname, tick, exch, rdate, price, mcap, ind, tprice, tframe, qtr, rat, analyst, comm, fbytes, fname, fid_old, flink_old):
+                        try:
+                            # Load fresh CSV from drive to avoid overwriting other users' edits
+                            latest_df = backend_helper.load_csv_database(ds, fid, 'reports_db.csv')
+                            if not latest_df.empty and 'Ticker' in latest_df.columns:
+                                m_mask = latest_df['Ticker'].str.strip().str.upper() == tick_match.upper().strip()
+                                if m_mask.any():
+                                    m_idx = latest_df[m_mask].index[0]
+                                    
+                                    final_file_id = fid_old
+                                    final_file_link = flink_old
+                                    
+                                    if fbytes is not None and fname is not None:
+                                        f_ext = fname.rsplit('.', 1)[-1]
+                                        safe_name = f"{tick.upper().strip()}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.{f_ext}"
+                                        uploaded_file_id = backend_helper.upload_file_to_drive(ds, fbytes, safe_name, fid)
+                                        if uploaded_file_id:
+                                            final_file_id = uploaded_file_id
+                                            final_file_link = f"https://drive.google.com/file/d/{uploaded_file_id}/view?usp=drivesdk"
+                                    
+                                    latest_df.at[m_idx, "Company Name"] = cname
+                                    latest_df.at[m_idx, "Ticker"] = tick.upper().strip()
+                                    latest_df.at[m_idx, "Exchange"] = exch
+                                    latest_df.at[m_idx, "Date Added"] = str(rdate)
+                                    latest_df.at[m_idx, "Price When Added"] = price
+                                    latest_df.at[m_idx, "Market Cap when added"] = mcap
+                                    latest_df.at[m_idx, "Industry"] = ind
+                                    latest_df.at[m_idx, "Target Price"] = tprice
+                                    latest_df.at[m_idx, "Target Timeframe (Months)"] = tframe
+                                    latest_df.at[m_idx, "Latest Qtr"] = qtr
+                                    latest_df.at[m_idx, "Rating"] = rat
+                                    latest_df.at[m_idx, "Analyst"] = analyst
+                                    latest_df.at[m_idx, "Comment"] = comm
+                                    latest_df.at[m_idx, "File ID"] = final_file_id
+                                    latest_df.at[m_idx, "File Link"] = final_file_link
+                                    
+                                    backend_helper.save_csv_database(ds, latest_df, fid, 'reports_db.csv')
                                     backend_helper.load_csv_database.clear()
                                     backend_helper.load_real_companies_db.clear()
-                                    
-                                    st.session_state.selected_ticker = edit_ticker.upper().strip()
-                                    st.rerun()
-                                else:
-                                    st.error("Failed to save updated database to Google Drive.")
-                            else:
-                                st.error("Could not find the company to update in the database.")
-                        else:
-                            st.error("Database is empty or missing 'Ticker' column.")
-                    except Exception as ex:
-                        st.error(f"Error saving changes: {ex}")
+                        except Exception as ex:
+                            print(f"Error in background edit save: {ex}")
+                            
+                    # 4. Launch the background thread
+                    t = threading.Thread(
+                        target=run_edit_save_async,
+                        args=(
+                            drive_service, folder_id, ticker,
+                            edit_company_name, edit_ticker, edit_exchange, edit_date_research,
+                            edit_price_when_added, edit_mc_added, edit_industry, edit_target_price,
+                            edit_target_timeframe, edit_latest_qtr, edit_rating, edit_analyst_name, edit_comment,
+                            file_bytes, file_name, file_id, file_link
+                        )
+                    )
+                    t.daemon = True
+                    t.start()
+                    
+                    # 5. Show success and rerun immediately
+                    st.session_state.edit_success_message = "✅ Changes updated instantly (Google Drive syncing in background)!"
+                    st.session_state.selected_ticker = edit_ticker.upper().strip()
+                    st.rerun()
+                except Exception as ex:
+                    st.error(f"Error processing changes: {ex}")
             else:
                 st.error("Company Name and Ticker cannot be empty.")
 

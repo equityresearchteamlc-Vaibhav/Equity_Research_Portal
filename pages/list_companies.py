@@ -20,8 +20,19 @@ utils.render_page_header(
 # Market status + refresh bar
 utils.render_status_bar(refresh_interval_secs=300)
 
+# Expire override if older than 15 seconds
+if 'override_reports_df' in st.session_state:
+    import time
+    if time.time() - st.session_state.get('override_reports_df_time', 0) > 15:
+        del st.session_state['override_reports_df']
+        del st.session_state['override_reports_df_time']
+
 # Load and optimize dataframe
-df = backend_helper.load_real_companies_db()
+if 'override_reports_df' in st.session_state:
+    df = backend_helper.load_real_companies_db_raw(st.session_state['override_reports_df'])
+else:
+    df = backend_helper.load_real_companies_db()
+
 if not df.empty:
     df = utils.optimize_dataframe(df)
 
