@@ -172,10 +172,10 @@ def get_historical_price(ticker, exchange, date_obj):
 
 # --- Google Drive Integration ---
 
-@st.cache_resource
 def get_drive_service():
     """
     Builds the Google Drive service client from st.secrets.
+    Always runs fresh (no caching) so errors always surface.
     """
     SCOPES = ['https://www.googleapis.com/auth/drive']
     # Copy credentials dictionary and fix any double-escaped newlines (\n) in the private key
