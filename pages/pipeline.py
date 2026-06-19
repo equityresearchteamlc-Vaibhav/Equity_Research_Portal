@@ -234,11 +234,14 @@ else:
                 st.success(f"Removed {sel_pipe_tick} from Pipeline!")
                 st.rerun()
 
-    # Comment timeline for pipeline
     with st.expander(f"💬 Comments for {sel_pipe_tick}"):
-        comments_df = backend_helper.load_comments_database(drive_service, folder_id)
         if 'override_comments_df' in st.session_state:
             comments_df = st.session_state['override_comments_df']
+        elif 'last_comments_df' in st.session_state:
+            comments_df = st.session_state['last_comments_df']
+        else:
+            comments_df = backend_helper.load_comments_database(drive_service, folder_id)
+            st.session_state['last_comments_df'] = comments_df
             
         if not comments_df.empty and 'Ticker' in comments_df.columns:
             tick_comments = comments_df[(comments_df['Ticker'] == f"PIPE_{sel_pipe_tick}")]
@@ -260,6 +263,7 @@ else:
                 else:
                     comments_df = pd.concat([comments_df, pd.DataFrame([n_row])], ignore_index=True)
                 
+                st.session_state['last_comments_df'] = comments_df
                 save_async(comments_df, 'comments_db.csv', 'override_comments_df')
                 st.success("Comment added!")
                 st.rerun()

@@ -509,12 +509,23 @@ def render_team_discussion(current_ticker, drive_service, folder_id):
 
             st.session_state.local_comments.append(new_row)
 
-            df = backend_helper.load_comments_database(service, fid)
+            if 'override_comments_df' in st.session_state:
+                df = st.session_state['override_comments_df']
+            elif 'last_comments_df' in st.session_state:
+                df = st.session_state['last_comments_df']
+            else:
+                df = backend_helper.load_comments_database(service, fid)
+                
             import pandas as pd
             if df.empty:
                 full_comments_df = pd.DataFrame([new_row])
             else:
                 full_comments_df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+                
+            import time
+            st.session_state['override_comments_df'] = full_comments_df
+            st.session_state['override_comments_df_time'] = time.time()
+            st.session_state['last_comments_df'] = full_comments_df
 
             import threading
 
@@ -537,7 +548,21 @@ def render_team_discussion(current_ticker, drive_service, folder_id):
     try:
         drive_service = backend_helper.get_drive_service()
         folder_id = st.secrets["google_drive"]["folder_id"]
-        comments_df = backend_helper.load_comments_database(drive_service, folder_id)
+        
+        # Expire override if older than 15 seconds
+        if 'override_comments_df' in st.session_state:
+            import time
+            if time.time() - st.session_state.get('override_comments_df_time', 0) > 15:
+                del st.session_state['override_comments_df']
+                del st.session_state['override_comments_df_time']
+                
+        if 'override_comments_df' in st.session_state:
+            comments_df = st.session_state['override_comments_df']
+        elif 'last_comments_df' in st.session_state:
+            comments_df = st.session_state['last_comments_df']
+        else:
+            comments_df = backend_helper.load_comments_database(drive_service, folder_id)
+            st.session_state['last_comments_df'] = comments_df
     except Exception as e:
         comments_df = pd.DataFrame()
 
@@ -733,6 +758,11 @@ def render_team_discussion(current_ticker, drive_service, folder_id):
                             (comments_df['Timestamp'] == comment.get('Timestamp')) &
                             (comments_df['Text'] == comment.get('Text'))
                         )]
+                        
+                        import time
+                        st.session_state['override_comments_df'] = comments_df
+                        st.session_state['override_comments_df_time'] = time.time()
+                        st.session_state['last_comments_df'] = comments_df
 
                         if drive_service and folder_id:
                             import threading
