@@ -36,6 +36,11 @@ utils.render_page_header(
 # Market status + refresh bar
 utils.render_status_bar(refresh_interval_secs=300)
 
+# Display persistent success message after rerun
+if "edit_success_message" in st.session_state:
+    st.success(st.session_state.edit_success_message)
+    del st.session_state.edit_success_message
+
 # Load uploaded companies database
 try:
     drive_service = backend_helper.get_drive_service()
@@ -331,21 +336,21 @@ with st.expander("✏️ Edit Research Parameters"):
         col_edit_a, col_edit_b = st.columns(2)
         
         with col_edit_a:
-            edit_analyst_name = st.text_input("Analyst Name", value=analyst_name)
-            edit_company_name = st.text_input("Company Name", value=company_name)
-            edit_ticker = st.text_input("Ticker Symbol", value=ticker)
-            edit_exchange = st.selectbox("Exchange", options=["NSE", "BSE"], index=0 if exchange == "NSE" else 1)
+            edit_analyst_name = st.text_input("Analyst Name", value=analyst_name, key=f"edit_analyst_name_{ticker}")
+            edit_company_name = st.text_input("Company Name", value=company_name, key=f"edit_company_name_{ticker}")
+            edit_ticker = st.text_input("Ticker Symbol", value=ticker, key=f"edit_ticker_{ticker}")
+            edit_exchange = st.selectbox("Exchange", options=["NSE", "BSE"], index=0 if exchange == "NSE" else 1, key=f"edit_exchange_{ticker}")
             try:
                 parsed_date = datetime.datetime.strptime(str(selected_row.get("Date Added", "")), "%Y-%m-%d").date()
             except Exception:
                 parsed_date = datetime.date.today()
-            edit_date_research = st.date_input("Date of Research", parsed_date)
+            edit_date_research = st.date_input("Date of Research", parsed_date, key=f"edit_date_research_{ticker}")
             
         with col_edit_b:
-            edit_price_when_added = st.number_input("Price When Added (₹)", min_value=0.0, value=price_when_added, format="%.2f")
-            edit_mc_added = st.number_input("Market Cap when added (Cr)", min_value=0.0, value=mc_added, format="%.2f")
-            edit_industry = st.text_input("Industry", value=industry)
-            edit_target_price = st.number_input("Target Price (₹)", min_value=0.0, value=target_price, format="%.2f")
+            edit_price_when_added = st.number_input("Price When Added (₹)", min_value=0.0, value=price_when_added, format="%.2f", key=f"edit_price_added_{ticker}")
+            edit_mc_added = st.number_input("Market Cap when added (Cr)", min_value=0.0, value=mc_added, format="%.2f", key=f"edit_mc_added_{ticker}")
+            edit_industry = st.text_input("Industry", value=industry, key=f"edit_industry_{ticker}")
+            edit_target_price = st.number_input("Target Price (₹)", min_value=0.0, value=target_price, format="%.2f", key=f"edit_target_price_{ticker}")
             
             timeframe_options = [3, 6, 12, 18, 24, 36]
             curr_timeframe = int(selected_row.get("Target Timeframe (Months)", 12))
@@ -353,11 +358,11 @@ with st.expander("✏️ Edit Research Parameters"):
                 timeframe_options.append(curr_timeframe)
                 timeframe_options.sort()
             tf_index = timeframe_options.index(curr_timeframe)
-            edit_target_timeframe = st.selectbox("Target Timeframe (Months)", options=timeframe_options, index=tf_index)
+            edit_target_timeframe = st.selectbox("Target Timeframe (Months)", options=timeframe_options, index=tf_index, key=f"edit_timeframe_{ticker}")
             
-        edit_latest_qtr = st.text_input("Latest Qtr Result available", value=selected_row.get("Latest Qtr", ""))
-        edit_rating = st.slider("Rating (1-10 Stars)", 1, 10, int(float(owner_rating)) if pd.notna(owner_rating) and str(owner_rating).strip() != "" else 5)
-        edit_comment = st.text_area("Comment by Owner", value=owner_comment)
+        edit_latest_qtr = st.text_input("Latest Qtr Result available", value=selected_row.get("Latest Qtr", ""), key=f"edit_qtr_{ticker}")
+        edit_rating = st.slider("Rating (1-10 Stars)", 1, 10, int(float(owner_rating)) if pd.notna(owner_rating) and str(owner_rating).strip() != "" else 5, key=f"edit_rating_{ticker}")
+        edit_comment = st.text_area("Comment by Owner", value=owner_comment, key=f"edit_comment_{ticker}")
         
         # File uploader to update the research file (optional)
         edit_uploaded_file = st.file_uploader(
@@ -410,7 +415,7 @@ with st.expander("✏️ Edit Research Parameters"):
                                 success = backend_helper.save_csv_database(drive_service, latest_df, folder_id, 'reports_db.csv')
                                 
                                 if success:
-                                    st.success("Changes saved successfully!")
+                                    st.session_state.edit_success_message = "✅ Changes saved successfully!"
                                     backend_helper.load_csv_database.clear()
                                     backend_helper.load_real_companies_db.clear()
                                     
