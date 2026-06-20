@@ -130,12 +130,6 @@ BASE_CSS = """
                 image-rendering: -webkit-optimize-contrast !important;
             }
             
-            /* Ensure main content containers are transparent so stApp background always shines through */
-            [data-testid="stAppViewContainer"], .main, [data-testid="stMainBlockContainer"] {
-                background-color: transparent !important;
-                background: transparent !important;
-            }
-            
             /* Global Font Family & Emoji Support */
             html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .stApp {
                 font-family: 'Calibri', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
@@ -151,43 +145,21 @@ BASE_CSS = """
                 background-color: transparent !important;
             }
             
-            /* Hide Streamlit deploy button, connection status, options menu, and top-right Fork/GitHub toolbar elements */
+            /* Hide Streamlit deploy button, connection status, and options menu to keep a clean interface */
             [data-testid="stAppDeployButton"], 
             [data-testid="stConnectionStatus"], 
             #connection-status, 
-            [data-testid="stMainMenu"],
-            .stActionButton,
-            [data-testid="stActionButton"],
-            [data-testid="stManageAppButton"],
-            button[title*="Fork"],
-            a[href*="/fork/"],
-            a[href*="github.com"],
-            iframe[src*="github.com"] {
+            [data-testid="stMainMenu"] {
                 display: none !important;
                 visibility: hidden !important;
                 width: 0px !important;
-                height: 0px !important;
             }
             
-            /* Hide Streamlit footer, watermark, host/viewer badges, and toolbar widgets */
-            footer, 
-            [data-testid="stViewerBadge"], 
-            .viewerBadge, 
-            .styles_viewerBadge__, 
-            [class*="viewerBadge"], 
-            [class*="styles_viewerBadge"],
-            [data-testid="stHostBadge"],
-            .hostBadge,
-            [class*="hostBadge"],
-            [class*="DeployToolbar"],
-            [class*="AppToolbar"],
-            [class*="StatusWidget"],
-            [class*="ReportStatus"],
-            [class*="ReportToolbar"] {
+            /* Hide Streamlit footer, watermark, and host/viewer badges */
+            footer, [data-testid="stViewerBadge"], .viewerBadge, .styles_viewerBadge__, [class*="viewerBadge"], [class*="styles_viewerBadge"] {
                 display: none !important;
                 visibility: hidden !important;
                 height: 0px !important;
-                width: 0px !important;
             }
             
             /* Adjust top padding since header is hidden */
@@ -258,7 +230,7 @@ DARK_CSS = """
             /* ============================================ */
             /* DARK THEME BASE */
             /* ============================================ */
-            :root, .stApp, [data-testid="stDataFrame"], [data-testid="stDataFrameResizable"] {
+            :root {
                 --primary-bg: #0f1419;
                 --secondary-bg: #1a1f2e;
                 --card-bg: rgba(26, 31, 46, 0.6);
@@ -270,31 +242,6 @@ DARK_CSS = """
                 --accent-pink: #ec4899;
                 --success: #10b981;
                 --danger: #ef4444;
-                
-                /* Override Streamlit's theme variables to force dark mode globally */
-                --text-color: #f9fafb !important;
-                --background-color: #0f1419 !important;
-                --secondary-background-color: #1a1f2e !important;
-                --primary-color: #8b5cf6 !important;
-                --faded-text-60: rgba(249, 250, 251, 0.6) !important;
-                --faded-text-40: rgba(249, 250, 251, 0.4) !important;
-
-                /* Streamlit CamelCase variables to force dark mode on Glide Data Grid / Canvas */
-                --theme-backgroundColor: #0f1419 !important;
-                --theme-secondaryBackgroundColor: #1a1f2e !important;
-                --theme-textColor: #f9fafb !important;
-                --theme-primaryColor: #8b5cf6 !important;
-                --theme-fadedText60: rgba(249, 250, 251, 0.6) !important;
-                --theme-fadedText40: rgba(249, 250, 251, 0.4) !important;
-            }
-            
-            /* Force dialogs/modals to have a dark background and white text */
-            div[data-testid="stDialog"] [role="dialog"] {
-                background-color: #1a1f2e !important;
-                border: 1px solid rgba(99, 102, 241, 0.3) !important;
-            }
-            div[data-testid="stDialog"] [role="dialog"] * {
-                color: #f9fafb !important;
             }
             
             /* Force light text color globally on key containers for readability */
@@ -1021,10 +968,12 @@ LIGHT_CSS = """
 """
 
 GOT_CSS = """
+            
+
             /* ============================================ */
             /* GAME OF THRONES THEME BASE */
             /* ============================================ */
-            :root, .stApp, [data-testid="stDataFrame"], [data-testid="stDataFrameResizable"] {
+            :root {
                 --primary-bg: #09090b;
                 --secondary-bg: #141416;
                 --card-bg: rgba(20, 20, 24, 0.85);
@@ -1035,31 +984,6 @@ GOT_CSS = """
                 --accent-gold-glow: rgba(181, 148, 80, 0.4);
                 --success: #70a1ff; /* Ice Blue */
                 --danger: #9b2c2c; /* Targaryen Crimson */
-                
-                /* Override Streamlit's theme variables to force GoT dark mode globally */
-                --text-color: #dfd5c6 !important;
-                --background-color: #09090b !important;
-                --secondary-background-color: #141416 !important;
-                --primary-color: #b59450 !important;
-                --faded-text-60: rgba(223, 213, 198, 0.6) !important;
-                --faded-text-40: rgba(223, 213, 198, 0.4) !important;
-
-                /* Streamlit CamelCase variables to force GoT dark mode on Glide Data Grid / Canvas */
-                --theme-backgroundColor: #09090b !important;
-                --theme-secondaryBackgroundColor: #141416 !important;
-                --theme-textColor: #dfd5c6 !important;
-                --theme-primaryColor: #b59450 !important;
-                --theme-fadedText60: rgba(223, 213, 198, 0.6) !important;
-                --theme-fadedText40: rgba(223, 213, 198, 0.4) !important;
-            }
-            
-            /* Force dialogs/modals to have a dark background and parchment text */
-            div[data-testid="stDialog"] [role="dialog"] {
-                background-color: #141416 !important;
-                border: 1px solid rgba(181, 148, 80, 0.4) !important;
-            }
-            div[data-testid="stDialog"] [role="dialog"] * {
-                color: #dfd5c6 !important;
             }
 
             /* Typography & Headings */
@@ -1428,6 +1352,7 @@ GOT_CSS = """
 def inject_custom_css(theme: str = "Dark"):
     """
     Inject custom theme CSS based on user selection: 'Dark', 'Light', 'System', or 'Game of Thrones'.
+    Also disables Streamlit's default 'C' keyboard shortcut to prevent accidental cache clearing popups.
     """
     theme = str(theme).strip().lower()
     
@@ -1443,100 +1368,62 @@ def inject_custom_css(theme: str = "Dark"):
         css_to_inject += DARK_CSS
         
     st.markdown(f"<style>{css_to_inject}</style>", unsafe_allow_html=True)
-
-    # Programmatically override browser local storage theme settings (stActiveTheme)
-    # to prevent system/local settings from overriding our server-side theme selection.
-    if theme != "system":
-        expected_base = "light" if theme == "light" else "dark"
-        js_theme_override = f"""
-        <script>
-            try {{
-                const expectedBase = "{expected_base}";
-                const themeKey = "stActiveTheme";
-                
-                const checkAndSet = (storage) => {{
-                    if (!storage) return false;
-                    const currentThemeStr = storage.getItem(themeKey);
-                    let needsUpdate = false;
-                    
-                    if (currentThemeStr) {{
-                        try {{
-                            const currentThemeObj = JSON.parse(currentThemeStr);
-                            if (currentThemeObj.base !== expectedBase) {{
-                                currentThemeObj.base = expectedBase;
-                                storage.setItem(themeKey, JSON.stringify(currentThemeObj));
-                                needsUpdate = true;
-                            }}
-                        }} catch (e) {{
-                            storage.setItem(themeKey, JSON.stringify({{ base: expectedBase }}));
-                            needsUpdate = true;
-                        }}
-                    }} else {{
-                        storage.setItem(themeKey, JSON.stringify({{ base: expectedBase }}));
-                        needsUpdate = true;
-                    }}
-                    return needsUpdate;
-                }};
-
-                let updated = false;
-                try {{
-                    if (window.localStorage) {{
-                        updated = checkAndSet(window.localStorage) || updated;
-                    }}
-                }} catch (e) {{}}
-                
-                try {{
-                    if (window.parent && window.parent.localStorage) {{
-                        updated = checkAndSet(window.parent.localStorage) || updated;
-                    }}
-                }} catch (e) {{}}
-
-                if (updated) {{
-                    if (window.parent && window.parent.location) {{
-                        window.parent.location.reload();
-                    }} else {{
-                        window.location.reload();
-                    }}
-                }}
-            }} catch (err) {{
-                console.error("Theme override failed:", err);
-            }}
-        </script>
-        """
-        st.markdown(js_theme_override, unsafe_allow_html=True)
-
-    # Self-healing canvas inverter to force dark background on st.dataframe when running in light mode.
-    # Runs periodically to cover reruns, dynamic data rendering, and page navigations.
-    js_canvas_inverter = """
+    
+    # Inject JavaScript to block the global 'C' hotkey dialog popup when Ctrl+C or C is pressed
+    js_code = """
     <script>
-        (function() {
-            const checkThemeAndInvert = () => {
-                try {
-                    const appEl = document.querySelector('.stApp');
-                    if (!appEl) return;
-                    
-                    // Read Streamlit's active theme background from inline styles
-                    const inlineBg = appEl.style.getPropertyValue('--theme-backgroundColor');
-                    const isLight = inlineBg && (inlineBg.includes('255') || inlineBg.toLowerCase().includes('fff'));
-                    
-                    const dataframes = document.querySelectorAll('[data-testid="stDataFrame"], [data-testid="stDataFrameResizable"]');
-                    dataframes.forEach(df => {
-                        if (isLight) {
-                            // Invert cells to make them dark, shift colors back so green/red returns remain correct
-                            df.style.filter = 'invert(0.92) hue-rotate(180deg)';
-                        } else {
-                            df.style.filter = 'none';
+    const blockStreamlitShortcut = () => {
+        try {
+            const parentDoc = window.parent.document;
+            if (parentDoc && !parentDoc.dataset.shortcutBlocked) {
+                parentDoc.addEventListener('keydown', (e) => {
+                    if (e.key.toLowerCase() === 'c') {
+                        const activeEl = parentDoc.activeElement;
+                        const isInput = activeEl && (
+                            activeEl.tagName === 'INPUT' || 
+                            activeEl.tagName === 'TEXTAREA' || 
+                            activeEl.isContentEditable
+                        );
+                        if (!isInput) {
+                            e.stopImmediatePropagation();
                         }
-                    });
-                } catch (e) {}
-            };
-            if (!window._themeInvertInterval) {
-                window._themeInvertInterval = setInterval(checkThemeAndInvert, 400);
+                    }
+                }, true); // useCapture = true
+                parentDoc.dataset.shortcutBlocked = "true";
             }
-        })();
+        } catch (err) {
+            console.log("Could not access parent window:", err);
+        }
+        try {
+            const localDoc = document;
+            if (localDoc && !localDoc.dataset.shortcutBlocked) {
+                localDoc.addEventListener('keydown', (e) => {
+                    if (e.key.toLowerCase() === 'c') {
+                        const activeEl = localDoc.activeElement;
+                        const isInput = activeEl && (
+                            activeEl.tagName === 'INPUT' || 
+                            activeEl.tagName === 'TEXTAREA' || 
+                            activeEl.isContentEditable
+                        );
+                        if (!isInput) {
+                            e.stopImmediatePropagation();
+                        }
+                    }
+                }, true); // useCapture = true
+                localDoc.dataset.shortcutBlocked = "true";
+            }
+        } catch (err) {
+            console.log("Could not access local document:", err);
+        }
+    };
+    try {
+        blockStreamlitShortcut();
+    } catch (e) {
+        console.error("Failed to block Streamlit shortcut:", e);
+    }
     </script>
     """
-    st.markdown(js_canvas_inverter, unsafe_allow_html=True)
+    st.markdown(js_code, unsafe_allow_html=True)
 
 
 
