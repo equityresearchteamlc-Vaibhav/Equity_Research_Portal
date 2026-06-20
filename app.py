@@ -8,6 +8,9 @@ from streamlit_cookies_controller import CookieController
 # -------------------------------------------------
 # Initialize cookie manager on every run to maintain React tree correctly
 cookies = CookieController()
+# Ensure internal __cookies dictionary is initialized to avoid TypeError crashes
+if not hasattr(cookies, "_CookieController__cookies") or cookies._CookieController__cookies is None:
+    cookies._CookieController__cookies = {}
 
 # -------------------------------------------------
 # Session‑state defaults
@@ -273,7 +276,10 @@ def login_register():
                         st.session_state.is_admin      = bool(data.get("Is_Admin", False))
 
                         # ---- persist via cookie with 24h expire limit ----
-                        cookies.set("user_email", data["Email"], max_age=86400, path="/")
+                        try:
+                            cookies.set("user_email", data["Email"], max_age=86400, path="/")
+                        except Exception:
+                            pass
 
                         st.rerun()
                     else:
@@ -339,7 +345,10 @@ def logout():
     st.session_state.is_first_login = False
     st.session_state.is_admin = False
     st.session_state.cookie_checked = False
-    cookies.remove("user_email", path="/")      # clear persisted cookie
+    try:
+        cookies.remove("user_email", path="/")      # clear persisted cookie
+    except Exception:
+        pass
     st.session_state.logout_triggered = True
 
 # -------------------------------------------------
