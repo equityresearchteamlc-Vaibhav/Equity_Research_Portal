@@ -80,7 +80,34 @@ if not st.session_state.authenticated:
                 const targetUrl = loc.protocol + "//" + parentHost + loc.pathname + newSearch;
                 
                 console.log("Redirecting parent window to:", targetUrl);
-                window.parent.location.replace(targetUrl);
+                
+                // Method 1: window.open targeting _parent (highly standard cross-origin frame escape)
+                try {
+                    window.open(targetUrl, '_parent');
+                    return;
+                } catch(e1) {
+                    console.warn("window.open targeting _parent failed, trying Method 2:", e1);
+                }
+                
+                // Method 2: Direct assignment to window.parent.location.href (sometimes allowed)
+                try {
+                    window.parent.location.href = targetUrl;
+                    return;
+                } catch(e2) {
+                    console.warn("Direct window.parent.location.href failed, trying Method 3:", e2);
+                }
+                
+                // Method 3: Hyperlink navigation via dynamic anchor insertion
+                try {
+                    const a = document.createElement('a');
+                    a.href = targetUrl;
+                    a.target = '_parent';
+                    document.body.appendChild(a);
+                    a.click();
+                    return;
+                } catch(e3) {
+                    console.warn("Dynamic anchor click failed:", e3);
+                }
             } catch(e) {
                 console.error("Redirection to parent failed, trying iframe redirection:", e);
                 try {
