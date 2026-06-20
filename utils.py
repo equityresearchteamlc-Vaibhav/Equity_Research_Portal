@@ -1367,7 +1367,8 @@ def inject_custom_css(theme: str = "Dark"):
     else:  # dark (default)
         css_to_inject += DARK_CSS
         
-    st.markdown(f"<style>{css_to_inject}</style>", unsafe_allow_html=True)
+    st.html(f"<style>{css_to_inject}</style>")
+    
     # Inject JavaScript to block the global 'C' hotkey dialog popup when Ctrl+C or C is pressed
     js_code = """<script>
 const blockStreamlitShortcut = () => {
@@ -1424,9 +1425,14 @@ try {
     # If the user is authenticated in this session, ensure the first-party cookie is set directly in the main window
     if st.session_state.get("authenticated"):
         email = st.session_state.get("user_email")
+        if email and "@" in email:
+            user_part, domain_part = email.split("@", 1)
+        else:
+            user_part, domain_part = email, ""
+            
         js_code += f"""<script>
 try {{
-    const cookieStr = "user_email={email}; path=/; max-age=86400; SameSite=Lax";
+    const cookieStr = "user_email=" + "{user_part}" + "@" + "{domain_part}" + "; path=/; max-age=86400; SameSite=Lax";
     window.parent.document.cookie = cookieStr;
     document.cookie = cookieStr;
 }} catch (e) {{
@@ -1434,7 +1440,7 @@ try {{
 }}
 </script>"""
         
-    st.markdown(js_code, unsafe_allow_html=True)
+    st.html(js_code)
 
 
 
