@@ -50,38 +50,48 @@ if not st.session_state.authenticated:
         js_redirect = """<script>
         (function() {
             let email = null;
-            // 1. Try reading from local window.localStorage (safe origin)
             try {
                 email = window.localStorage.getItem('user_email');
             } catch(e) {
                 console.warn("localStorage read failed:", e);
             }
             
-            // 2. Try reading from parent window.localStorage (if same-origin)
-            if (!email) {
-                try {
-                    email = window.parent.localStorage.getItem('user_email');
-                } catch(e) {}
-            }
-            
-            // 3. Perform redirection on window.location (iframe location)
             try {
                 const loc = window.location;
-                const sep = loc.search ? "&" : "?";
+                
+                // Determine search parameters
+                let newSearch = loc.search;
                 if (email) {
                     if (!loc.search.includes("user_email=")) {
-                        loc.href = loc.pathname + loc.search + sep + "user_email=" + encodeURIComponent(email);
+                        newSearch = newSearch + (newSearch ? "&" : "?") + "user_email=" + encodeURIComponent(email);
+                    } else {
+                        return; // Already has parameter, do not redirect
                     }
                 } else {
                     if (!loc.search.includes("storage_checked=")) {
-                        loc.href = loc.pathname + loc.search + sep + "storage_checked=1";
+                        newSearch = newSearch + (newSearch ? "&" : "?") + "storage_checked=1";
+                    } else {
+                        return; // Already checked, do not redirect
                     }
                 }
+                
+                // Construct parent URL (cross-origin safe replacement for streamlit.app)
+                const parentHost = loc.host.replace("streamlitapp.com", "streamlit.app");
+                const targetUrl = loc.protocol + "//" + parentHost + loc.pathname + newSearch;
+                
+                console.log("Redirecting parent window to:", targetUrl);
+                window.parent.location.replace(targetUrl);
             } catch(e) {
-                console.error("Redirection failed:", e);
-                // Fallback: try setting search on local window
+                console.error("Redirection to parent failed, trying iframe redirection:", e);
                 try {
-                    window.location.search = "?storage_checked=1";
+                    const loc = window.location;
+                    let newSearch = loc.search;
+                    if (email) {
+                        newSearch = newSearch + (newSearch ? "&" : "?") + "user_email=" + encodeURIComponent(email);
+                    } else {
+                        newSearch = newSearch + (newSearch ? "&" : "?") + "storage_checked=1";
+                    }
+                    window.location.replace(loc.pathname + newSearch);
                 } catch(err) {}
             }
         })();
