@@ -12,6 +12,8 @@ cookies = CookieController()
 # -------------------------------------------------
 # Session‑state defaults
 # -------------------------------------------------
+st.write("### 🔍 DEBUG: cookies =", dict(st.context.cookies))
+
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "user_email" not in st.session_state:
