@@ -358,25 +358,94 @@ if needs_cookie_wait:
                 flex-direction: column; 
                 justify-content: center; 
                 align-items: center; 
-                height: 80vh;
+                height: 85vh;
+                background: radial-gradient(circle at center, #0a0e1a 0%, #030712 100%);
+                font-family: 'Calibri', 'Segoe UI', -apple-system, sans-serif;
             ">
+                <!-- Beautiful Glowing Double-Ring Spinner -->
+                <div style="position: relative; width: 80px; height: 80px; margin-bottom: 30px;">
+                    <div style="
+                        position: absolute;
+                        width: 100%;
+                        height: 100%;
+                        border: 4px solid transparent;
+                        border-top: 4px solid #3b82f6;
+                        border-bottom: 4px solid #8b5cf6;
+                        border-radius: 50%;
+                        animation: spin-clockwise 1.5s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+                        filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+                    "></div>
+                    <div style="
+                        position: absolute;
+                        top: 10px;
+                        left: 10px;
+                        width: 60px;
+                        height: 60px;
+                        border: 4px solid transparent;
+                        border-left: 4px solid #ec4899;
+                        border-right: 4px solid #f43f5e;
+                        border-radius: 50%;
+                        animation: spin-counter 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+                        filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.5));
+                    "></div>
+                    <div style="
+                        position: absolute;
+                        top: 25px;
+                        left: 25px;
+                        width: 30px;
+                        height: 30px;
+                        background: linear-gradient(135deg, #3b82f6, #ec4899);
+                        border-radius: 50%;
+                        animation: pulse-center 1.5s ease-in-out infinite;
+                        filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.8));
+                    "></div>
+                </div>
+                
+                <!-- Pulsing Glowing Text -->
                 <div style="
-                    width: 60px;
-                    height: 60px;
-                    border: 4px solid rgba(255, 255, 255, 0.03);
-                    border-top: 4px solid #3b82f6;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                "></div>
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    letter-spacing: -0.5px;
+                    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    animation: text-pulse 2s ease-in-out infinite;
+                    text-align: center;
+                    padding: 0 20px;
+                ">
+                    Hang on, We are loading your page...
+                </div>
+                
+                <div style="
+                    margin-top: 12px;
+                    font-size: 0.8rem;
+                    color: rgba(249, 250, 251, 0.35);
+                    letter-spacing: 1.5px;
+                    text-transform: uppercase;
+                    font-weight: 600;
+                ">
+                    Securing terminal link
+                </div>
+
+                <!-- Styles for animations -->
                 <style>
-                    @keyframes spin {
+                    @keyframes spin-clockwise {
                         0% { transform: rotate(0deg); }
                         100% { transform: rotate(360deg); }
                     }
+                    @keyframes spin-counter {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(-360deg); }
+                    }
+                    @keyframes pulse-center {
+                        0%, 100% { transform: scale(0.95); opacity: 0.8; }
+                        50% { transform: scale(1.1); opacity: 1; }
+                    }
+                    @keyframes text-pulse {
+                        0%, 100% { opacity: 0.75; filter: drop-shadow(0 0 2px rgba(139, 92, 246, 0.15)); }
+                        50% { opacity: 1; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
+                    }
                 </style>
-                <p style="color: rgba(249, 250, 251, 0.6); margin-top: 20px; font-family: sans-serif; font-size: 0.9rem;">
-                    Connecting to terminal...
-                </p>
             </div>
             """,
             unsafe_allow_html=True
