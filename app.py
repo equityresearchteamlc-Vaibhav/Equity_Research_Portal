@@ -131,17 +131,6 @@ def login_register():
     import utils
     utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
     
-    # No automatic clearing on page load to prevent login flashing race conditions
-    
-    # Display Lingual Consultancy logo at the top center
-    utils.render_lingual_logo(position="center", show_tagline=True)
-    
-    # Display Game of Thrones banner if theme is selected
-    if st.session_state.get("app_theme", "Dark") == "Game of Thrones":
-        import os
-        if os.path.exists("got_banner.png"):
-            st.image("got_banner.png", use_container_width=True)
-    
     # Additional CSS for login page specifically
     st.markdown(
         """
@@ -159,8 +148,8 @@ def login_register():
                 display: none !important;
             }
             .main .block-container, [data-testid="stMainBlockContainer"] {
-                max-width: 600px !important;
-                padding-top: 1.5rem !important;
+                max-width: 1000px !important;
+                padding-top: 2rem !important;
             }
             @keyframes float {
                 0%, 100% { transform: translateY(0px); }
@@ -175,46 +164,6 @@ def login_register():
                 50% { filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.6)); }
             }
         </style>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    st.markdown(
-        """
-        <div style="text-align: center; margin-bottom: 35px; margin-top: 20px;">
-            <div style="animation: float 3s ease-in-out infinite;">
-                <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="animation: glow 2s ease-in-out infinite;">
-                    <circle cx="50" cy="50" r="45" stroke="url(#paint0_linear)" stroke-width="3" stroke-dasharray="280" stroke-dashoffset="40" style="transform-origin: center; animation: rotate 20s linear infinite;"/>
-                    <circle cx="50" cy="50" r="38" stroke="url(#paint2_radial)" stroke-width="1.5" opacity="0.3"/>
-                    <path d="M28 65 L44 48 L56 57 L74 35" stroke="url(#paint1_linear)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="28" cy="65" r="3" fill="#3b82f6"/>
-                    <circle cx="44" cy="48" r="3" fill="#8b5cf6"/>
-                    <circle cx="56" cy="57" r="3" fill="#a78bfa"/>
-                    <circle cx="74" cy="35" r="4" fill="#ec4899">
-                        <animate attributeName="r" values="4;5;4" dur="1.5s" repeatCount="indefinite"/>
-                    </circle>
-                    <defs>
-                        <linearGradient id="paint0_linear" x1="5" y1="5" x2="95" y2="95" gradientUnits="userSpaceOnUse">
-                            <stop stop-color="#3b82f6"/>
-                            <stop offset="0.5" stop-color="#8b5cf6"/>
-                            <stop offset="1" stop-color="#ec4899"/>
-                        </linearGradient>
-                        <linearGradient id="paint1_linear" x1="28" y1="65" x2="74" y2="35" gradientUnits="userSpaceOnUse">
-                            <stop stop-color="#3b82f6"/>
-                            <stop offset="0.5" stop-color="#8b5cf6"/>
-                            <stop offset="1" stop-color="#ec4899"/>
-                        </linearGradient>
-                        <radialGradient id="paint2_radial" cx="50%" cy="50%">
-                            <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.8"/>
-                            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
-                        </radialGradient>
-                    </defs>
-                </svg>
-            </div>
-            <h1 style="font-family: 'Calibri', 'Segoe UI', sans-serif; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.5rem; font-weight: 800; margin-top: 20px; letter-spacing: -1.5px;">EQUITY INTEL</h1>
-            <p style="font-family: 'Calibri', 'Segoe UI', sans-serif; color: rgba(249, 250, 251, 0.6); font-size: 0.95rem; margin-top: 8px; font-weight: 500; letter-spacing: 0.5px;">Institutional Equity Research Portal & Database Manager</p>
-            <div style="width: 60px; height: 3px; background: linear-gradient(90deg, transparent, #8b5cf6, transparent); margin: 20px auto 0; border-radius: 2px;"></div>
-        </div>
         """,
         unsafe_allow_html=True
     )
@@ -287,68 +236,147 @@ def login_register():
         unsafe_allow_html=True
     )
     
-    tab1, tab2 = st.tabs(["🔐 Analyst Login", "📝 Register Request"])
-
-    # ---------- Login ----------
-    with tab1:
-        with st.form("login_form"):
-            email = st.text_input("Email Address", placeholder="analyst@firm.com")
-            password = st.text_input("Password", type="password")
-            submit = st.form_submit_button("Login to Terminal", type="primary")
-            if submit:
-                if email and password:
-                    success, data = auth_manager.verify_login(email, password)
-                    if success:
-                        # ---- set session state ----
-                        st.session_state.authenticated = True
-                        st.session_state.user_email   = data["Email"]
-                        st.session_state.user_name    = data["Name"]
-                        st.session_state.is_first_login = data["Is_First_Login"]
-                        st.session_state.is_admin      = bool(data.get("Is_Admin", False))
-
-                        # ---- persist via URL query parameter (survives hard refresh) ----
-                        import base64
-                        try:
-                            email_b64 = base64.b64encode(data["Email"].lower().strip().encode('utf-8')).decode('utf-8')
-                            st.query_params["session"] = email_b64
-                        except Exception:
-                            pass
-
-                        # ---- persist via cookie as fallback ----
-                        try:
-                            cookies.set("user_email", data["Email"], max_age=86400, path="/", same_site="none", secure=True)
-                        except Exception:
-                            pass
-
-                        st.rerun()
-                    else:
-                        st.error(data)
-                else:
-                    st.warning("Please enter both email and password.")
-
-    # ---------- Register ----------
-    with tab2:
-        st.subheader("New User Registration")
-        with st.form("register_form"):
-            new_name = st.text_input("Full Name")
-            new_email = st.text_input("Email")
-            new_password = st.text_input("Password", type="password")
-            new_password_confirm = st.text_input("Confirm Password", type="password")
-            reg_submit = st.form_submit_button("Register Now")
-            if reg_submit:
-                if new_name and new_email and new_password:
-                    if new_password == new_password_confirm:
-                        success, msg = auth_manager.register_user(
-                            new_name, new_email, new_password
-                        )
-                        if success:
-                            st.success(msg)
+    # 2-Column Split Layout: Left for Logo & Title, Right for Form
+    col_left, col_right = st.columns([1, 1.1], gap="large")
+    
+    with col_left:
+        # Display Lingual Consultancy logo at the top center of left column
+        utils.render_lingual_logo(position="center", show_tagline=True)
+        
+        # Display Game of Thrones banner if theme is selected
+        if st.session_state.get("app_theme", "Dark") == "Game of Thrones":
+            import os
+            if os.path.exists("got_banner.png"):
+                st.image("got_banner.png", use_container_width=True)
+                
+        # SVG logo, Title and Subtitle
+        st.markdown(
+            """
+            <div style="text-align: center; margin-bottom: 25px; margin-top: 20px;">
+                <div style="animation: float 3s ease-in-out infinite;">
+                    <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="animation: glow 2s ease-in-out infinite;">
+                        <circle cx="50" cy="50" r="45" stroke="url(#paint0_linear)" stroke-width="3" stroke-dasharray="280" stroke-dashoffset="40" style="transform-origin: center; animation: rotate 20s linear infinite;"/>
+                        <circle cx="50" cy="50" r="38" stroke="url(#paint2_radial)" stroke-width="1.5" opacity="0.3"/>
+                        <path d="M28 65 L44 48 L56 57 L74 35" stroke="url(#paint1_linear)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="28" cy="65" r="3" fill="#3b82f6"/>
+                        <circle cx="44" cy="48" r="3" fill="#8b5cf6"/>
+                        <circle cx="56" cy="57" r="3" fill="#a78bfa"/>
+                        <circle cx="74" cy="35" r="4" fill="#ec4899">
+                            <animate attributeName="r" values="4;5;4" dur="1.5s" repeatCount="indefinite"/>
+                        </circle>
+                        <defs>
+                            <linearGradient id="paint0_linear" x1="5" y1="5" x2="95" y2="95" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#3b82f6"/>
+                                <stop offset="0.5" stop-color="#8b5cf6"/>
+                                <stop offset="1" stop-color="#ec4899"/>
+                            </linearGradient>
+                            <linearGradient id="paint1_linear" x1="28" y1="65" x2="74" y2="35" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#3b82f6"/>
+                                <stop offset="0.5" stop-color="#8b5cf6"/>
+                                <stop offset="1" stop-color="#ec4899"/>
+                            </linearGradient>
+                            <radialGradient id="paint2_radial" cx="50%" cy="50%">
+                                <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.8"/>
+                                <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h1 style="font-family: 'Calibri', 'Segoe UI', sans-serif; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.7rem; font-weight: 800; margin-top: 20px; letter-spacing: -1.5px;">EQUITY INTEL</h1>
+                <p style="font-family: 'Calibri', 'Segoe UI', sans-serif; color: rgba(249, 250, 251, 0.65); font-size: 1rem; margin-top: 8px; font-weight: 500; letter-spacing: 0.5px; line-height: 1.4;">Institutional Equity Research Portal & Database Manager</p>
+                <div style="width: 80px; height: 3px; background: linear-gradient(90deg, transparent, #8b5cf6, transparent); margin: 25px auto 0; border-radius: 2px;"></div>
+            </div>
+            
+            <div style="
+                background: rgba(17, 24, 39, 0.35);
+                border: 1px solid rgba(99, 102, 241, 0.15);
+                border-radius: 12px;
+                padding: 16px 20px;
+                margin-top: 20px;
+                font-family: 'Calibri', 'Segoe UI', sans-serif;
+            ">
+                <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                    <span style="color: #3b82f6; margin-right: 12px; font-size: 1.2rem;">📊</span>
+                    <span style="color: rgba(249, 250, 251, 0.85); font-weight: 600; font-size: 0.95rem;">Real-time market tracking</span>
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                    <span style="color: #8b5cf6; margin-right: 12px; font-size: 1.2rem;">⚙️</span>
+                    <span style="color: rgba(249, 250, 251, 0.85); font-weight: 600; font-size: 0.95rem;">Automated Drive syncs</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <span style="color: #ec4899; margin-right: 12px; font-size: 1.2rem;">🔐</span>
+                    <span style="color: rgba(249, 250, 251, 0.85); font-weight: 600; font-size: 0.95rem;">Secured research data access</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+    with col_right:
+        # Wrap forms in a container with a border for modern card layout
+        with st.container(border=True):
+            tab1, tab2 = st.tabs(["🔐 Analyst Login", "📝 Register Request"])
+        
+            # ---------- Login ----------
+            with tab1:
+                with st.form("login_form"):
+                    email = st.text_input("Email Address", placeholder="analyst@firm.com")
+                    password = st.text_input("Password", type="password")
+                    submit = st.form_submit_button("Login to Terminal", type="primary")
+                    if submit:
+                        if email and password:
+                            success, data = auth_manager.verify_login(email, password)
+                            if success:
+                                # ---- set session state ----
+                                st.session_state.authenticated = True
+                                st.session_state.user_email   = data["Email"]
+                                st.session_state.user_name    = data["Name"]
+                                st.session_state.is_first_login = data["Is_First_Login"]
+                                st.session_state.is_admin      = bool(data.get("Is_Admin", False))
+        
+                                # ---- persist via URL query parameter (survives hard refresh) ----
+                                import base64
+                                try:
+                                    email_b64 = base64.b64encode(data["Email"].lower().strip().encode('utf-8')).decode('utf-8')
+                                    st.query_params["session"] = email_b64
+                                except Exception:
+                                    pass
+        
+                                # ---- persist via cookie as fallback ----
+                                try:
+                                    cookies.set("user_email", data["Email"], max_age=86400, path="/", same_site="none", secure=True)
+                                except Exception:
+                                    pass
+        
+                                st.rerun()
+                            else:
+                                st.error(data)
                         else:
-                            st.error(msg)
-                    else:
-                        st.error("Passwords do not match!")
-                else:
-                    st.warning("Please fill in all fields.")
+                            st.warning("Please enter both email and password.")
+        
+            # ---------- Register ----------
+            with tab2:
+                st.subheader("New User Registration")
+                with st.form("register_form"):
+                    new_name = st.text_input("Full Name")
+                    new_email = st.text_input("Email")
+                    new_password = st.text_input("Password", type="password")
+                    new_password_confirm = st.text_input("Confirm Password", type="password")
+                    reg_submit = st.form_submit_button("Register Now")
+                    if reg_submit:
+                        if new_name and new_email and new_password:
+                            if new_password == new_password_confirm:
+                                success, msg = auth_manager.register_user(
+                                    new_name, new_email, new_password
+                                )
+                                if success:
+                                    st.success(msg)
+                                else:
+                                    st.error(msg)
+                            else:
+                                st.error("Passwords do not match!")
+                        else:
+                            st.warning("Please fill in all fields.")
 
 # -------------------------------------------------
 # Force password reset on first login
