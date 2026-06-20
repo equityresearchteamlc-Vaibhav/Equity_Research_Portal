@@ -48,22 +48,43 @@ if not st.session_state.authenticated:
     else:
         # We need to run client-side JavaScript to check localStorage and redirect
         js_redirect = """<script>
-        try {
-            const email = window.parent.localStorage.getItem('user_email') || window.localStorage.getItem('user_email');
-            const loc = window.parent.location;
-            const sep = loc.search ? "&" : "?";
-            if (email) {
-                if (!loc.search.includes("user_email=")) {
-                    loc.href = loc.pathname + loc.search + sep + "user_email=" + encodeURIComponent(email);
-                }
-            } else {
-                if (!loc.search.includes("storage_checked=")) {
-                    loc.href = loc.pathname + loc.search + sep + "storage_checked=1";
-                }
+        (function() {
+            let email = null;
+            // 1. Try reading from local window.localStorage (safe origin)
+            try {
+                email = window.localStorage.getItem('user_email');
+            } catch(e) {
+                console.warn("localStorage read failed:", e);
             }
-        } catch(e) {
-            window.parent.location.search = "?storage_checked=1";
-        }
+            
+            // 2. Try reading from parent window.localStorage (if same-origin)
+            if (!email) {
+                try {
+                    email = window.parent.localStorage.getItem('user_email');
+                } catch(e) {}
+            }
+            
+            // 3. Perform redirection on window.location (iframe location)
+            try {
+                const loc = window.location;
+                const sep = loc.search ? "&" : "?";
+                if (email) {
+                    if (!loc.search.includes("user_email=")) {
+                        loc.href = loc.pathname + loc.search + sep + "user_email=" + encodeURIComponent(email);
+                    }
+                } else {
+                    if (!loc.search.includes("storage_checked=")) {
+                        loc.href = loc.pathname + loc.search + sep + "storage_checked=1";
+                    }
+                }
+            } catch(e) {
+                console.error("Redirection failed:", e);
+                // Fallback: try setting search on local window
+                try {
+                    window.location.search = "?storage_checked=1";
+                } catch(err) {}
+            }
+        })();
         </script>"""
         st.html(js_redirect)
         
@@ -109,12 +130,24 @@ def login_register():
     
     # Render script to clear localStorage and cookies to guarantee logout state
     st.html("""<script>
+    // Safely clear localStorage in current frame
+    try {
+        window.localStorage.removeItem('user_email');
+    } catch(e) {}
+    
+    // Safely clear cookies in current frame
+    try {
+        const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
+        document.cookie = clearStr;
+    } catch(e) {}
+    
+    // Safely attempt clearing in parent frame (may fail if cross-origin, which is fine)
     try {
         window.parent.localStorage.removeItem('user_email');
-        window.localStorage.removeItem('user_email');
-        const clearStr = "user_email=; path=/; max-age=-1";
+    } catch(e) {}
+    try {
+        const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
         window.parent.document.cookie = clearStr;
-        document.cookie = clearStr;
     } catch(e) {}
     </script>""")
     
@@ -361,13 +394,25 @@ def logout():
     
     # Also explicitly clear first-party cookies from parent window context
     st.html("""<script>
+// Safely clear local cookie
 try {
-    const clearStr = "user_email=; path=/; max-age=-1";
-    window.parent.document.cookie = clearStr;
+    const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
     document.cookie = clearStr;
-} catch (e) {
-    console.log("Failed to clear first-party cookie on logout:", e);
-}
+} catch (e) {}
+
+// Safely clear local localStorage
+try {
+    window.localStorage.removeItem('user_email');
+} catch (e) {}
+
+// Safely attempt parent window operations (might throw if cross-origin)
+try {
+    const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
+    window.parent.document.cookie = clearStr;
+} catch (e) {}
+try {
+    window.parent.localStorage.removeItem('user_email');
+} catch (e) {}
 </script>""")
 
 # -------------------------------------------------

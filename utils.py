@@ -1431,16 +1431,31 @@ try {
             user_part, domain_part = email, ""
             
         js_code += f"""<script>
-try {{
+(function() {{
     const emailStr = "{user_part}" + "@" + "{domain_part}";
-    const cookieStr = "user_email=" + emailStr + "; path=/; max-age=86400; SameSite=Lax";
-    window.parent.document.cookie = cookieStr;
-    document.cookie = cookieStr;
-    window.parent.localStorage.setItem('user_email', emailStr);
-    window.localStorage.setItem('user_email', emailStr);
-}} catch (e) {{
-    console.log("Failed to set first-party cookie and localStorage:", e);
-}}
+    
+    // Safely set local document cookie
+    try {{
+        const cookieStr = "user_email=" + emailStr + "; path=/; max-age=86400; SameSite=Lax";
+        document.cookie = cookieStr;
+    }} catch (e) {{}}
+    
+    // Safely set local localStorage
+    try {{
+        window.localStorage.setItem('user_email', emailStr);
+    }} catch (e) {{}}
+    
+    // Safely attempt parent document cookie (may fail if cross-origin)
+    try {{
+        const cookieStr = "user_email=" + emailStr + "; path=/; max-age=86400; SameSite=Lax";
+        window.parent.document.cookie = cookieStr;
+    }} catch (e) {{}}
+    
+    // Safely attempt parent localStorage (may fail if cross-origin)
+    try {{
+        window.parent.localStorage.setItem('user_email', emailStr);
+    }} catch (e) {{}}
+}})();
 </script>"""
         
     st.html(js_code)
