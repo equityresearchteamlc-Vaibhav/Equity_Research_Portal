@@ -28,6 +28,7 @@ if "app_theme" not in st.session_state:
 # -------------------------------------------------
 # Restore login from localStorage via query parameters
 # -------------------------------------------------
+needs_storage_check = False
 if not st.session_state.authenticated:
     email_param = st.query_params.get("user_email")
     storage_checked_param = st.query_params.get("storage_checked")
@@ -46,117 +47,7 @@ if not st.session_state.authenticated:
     elif storage_checked_param:
         st.query_params.pop("storage_checked", None)
     else:
-        # We need to run client-side JavaScript to check localStorage and redirect
-        js_redirect = """<script>
-        (function() {
-            let email = null;
-            try {
-                email = window.localStorage.getItem('user_email');
-            } catch(e) {
-                console.warn("localStorage read failed:", e);
-            }
-            
-            try {
-                const loc = window.location;
-                
-                // Determine search parameters
-                let newSearch = loc.search;
-                if (email) {
-                    if (!loc.search.includes("user_email=")) {
-                        newSearch = newSearch + (newSearch ? "&" : "?") + "user_email=" + encodeURIComponent(email);
-                    } else {
-                        return; // Already has parameter, do not redirect
-                    }
-                } else {
-                    if (!loc.search.includes("storage_checked=")) {
-                        newSearch = newSearch + (newSearch ? "&" : "?") + "storage_checked=1";
-                    } else {
-                        return; // Already checked, do not redirect
-                    }
-                }
-                
-                // Construct parent URL (cross-origin safe replacement for streamlit.app)
-                const parentHost = loc.host.replace("streamlitapp.com", "streamlit.app");
-                const targetUrl = loc.protocol + "//" + parentHost + loc.pathname + newSearch;
-                
-                console.log("Redirecting parent window to:", targetUrl);
-                
-                // Method 1: window.open targeting _parent (highly standard cross-origin frame escape)
-                try {
-                    window.open(targetUrl, '_parent');
-                    return;
-                } catch(e1) {
-                    console.warn("window.open targeting _parent failed, trying Method 2:", e1);
-                }
-                
-                // Method 2: Direct assignment to window.parent.location.href (sometimes allowed)
-                try {
-                    window.parent.location.href = targetUrl;
-                    return;
-                } catch(e2) {
-                    console.warn("Direct window.parent.location.href failed, trying Method 3:", e2);
-                }
-                
-                // Method 3: Hyperlink navigation via dynamic anchor insertion
-                try {
-                    const a = document.createElement('a');
-                    a.href = targetUrl;
-                    a.target = '_parent';
-                    document.body.appendChild(a);
-                    a.click();
-                    return;
-                } catch(e3) {
-                    console.warn("Dynamic anchor click failed:", e3);
-                }
-            } catch(e) {
-                console.error("Redirection to parent failed, trying iframe redirection:", e);
-                try {
-                    const loc = window.location;
-                    let newSearch = loc.search;
-                    if (email) {
-                        newSearch = newSearch + (newSearch ? "&" : "?") + "user_email=" + encodeURIComponent(email);
-                    } else {
-                        newSearch = newSearch + (newSearch ? "&" : "?") + "storage_checked=1";
-                    }
-                    window.location.replace(loc.pathname + newSearch);
-                } catch(err) {}
-            }
-        })();
-        </script>"""
-        st.html(js_redirect)
-        
-        # Show loader spinner
-        st.markdown(
-            """
-            <div style="
-                display: flex; 
-                flex-direction: column; 
-                justify-content: center; 
-                align-items: center; 
-                height: 80vh;
-            ">
-                <div style="
-                    width: 60px;
-                    height: 60px;
-                    border: 4px solid rgba(255, 255, 255, 0.03);
-                    border-top: 4px solid #3b82f6;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                "></div>
-                <style>
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                </style>
-                <p style="color: rgba(249, 250, 251, 0.6); margin-top: 20px; font-family: sans-serif; font-size: 0.9rem;">
-                    Verifying session...
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        st.stop()
+        needs_storage_check = True
 
 # -------------------------------------------------
 # Login / Register UI
@@ -455,10 +346,140 @@ try {
 # -------------------------------------------------
 # Main routing
 # -------------------------------------------------
-if not st.session_state.authenticated:
+if needs_storage_check:
+    def show_verifying_page():
+        # Inject JavaScript to check localStorage and redirect
+        js_redirect = """<script>
+        (function() {
+            let email = null;
+            try {
+                email = window.localStorage.getItem('user_email');
+            } catch(e) {
+                console.warn("localStorage read failed:", e);
+            }
+            
+            try {
+                const loc = window.location;
+                
+                // Determine search parameters
+                let newSearch = loc.search;
+                if (email) {
+                    if (!loc.search.includes("user_email=")) {
+                        newSearch = newSearch + (newSearch ? "&" : "?") + "user_email=" + encodeURIComponent(email);
+                    } else {
+                        return; // Already has parameter, do not redirect
+                    }
+                } else {
+                    if (!loc.search.includes("storage_checked=")) {
+                        newSearch = newSearch + (newSearch ? "&" : "?") + "storage_checked=1";
+                    } else {
+                        return; // Already checked, do not redirect
+                    }
+                }
+                
+                // Construct parent URL (cross-origin safe replacement for streamlit.app)
+                const parentHost = loc.host.replace("streamlitapp.com", "streamlit.app");
+                const targetUrl = loc.protocol + "//" + parentHost + loc.pathname + newSearch;
+                
+                console.log("Redirecting parent window to:", targetUrl);
+                
+                // Method 1: window.open targeting _parent (highly standard cross-origin frame escape)
+                try {
+                    window.open(targetUrl, '_parent');
+                    return;
+                } catch(e1) {
+                    console.warn("window.open targeting _parent failed, trying Method 2:", e1);
+                }
+                
+                // Method 2: Direct assignment to window.parent.location.href (sometimes allowed)
+                try {
+                    window.parent.location.href = targetUrl;
+                    return;
+                } catch(e2) {
+                    console.warn("Direct window.parent.location.href failed, trying Method 3:", e2);
+                }
+                
+                // Method 3: Hyperlink navigation via dynamic anchor insertion
+                try {
+                    const a = document.createElement('a');
+                    a.href = targetUrl;
+                    a.target = '_parent';
+                    document.body.appendChild(a);
+                    a.click();
+                    return;
+                } catch(e3) {
+                    console.warn("Dynamic anchor click failed:", e3);
+                }
+            } catch(e) {
+                console.error("Redirection to parent failed, trying iframe redirection:", e);
+                try {
+                    const loc = window.location;
+                    let newSearch = loc.search;
+                    if (email) {
+                        newSearch = newSearch + (newSearch ? "&" : "?") + "user_email=" + encodeURIComponent(email);
+                    } else {
+                        newSearch = newSearch + (newSearch ? "&" : "?") + "storage_checked=1";
+                    }
+                    window.location.replace(loc.pathname + newSearch);
+                } catch(err) {}
+            }
+        })();
+        </script>"""
+        st.html(js_redirect)
+        
+        # Hide sidebar during verification
+        st.markdown(
+            """
+            <style>
+                section[data-testid="stSidebar"] {
+                    display: none !important;
+                    visibility: hidden !important;
+                    width: 0px !important;
+                }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        # Show loader spinner
+        st.markdown(
+            """
+            <div style="
+                display: flex; 
+                flex-direction: column; 
+                justify-content: center; 
+                align-items: center; 
+                height: 80vh;
+            ">
+                <div style="
+                    width: 60px;
+                    height: 60px;
+                    border: 4px solid rgba(255, 255, 255, 0.03);
+                    border-top: 4px solid #3b82f6;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                "></div>
+                <style>
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                </style>
+                <p style="color: rgba(249, 250, 251, 0.6); margin-top: 20px; font-family: sans-serif; font-size: 0.9rem;">
+                    Verifying session...
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    verifying_page = st.Page(show_verifying_page, title="Verifying Session...", icon="🔄")
+    pg = st.navigation([verifying_page], position="hidden")
+    pg.run()
+elif not st.session_state.authenticated:
     # Show login / register page
     login_page = st.Page(login_register, title="Login / Register", icon="🔐")
-    pg = st.navigation([login_page])
+    pg = st.navigation([login_page], position="hidden")
     pg.run()
 elif st.session_state.is_first_login:
     # Force password change
