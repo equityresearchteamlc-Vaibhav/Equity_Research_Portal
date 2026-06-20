@@ -73,11 +73,20 @@ if st.session_state.get("logout_triggered", False):
 # -------------------------------------------------
 if not st.session_state.authenticated:
     saved_email = None
+    
+    # 1. Try reading from native Streamlit context cookies (instant on reload)
     try:
-        saved_email = cookies.get("user_email")
+        saved_email = st.context.cookies.get("user_email")
     except Exception:
-        # Catch library uninitialized TypeError (NoneType is not iterable) on startup
         pass
+        
+    # 2. Fallback to CookieController (requires React component to mount)
+    if not saved_email:
+        try:
+            saved_email = cookies.get("user_email")
+        except Exception:
+            # Catch library uninitialized TypeError (NoneType is not iterable) on startup
+            pass
         
     if saved_email:
         user = auth_manager.get_user_by_email(saved_email)
@@ -89,7 +98,7 @@ if not st.session_state.authenticated:
             st.session_state.is_admin = bool(user.get("Is_Admin", False))
             st.session_state.cookie_checked = True
 
-# Wait 1.2 seconds on the very first run to let the cookie manager load
+# Wait 1.2 seconds on the very first run to let the cookie manager load if not recovered instantly
 needs_cookie_wait = False
 if not st.session_state.authenticated and not st.session_state.cookie_checked:
     needs_cookie_wait = True
