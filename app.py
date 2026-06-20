@@ -39,7 +39,7 @@ if st.session_state.get("logout_triggered", False):
     components.html("""<script>
     // Safely clear local cookie
     try {
-        const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
+        const clearStr = "user_email=; path=/; max-age=-1; SameSite=None; Secure";
         document.cookie = clearStr;
     } catch (e) {}
 
@@ -50,7 +50,7 @@ if st.session_state.get("logout_triggered", False):
 
     // Safely attempt parent window operations (might throw if cross-origin)
     try {
-        const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
+        const clearStr = "user_email=; path=/; max-age=-1; SameSite=None; Secure";
         window.parent.document.cookie = clearStr;
     } catch (e) {}
     try {
@@ -316,7 +316,7 @@ def login_register():
 
                         # ---- persist via cookie as fallback ----
                         try:
-                            cookies.set("user_email", data["Email"], max_age=86400, path="/")
+                            cookies.set("user_email", data["Email"], max_age=86400, path="/", same_site="none", secure=True)
                         except Exception:
                             pass
 

@@ -1436,7 +1436,7 @@ try {
     
     // Safely set local document cookie
     try {{
-        const cookieStr = "user_email=" + emailStr + "; path=/; max-age=86400; SameSite=Lax";
+        const cookieStr = "user_email=" + emailStr + "; path=/; max-age=86400; SameSite=None; Secure";
         document.cookie = cookieStr;
     }} catch (e) {{}}
     
@@ -1447,7 +1447,7 @@ try {
     
     // Safely attempt parent document cookie (may fail if cross-origin)
     try {{
-        const cookieStr = "user_email=" + emailStr + "; path=/; max-age=86400; SameSite=Lax";
+        const cookieStr = "user_email=" + emailStr + "; path=/; max-age=86400; SameSite=None; Secure";
         window.parent.document.cookie = cookieStr;
     }} catch (e) {{}}
     
