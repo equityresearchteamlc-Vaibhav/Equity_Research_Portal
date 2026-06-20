@@ -111,7 +111,18 @@ if not st.session_state.authenticated:
 # Wait 1.2 seconds on the very first run to let the cookie manager load if not recovered instantly
 needs_cookie_wait = False
 if not st.session_state.authenticated and not st.session_state.cookie_checked:
-    needs_cookie_wait = True
+    # Only wait if there is actually a session parameter or cookie to recover
+    has_session_param = "session" in st.query_params
+    has_cookie = False
+    try:
+        has_cookie = "user_email" in st.context.cookies
+    except Exception:
+        pass
+        
+    if has_session_param or has_cookie:
+        needs_cookie_wait = True
+    else:
+        st.session_state.cookie_checked = True
 
 # -------------------------------------------------
 # Login / Register UI
@@ -372,7 +383,7 @@ def logout():
     st.session_state.user_name = ""
     st.session_state.is_first_login = False
     st.session_state.is_admin = False
-    st.session_state.cookie_checked = False
+    st.session_state.cookie_checked = True
     try:
         st.query_params.clear()
     except Exception:
