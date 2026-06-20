@@ -1368,76 +1368,71 @@ def inject_custom_css(theme: str = "Dark"):
         css_to_inject += DARK_CSS
         
     st.markdown(f"<style>{css_to_inject}</style>", unsafe_allow_html=True)
-    
     # Inject JavaScript to block the global 'C' hotkey dialog popup when Ctrl+C or C is pressed
-    js_code = """
-    <script>
-    const blockStreamlitShortcut = () => {
-        try {
-            const parentDoc = window.parent.document;
-            if (parentDoc && !parentDoc.dataset.shortcutBlocked) {
-                parentDoc.addEventListener('keydown', (e) => {
-                    if (e.key.toLowerCase() === 'c') {
-                        const activeEl = parentDoc.activeElement;
-                        const isInput = activeEl && (
-                            activeEl.tagName === 'INPUT' || 
-                            activeEl.tagName === 'TEXTAREA' || 
-                            activeEl.isContentEditable
-                        );
-                        if (!isInput) {
-                            e.stopImmediatePropagation();
-                        }
-                    }
-                }, true); // useCapture = true
-                parentDoc.dataset.shortcutBlocked = "true";
-            }
-        } catch (err) {
-            console.log("Could not access parent window:", err);
-        }
-        try {
-            const localDoc = document;
-            if (localDoc && !localDoc.dataset.shortcutBlocked) {
-                localDoc.addEventListener('keydown', (e) => {
-                    if (e.key.toLowerCase() === 'c') {
-                        const activeEl = localDoc.activeElement;
-                        const isInput = activeEl && (
-                            activeEl.tagName === 'INPUT' || 
-                            activeEl.tagName === 'TEXTAREA' || 
-                            activeEl.isContentEditable
-                        );
-                        if (!isInput) {
-                            e.stopImmediatePropagation();
-                        }
-                    }
-                }, true); // useCapture = true
-                localDoc.dataset.shortcutBlocked = "true";
-            }
-        } catch (err) {
-            console.log("Could not access local document:", err);
-        }
-    };
+    js_code = """<script>
+const blockStreamlitShortcut = () => {
     try {
-        blockStreamlitShortcut();
-    } catch (e) {
-        console.error("Failed to block Streamlit shortcut:", e);
+        const parentDoc = window.parent.document;
+        if (parentDoc && !parentDoc.dataset.shortcutBlocked) {
+            parentDoc.addEventListener('keydown', (e) => {
+                if (e.key.toLowerCase() === 'c') {
+                    const activeEl = parentDoc.activeElement;
+                    const isInput = activeEl && (
+                        activeEl.tagName === 'INPUT' || 
+                        activeEl.tagName === 'TEXTAREA' || 
+                        activeEl.isContentEditable
+                    );
+                    if (!isInput) {
+                        e.stopImmediatePropagation();
+                    }
+                }
+            }, true); // useCapture = true
+            parentDoc.dataset.shortcutBlocked = "true";
+        }
+    } catch (err) {
+        console.log("Could not access parent window:", err);
     }
-    </script>
-    """
+    try {
+        const localDoc = document;
+        if (localDoc && !localDoc.dataset.shortcutBlocked) {
+            localDoc.addEventListener('keydown', (e) => {
+                if (e.key.toLowerCase() === 'c') {
+                    const activeEl = localDoc.activeElement;
+                    const isInput = activeEl && (
+                        activeEl.tagName === 'INPUT' || 
+                        activeEl.tagName === 'TEXTAREA' || 
+                        activeEl.isContentEditable
+                    );
+                    if (!isInput) {
+                        e.stopImmediatePropagation();
+                    }
+                }
+            }, true); // useCapture = true
+            localDoc.dataset.shortcutBlocked = "true";
+        }
+    } catch (err) {
+        console.log("Could not access local document:", err);
+    }
+};
+try {
+    blockStreamlitShortcut();
+} catch (e) {
+    console.error("Failed to block Streamlit shortcut:", e);
+}
+</script>"""
     
     # If the user is authenticated in this session, ensure the first-party cookie is set directly in the main window
     if st.session_state.get("authenticated"):
         email = st.session_state.get("user_email")
-        js_code += f"""
-        <script>
-        try {{
-            const cookieStr = "user_email={email}; path=/; max-age=86400; SameSite=Lax";
-            window.parent.document.cookie = cookieStr;
-            document.cookie = cookieStr;
-        }} catch (e) {{
-            console.log("Failed to set first-party cookie:", e);
-        }}
-        </script>
-        """
+        js_code += f"""<script>
+try {{
+    const cookieStr = "user_email={email}; path=/; max-age=86400; SameSite=Lax";
+    window.parent.document.cookie = cookieStr;
+    document.cookie = cookieStr;
+}} catch (e) {{
+    console.log("Failed to set first-party cookie:", e);
+}}
+</script>"""
         
     st.markdown(js_code, unsafe_allow_html=True)
 
