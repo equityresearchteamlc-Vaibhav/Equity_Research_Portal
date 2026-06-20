@@ -24,8 +24,45 @@ if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
 if "cookie_checked" not in st.session_state:
     st.session_state.cookie_checked = False
+if "logout_triggered" not in st.session_state:
+    st.session_state.logout_triggered = False
 if "app_theme" not in st.session_state:
     st.session_state.app_theme = "Game of Thrones"
+
+# Check if logout was triggered and perform safe parent frame escape
+if st.session_state.get("logout_triggered", False):
+    st.html("""<script>
+    // Safely clear local cookie
+    try {
+        const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
+        document.cookie = clearStr;
+    } catch (e) {}
+
+    // Safely clear local localStorage
+    try {
+        window.localStorage.removeItem('user_email');
+    } catch (e) {}
+
+    // Safely attempt parent window operations (might throw if cross-origin)
+    try {
+        const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
+        window.parent.document.cookie = clearStr;
+    } catch (e) {}
+    try {
+        window.parent.localStorage.removeItem('user_email');
+    } catch (e) {}
+
+    // Redirect parent window to root to clear subpage pathname from address bar
+    try {
+        const parentHost = window.location.host.replace("streamlitapp.com", "streamlit.app");
+        const targetUrl = window.location.protocol + "//" + parentHost + "/";
+        window.open(targetUrl, '_parent');
+    } catch (e) {
+        window.location.replace("/");
+    }
+    </script>""")
+    st.session_state.logout_triggered = False
+    st.stop()
 
 # -------------------------------------------------
 # Restore login from cookie (runs on reload)
@@ -295,30 +332,9 @@ def logout():
     st.session_state.user_name = ""
     st.session_state.is_first_login = False
     st.session_state.is_admin = False
+    st.session_state.cookie_checked = False
     cookies.remove("user_email", path="/")      # clear persisted cookie
-    
-    # Also explicitly clear first-party cookies from parent window context
-    st.html("""<script>
-// Safely clear local cookie
-try {
-    const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
-    document.cookie = clearStr;
-} catch (e) {}
-
-// Safely clear local localStorage
-try {
-    window.localStorage.removeItem('user_email');
-} catch (e) {}
-
-// Safely attempt parent window operations (might throw if cross-origin)
-try {
-    const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
-    window.parent.document.cookie = clearStr;
-} catch (e) {}
-try {
-    window.parent.localStorage.removeItem('user_email');
-} catch (e) {}
-</script>""")
+    st.session_state.logout_triggered = True
 
 # -------------------------------------------------
 # Main routing
