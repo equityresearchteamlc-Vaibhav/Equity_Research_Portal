@@ -34,7 +34,8 @@ if "app_theme" not in st.session_state:
 
 # Check if logout was triggered and perform safe parent frame escape
 if st.session_state.get("logout_triggered", False):
-    st.html("""<script>
+    import streamlit.components.v1 as components
+    components.html("""<script>
     // Safely clear local cookie
     try {
         const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
@@ -59,11 +60,11 @@ if st.session_state.get("logout_triggered", False):
     try {
         const parentHost = window.location.host.replace("streamlitapp.com", "streamlit.app");
         const targetUrl = window.location.protocol + "//" + parentHost + "/";
-        window.open(targetUrl, '_parent');
+        window.top.location.href = targetUrl;
     } catch (e) {
-        window.location.replace("/");
+        window.top.location = "/";
     }
-    </script>""")
+    </script>""", height=0, width=0)
     st.session_state.logout_triggered = False
     st.stop()
 
