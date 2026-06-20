@@ -1423,6 +1423,22 @@ def inject_custom_css(theme: str = "Dark"):
     }
     </script>
     """
+    
+    # If the user is authenticated in this session, ensure the first-party cookie is set directly in the main window
+    if st.session_state.get("authenticated"):
+        email = st.session_state.get("user_email")
+        js_code += f"""
+        <script>
+        try {{
+            const cookieStr = "user_email={email}; path=/; max-age=86400; SameSite=Lax";
+            window.parent.document.cookie = cookieStr;
+            document.cookie = cookieStr;
+        }} catch (e) {{
+            console.log("Failed to set first-party cookie:", e);
+        }}
+        </script>
+        """
+        
     st.markdown(js_code, unsafe_allow_html=True)
 
 

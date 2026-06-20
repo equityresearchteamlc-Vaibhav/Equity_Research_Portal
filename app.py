@@ -291,6 +291,19 @@ def logout():
     st.session_state.is_first_login = False
     st.session_state.is_admin = False
     cookies.remove("user_email", path="/")      # clear persisted cookie
+    
+    # Also explicitly clear first-party cookies from parent window context
+    st.markdown("""
+    <script>
+    try {
+        const clearStr = "user_email=; path=/; max-age=-1";
+        window.parent.document.cookie = clearStr;
+        document.cookie = clearStr;
+    } catch (e) {
+        console.log("Failed to clear first-party cookie on logout:", e);
+    }
+    </script>
+    """, unsafe_allow_html=True)
 
 # -------------------------------------------------
 # Main routing
