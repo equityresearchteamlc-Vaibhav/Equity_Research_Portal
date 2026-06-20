@@ -22,32 +22,17 @@ if "is_first_login" not in st.session_state:
     st.session_state.is_first_login = False
 if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
+if "storage_checked" not in st.session_state:
+    st.session_state.storage_checked = False
 if "app_theme" not in st.session_state:
     st.session_state.app_theme = "Game of Thrones"
 
 # -------------------------------------------------
-# Restore login from localStorage via query parameters
+# Restore login from localStorage via DOM bridge
 # -------------------------------------------------
 needs_storage_check = False
-if not st.session_state.authenticated:
-    email_param = st.query_params.get("user_email")
-    storage_checked_param = st.query_params.get("storage_checked")
-    
-    if email_param:
-        user = auth_manager.get_user_by_email(email_param)
-        if user and user["Is_Approved"]:
-            st.session_state.authenticated = True
-            st.session_state.user_email = user["Email"]
-            st.session_state.user_name = user["Name"]
-            st.session_state.is_first_login = user["Is_First_Login"]
-            st.session_state.is_admin = bool(user.get("Is_Admin", False))
-            
-        st.query_params.pop("user_email", None)
-        st.query_params.pop("storage_checked", None)
-    elif storage_checked_param:
-        st.query_params.pop("storage_checked", None)
-    else:
-        needs_storage_check = True
+if not st.session_state.authenticated and not st.session_state.storage_checked:
+    needs_storage_check = True
 
 # -------------------------------------------------
 # Login / Register UI
@@ -348,86 +333,7 @@ try {
 # -------------------------------------------------
 if needs_storage_check:
     def show_verifying_page():
-        # Inject JavaScript to check localStorage and redirect
-        js_redirect = """<script>
-        (function() {
-            let email = null;
-            try {
-                email = window.localStorage.getItem('user_email');
-            } catch(e) {
-                console.warn("localStorage read failed:", e);
-            }
-            
-            try {
-                const loc = window.location;
-                
-                // Determine search parameters
-                let newSearch = loc.search;
-                if (email) {
-                    if (!loc.search.includes("user_email=")) {
-                        newSearch = newSearch + (newSearch ? "&" : "?") + "user_email=" + encodeURIComponent(email);
-                    } else {
-                        return; // Already has parameter, do not redirect
-                    }
-                } else {
-                    if (!loc.search.includes("storage_checked=")) {
-                        newSearch = newSearch + (newSearch ? "&" : "?") + "storage_checked=1";
-                    } else {
-                        return; // Already checked, do not redirect
-                    }
-                }
-                
-                // Construct parent URL (cross-origin safe replacement for streamlit.app)
-                const parentHost = loc.host.replace("streamlitapp.com", "streamlit.app");
-                const targetUrl = loc.protocol + "//" + parentHost + loc.pathname + newSearch;
-                
-                console.log("Redirecting parent window to:", targetUrl);
-                
-                // Method 1: window.open targeting _parent (highly standard cross-origin frame escape)
-                try {
-                    window.open(targetUrl, '_parent');
-                    return;
-                } catch(e1) {
-                    console.warn("window.open targeting _parent failed, trying Method 2:", e1);
-                }
-                
-                // Method 2: Direct assignment to window.parent.location.href (sometimes allowed)
-                try {
-                    window.parent.location.href = targetUrl;
-                    return;
-                } catch(e2) {
-                    console.warn("Direct window.parent.location.href failed, trying Method 3:", e2);
-                }
-                
-                // Method 3: Hyperlink navigation via dynamic anchor insertion
-                try {
-                    const a = document.createElement('a');
-                    a.href = targetUrl;
-                    a.target = '_parent';
-                    document.body.appendChild(a);
-                    a.click();
-                    return;
-                } catch(e3) {
-                    console.warn("Dynamic anchor click failed:", e3);
-                }
-            } catch(e) {
-                console.error("Redirection to parent failed, trying iframe redirection:", e);
-                try {
-                    const loc = window.location;
-                    let newSearch = loc.search;
-                    if (email) {
-                        newSearch = newSearch + (newSearch ? "&" : "?") + "user_email=" + encodeURIComponent(email);
-                    } else {
-                        newSearch = newSearch + (newSearch ? "&" : "?") + "storage_checked=1";
-                    }
-                    window.location.replace(loc.pathname + newSearch);
-                } catch(err) {}
-            }
-        })();
-        </script>"""
-        st.html(js_redirect)
-        
-        # Hide sidebar during verification
+        # Hide sidebar and the hidden text input container during verification
         st.markdown(
             """
             <style>
@@ -436,10 +342,58 @@ if needs_storage_check:
                     visibility: hidden !important;
                     width: 0px !important;
                 }
+                div[data-testid="stTextInput"]:has(input[placeholder="session_email"]) {
+                    display: none !important;
+                }
             </style>
             """,
             unsafe_allow_html=True
         )
+        
+        # Render a hidden text input to receive the session email value
+        email_val = st.text_input("session_email", placeholder="session_email", key="session_email_widget", label_visibility="collapsed")
+        
+        if email_val:
+            if email_val == "none":
+                st.session_state.storage_checked = True
+                st.rerun()
+            else:
+                user = auth_manager.get_user_by_email(email_val)
+                if user and user["Is_Approved"]:
+                    st.session_state.authenticated = True
+                    st.session_state.user_email = user["Email"]
+                    st.session_state.user_name = user["Name"]
+                    st.session_state.is_first_login = user["Is_First_Login"]
+                    st.session_state.is_admin = bool(user.get("Is_Admin", False))
+                st.session_state.storage_checked = True
+                st.rerun()
+                
+        # Inject JavaScript to poll for input and load user_email from localStorage
+        js_bridge = """<script>
+        (function() {
+            let attempts = 0;
+            const interval = setInterval(() => {
+                const input = document.querySelector('input[placeholder="session_email"]');
+                if (input) {
+                    clearInterval(interval);
+                    let email = "none";
+                    try {
+                        email = window.localStorage.getItem('user_email') || "none";
+                    } catch(e) {
+                        console.warn("localStorage read failed:", e);
+                    }
+                    input.value = email;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                attempts++;
+                if (attempts > 40) { // 2 seconds timeout
+                    clearInterval(interval);
+                }
+            }, 50);
+        })();
+        </script>"""
+        st.html(js_bridge)
         
         # Show loader spinner
         st.markdown(
