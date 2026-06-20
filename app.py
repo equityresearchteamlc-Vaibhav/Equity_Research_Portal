@@ -31,7 +31,7 @@ if "app_theme" not in st.session_state:
 # Restore login from cookie (runs on every reload)
 # -------------------------------------------------
 if not st.session_state.authenticated:
-    saved_email = cookies.get("user_email")
+    saved_email = st.context.cookies.get("user_email")
     if saved_email:
         user = auth_manager.get_user_by_email(saved_email)
         if user and user["Is_Approved"]:
@@ -40,70 +40,9 @@ if not st.session_state.authenticated:
             st.session_state.user_name = user["Name"]
             st.session_state.is_first_login = user["Is_First_Login"]
             st.session_state.is_admin = bool(user.get("Is_Admin", False))
-            st.session_state.cookie_checked = True
-            st.rerun()
         else:
             # Cookie exists but user not found or not approved -> clear it
             cookies.remove("user_email", path="/")
-            st.session_state.cookie_checked = True
-            st.rerun()
-    else:
-        # If we haven't checked/initialized the cookie component yet, we show a loader
-        # and let the component mount and send cookies. This prevents the "login flash" 
-        # and page redirect.
-        if not st.session_state.cookie_checked:
-            st.session_state.cookie_checked = True
-            st.markdown(
-                """
-                <div style="
-                    display: flex; 
-                    flex-direction: column; 
-                    justify-content: center; 
-                    align-items: center; 
-                    height: 80vh;
-                    background: transparent;
-                ">
-                    <div style="
-                        width: 75px;
-                        height: 75px;
-                        border: 4px solid rgba(255, 255, 255, 0.03);
-                        border-top: 4px solid #3b82f6;
-                        border-right: 4px solid #8b5cf6;
-                        border-bottom: 4px solid #ec4899;
-                        border-radius: 50%;
-                        animation: spin 1.0s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
-                        box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
-                        position: relative;
-                    "></div>
-                    <style>
-                        @keyframes spin {
-                            0% { transform: rotate(0deg); }
-                            100% { transform: rotate(360deg); }
-                        }
-                        @keyframes pulse {
-                            0%, 100% { opacity: 0.6; transform: scale(0.98); }
-                            50% { opacity: 1; transform: scale(1.02); }
-                        }
-                    </style>
-                    <p style="
-                        font-family: 'Calibri', 'Calibri', sans-serif; 
-                        margin-top: 30px; 
-                        font-weight: 600;
-                        font-size: 1rem;
-                        letter-spacing: 0.5px;
-                        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
-                        -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent;
-                        animation: pulse 1.5s ease-in-out infinite;
-                    ">
-                        Hang On! We Are Loading Your Page
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            # We must stop execution here to let the cookie controller load and trigger rerun.
-            st.stop()
 
 # -------------------------------------------------
 # Login / Register UI
