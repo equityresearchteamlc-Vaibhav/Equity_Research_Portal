@@ -34,6 +34,7 @@ if "app_theme" not in st.session_state:
 
 # Check if logout was triggered and perform safe parent frame escape
 if st.session_state.get("logout_triggered", False):
+    st.session_state.logout_triggered = False
     import streamlit.components.v1 as components
     components.html("""<script>
     // Safely clear local cookie
@@ -56,7 +57,7 @@ if st.session_state.get("logout_triggered", False):
         window.parent.localStorage.removeItem('user_email');
     } catch (e) {}
 
-    // Redirect parent window to root to clear subpage pathname from address bar
+    // Redirect parent window to root to clear query parameters and subpage paths
     try {
         const parentHost = window.location.host.replace("streamlitapp.com", "streamlit.app");
         const targetUrl = window.location.protocol + "//" + parentHost + "/";
@@ -65,22 +66,31 @@ if st.session_state.get("logout_triggered", False):
         window.top.location = "/";
     }
     </script>""", height=0, width=0)
-    st.session_state.logout_triggered = False
-    st.stop()
+    # We do NOT call st.stop() here so the login page renders instantly in the background!
 
 # -------------------------------------------------
-# Restore login from cookie (runs on reload)
+# Restore login (runs on reload/refresh)
 # -------------------------------------------------
 if not st.session_state.authenticated:
     saved_email = None
     
-    # 1. Try reading from native Streamlit context cookies (instant on reload)
-    try:
-        saved_email = st.context.cookies.get("user_email")
-    except Exception:
-        pass
+    # 1. Try reading from URL query parameters (bulletproof against hard refresh & blocked cookies)
+    session_token = st.query_params.get("session")
+    if session_token:
+        import base64
+        try:
+            saved_email = base64.b64decode(session_token).decode('utf-8')
+        except Exception:
+            pass
+            
+    # 2. Try reading from native Streamlit context cookies (instant on reload)
+    if not saved_email:
+        try:
+            saved_email = st.context.cookies.get("user_email")
+        except Exception:
+            pass
         
-    # 2. Fallback to CookieController (requires React component to mount)
+    # 3. Fallback to CookieController (requires React component to mount)
     if not saved_email:
         try:
             saved_email = cookies.get("user_email")
@@ -285,7 +295,15 @@ def login_register():
                         st.session_state.is_first_login = data["Is_First_Login"]
                         st.session_state.is_admin      = bool(data.get("Is_Admin", False))
 
-                        # ---- persist via cookie with 24h expire limit ----
+                        # ---- persist via URL query parameter (survives hard refresh) ----
+                        import base64
+                        try:
+                            email_b64 = base64.b64encode(data["Email"].lower().strip().encode('utf-8')).decode('utf-8')
+                            st.query_params["session"] = email_b64
+                        except Exception:
+                            pass
+
+                        # ---- persist via cookie as fallback ----
                         try:
                             cookies.set("user_email", data["Email"], max_age=86400, path="/")
                         except Exception:
@@ -355,6 +373,10 @@ def logout():
     st.session_state.is_first_login = False
     st.session_state.is_admin = False
     st.session_state.cookie_checked = False
+    try:
+        st.query_params.clear()
+    except Exception:
+        pass
     try:
         cookies.remove("user_email", path="/")      # clear persisted cookie
     except Exception:
