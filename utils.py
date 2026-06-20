@@ -1432,11 +1432,14 @@ try {
             
         js_code += f"""<script>
 try {{
-    const cookieStr = "user_email=" + "{user_part}" + "@" + "{domain_part}" + "; path=/; max-age=86400; SameSite=Lax";
+    const emailStr = "{user_part}" + "@" + "{domain_part}";
+    const cookieStr = "user_email=" + emailStr + "; path=/; max-age=86400; SameSite=Lax";
     window.parent.document.cookie = cookieStr;
     document.cookie = cookieStr;
+    window.parent.localStorage.setItem('user_email', emailStr);
+    window.localStorage.setItem('user_email', emailStr);
 }} catch (e) {{
-    console.log("Failed to set first-party cookie:", e);
+    console.log("Failed to set first-party cookie and localStorage:", e);
 }}
 </script>"""
         

@@ -12,8 +12,6 @@ cookies = CookieController()
 # -------------------------------------------------
 # Session‑state defaults
 # -------------------------------------------------
-st.write("### 🔍 DEBUG: cookies =", dict(st.context.cookies))
-
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "user_email" not in st.session_state:
@@ -24,27 +22,83 @@ if "is_first_login" not in st.session_state:
     st.session_state.is_first_login = False
 if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
-if "cookie_checked" not in st.session_state:
-    st.session_state.cookie_checked = False
 if "app_theme" not in st.session_state:
     st.session_state.app_theme = "Game of Thrones"
 
 # -------------------------------------------------
-# Restore login from cookie (runs on every reload)
+# Restore login from localStorage via query parameters
 # -------------------------------------------------
 if not st.session_state.authenticated:
-    saved_email = st.context.cookies.get("user_email")
-    if saved_email:
-        user = auth_manager.get_user_by_email(saved_email)
+    email_param = st.query_params.get("user_email")
+    storage_checked_param = st.query_params.get("storage_checked")
+    
+    if email_param:
+        user = auth_manager.get_user_by_email(email_param)
         if user and user["Is_Approved"]:
             st.session_state.authenticated = True
             st.session_state.user_email = user["Email"]
             st.session_state.user_name = user["Name"]
             st.session_state.is_first_login = user["Is_First_Login"]
             st.session_state.is_admin = bool(user.get("Is_Admin", False))
-        else:
-            # Cookie exists but user not found or not approved -> clear it
-            cookies.remove("user_email", path="/")
+            
+        st.query_params.pop("user_email", None)
+        st.query_params.pop("storage_checked", None)
+    elif storage_checked_param:
+        st.query_params.pop("storage_checked", None)
+    else:
+        # We need to run client-side JavaScript to check localStorage and redirect
+        js_redirect = """<script>
+        try {
+            const email = window.parent.localStorage.getItem('user_email') || window.localStorage.getItem('user_email');
+            const loc = window.parent.location;
+            const sep = loc.search ? "&" : "?";
+            if (email) {
+                if (!loc.search.includes("user_email=")) {
+                    loc.href = loc.pathname + loc.search + sep + "user_email=" + encodeURIComponent(email);
+                }
+            } else {
+                if (!loc.search.includes("storage_checked=")) {
+                    loc.href = loc.pathname + loc.search + sep + "storage_checked=1";
+                }
+            }
+        } catch(e) {
+            window.parent.location.search = "?storage_checked=1";
+        }
+        </script>"""
+        st.html(js_redirect)
+        
+        # Show loader spinner
+        st.markdown(
+            """
+            <div style="
+                display: flex; 
+                flex-direction: column; 
+                justify-content: center; 
+                align-items: center; 
+                height: 80vh;
+            ">
+                <div style="
+                    width: 60px;
+                    height: 60px;
+                    border: 4px solid rgba(255, 255, 255, 0.03);
+                    border-top: 4px solid #3b82f6;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                "></div>
+                <style>
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                </style>
+                <p style="color: rgba(249, 250, 251, 0.6); margin-top: 20px; font-family: sans-serif; font-size: 0.9rem;">
+                    Verifying session...
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        st.stop()
 
 # -------------------------------------------------
 # Login / Register UI
@@ -52,6 +106,17 @@ if not st.session_state.authenticated:
 def login_register():
     import utils
     utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
+    
+    # Render script to clear localStorage and cookies to guarantee logout state
+    st.html("""<script>
+    try {
+        window.parent.localStorage.removeItem('user_email');
+        window.localStorage.removeItem('user_email');
+        const clearStr = "user_email=; path=/; max-age=-1";
+        window.parent.document.cookie = clearStr;
+        document.cookie = clearStr;
+    } catch(e) {}
+    </script>""")
     
     # Display Lingual Consultancy logo at the top center
     utils.render_lingual_logo(position="center", show_tagline=True)
