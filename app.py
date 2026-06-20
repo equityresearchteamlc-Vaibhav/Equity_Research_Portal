@@ -68,7 +68,13 @@ if st.session_state.get("logout_triggered", False):
 # Restore login from cookie (runs on reload)
 # -------------------------------------------------
 if not st.session_state.authenticated:
-    saved_email = cookies.get("user_email")
+    saved_email = None
+    try:
+        saved_email = cookies.get("user_email")
+    except Exception:
+        # Catch library uninitialized TypeError (NoneType is not iterable) on startup
+        pass
+        
     if saved_email:
         user = auth_manager.get_user_by_email(saved_email)
         if user and user["Is_Approved"]:
