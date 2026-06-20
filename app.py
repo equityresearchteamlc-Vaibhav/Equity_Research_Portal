@@ -22,17 +22,30 @@ if "is_first_login" not in st.session_state:
     st.session_state.is_first_login = False
 if "is_admin" not in st.session_state:
     st.session_state.is_admin = False
-if "storage_checked" not in st.session_state:
-    st.session_state.storage_checked = False
+if "cookie_checked" not in st.session_state:
+    st.session_state.cookie_checked = False
 if "app_theme" not in st.session_state:
     st.session_state.app_theme = "Game of Thrones"
 
 # -------------------------------------------------
-# Restore login from localStorage via DOM bridge
+# Restore login from cookie (runs on reload)
 # -------------------------------------------------
-needs_storage_check = False
-if not st.session_state.authenticated and not st.session_state.storage_checked:
-    needs_storage_check = True
+if not st.session_state.authenticated:
+    saved_email = cookies.get("user_email")
+    if saved_email:
+        user = auth_manager.get_user_by_email(saved_email)
+        if user and user["Is_Approved"]:
+            st.session_state.authenticated = True
+            st.session_state.user_email = user["Email"]
+            st.session_state.user_name = user["Name"]
+            st.session_state.is_first_login = user["Is_First_Login"]
+            st.session_state.is_admin = bool(user.get("Is_Admin", False))
+            st.session_state.cookie_checked = True
+
+# Wait 1.2 seconds on the very first run to let the cookie manager load
+needs_cookie_wait = False
+if not st.session_state.authenticated and not st.session_state.cookie_checked:
+    needs_cookie_wait = True
 
 # -------------------------------------------------
 # Login / Register UI
@@ -41,28 +54,7 @@ def login_register():
     import utils
     utils.inject_custom_css(st.session_state.get("app_theme", "Dark"))
     
-    # Render script to clear localStorage and cookies to guarantee logout state
-    st.html("""<script>
-    // Safely clear localStorage in current frame
-    try {
-        window.localStorage.removeItem('user_email');
-    } catch(e) {}
-    
-    // Safely clear cookies in current frame
-    try {
-        const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
-        document.cookie = clearStr;
-    } catch(e) {}
-    
-    // Safely attempt clearing in parent frame (may fail if cross-origin, which is fine)
-    try {
-        window.parent.localStorage.removeItem('user_email');
-    } catch(e) {}
-    try {
-        const clearStr = "user_email=; path=/; max-age=-1; SameSite=Lax";
-        window.parent.document.cookie = clearStr;
-    } catch(e) {}
-    </script>""")
+    # No automatic clearing on page load to prevent login flashing race conditions
     
     # Display Lingual Consultancy logo at the top center
     utils.render_lingual_logo(position="center", show_tagline=True)
@@ -331,71 +323,18 @@ try {
 # -------------------------------------------------
 # Main routing
 # -------------------------------------------------
-if needs_storage_check:
-    def show_verifying_page():
-        # Hide sidebar and the hidden text input container during verification
+if needs_cookie_wait:
+    def show_loading_page():
         st.markdown(
             """
             <style>
                 section[data-testid="stSidebar"] {
-                    display: none !important;
-                    visibility: hidden !important;
-                    width: 0px !important;
-                }
-                div[data-testid="stTextInput"]:has(input[placeholder="session_email"]) {
                     display: none !important;
                 }
             </style>
             """,
             unsafe_allow_html=True
         )
-        
-        # Render a hidden text input to receive the session email value
-        email_val = st.text_input("session_email", placeholder="session_email", key="session_email_widget", label_visibility="collapsed")
-        
-        if email_val:
-            if email_val == "none":
-                st.session_state.storage_checked = True
-                st.rerun()
-            else:
-                user = auth_manager.get_user_by_email(email_val)
-                if user and user["Is_Approved"]:
-                    st.session_state.authenticated = True
-                    st.session_state.user_email = user["Email"]
-                    st.session_state.user_name = user["Name"]
-                    st.session_state.is_first_login = user["Is_First_Login"]
-                    st.session_state.is_admin = bool(user.get("Is_Admin", False))
-                st.session_state.storage_checked = True
-                st.rerun()
-                
-        # Inject JavaScript to poll for input and load user_email from localStorage
-        js_bridge = """<script>
-        (function() {
-            let attempts = 0;
-            const interval = setInterval(() => {
-                const input = document.querySelector('input[placeholder="session_email"]');
-                if (input) {
-                    clearInterval(interval);
-                    let email = "none";
-                    try {
-                        email = window.localStorage.getItem('user_email') || "none";
-                    } catch(e) {
-                        console.warn("localStorage read failed:", e);
-                    }
-                    input.value = email;
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                    input.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-                attempts++;
-                if (attempts > 40) { // 2 seconds timeout
-                    clearInterval(interval);
-                }
-            }, 50);
-        })();
-        </script>"""
-        st.html(js_bridge)
-        
-        # Show loader spinner
         st.markdown(
             """
             <div style="
@@ -420,16 +359,19 @@ if needs_storage_check:
                     }
                 </style>
                 <p style="color: rgba(249, 250, 251, 0.6); margin-top: 20px; font-family: sans-serif; font-size: 0.9rem;">
-                    Verifying session...
+                    Connecting to terminal...
                 </p>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-    verifying_page = st.Page(show_verifying_page, title="Verifying Session...", icon="🔄")
-    pg = st.navigation([verifying_page], position="hidden")
+    loading_page = st.Page(show_loading_page, title="Connecting...", icon="🔄")
+    pg = st.navigation([loading_page], position="hidden")
+    st.session_state.cookie_checked = True
     pg.run()
+    time.sleep(1.2)
+    st.rerun()
 elif not st.session_state.authenticated:
     # Show login / register page
     login_page = st.Page(login_register, title="Login / Register", icon="🔐")
