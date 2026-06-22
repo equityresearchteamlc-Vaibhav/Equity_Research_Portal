@@ -386,10 +386,8 @@ def logout():
 # Main routing
 # -------------------------------------------------
 if not st.session_state.authenticated:
-    # Show login / register page
-    login_page = st.Page(login_register, title="Login / Register", icon="🔐")
-    pg = st.navigation([login_page], position="hidden")
-    pg.run()
+    # Render login page directly without pg.run() to prevent Streamlit's URL matching errors on refresh
+    login_register()
 elif st.session_state.is_first_login:
     # Force password change
     reset_page = st.Page(force_password_reset, title="Reset Password", icon="⚠️")
