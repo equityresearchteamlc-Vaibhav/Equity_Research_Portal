@@ -172,21 +172,20 @@ def get_historical_price(ticker, exchange, date_obj):
 
 # --- Google Drive Integration ---
 
+@st.cache_resource
 def get_drive_service():
     """
     Builds the Google Drive service client from st.secrets.
-    Always runs fresh (no caching) so errors always surface.
     """
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    # Copy credentials dictionary and fix any double-escaped newlines (\n) in the private key
-    gcp_info = dict(st.secrets["gcp_service_account"])
-    if "private_key" in gcp_info:
-        gcp_info["private_key"] = gcp_info["private_key"].replace('\\n', '\n')
-        
-    creds = service_account.Credentials.from_service_account_info(
-        gcp_info, scopes=SCOPES)
-    service = build('drive', 'v3', credentials=creds)
-    return service
+    try:
+        creds = service_account.Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"], scopes=SCOPES)
+        service = build('drive', 'v3', credentials=creds)
+        return service
+    except Exception as e:
+        print(f"Error building Drive service: {e}")
+        return None
 
 def find_file_in_folder(service, folder_id, file_name):
     """
@@ -587,18 +586,39 @@ def load_real_companies_db_raw(df):
         if client and token_exchange_pairs:
             batch_data = get_live_market_data_batch(client, token_exchange_pairs)
 
+        def safe_float(v, default=0.0):
+            if pd.isna(v) or v is None or str(v).strip() == "" or str(v).strip().lower() == "nan":
+                return default
+            try:
+                return float(v)
+            except (ValueError, TypeError):
+                return default
+
+        def safe_int(v, default=0):
+            if pd.isna(v) or v is None or str(v).strip() == "" or str(v).strip().lower() == "nan":
+                return default
+            try:
+                return int(float(v))
+            except (ValueError, TypeError):
+                return default
+
+        def safe_str(v, default=""):
+            if pd.isna(v) or v is None or str(v).strip() == "" or str(v).strip().lower() == "nan":
+                return default
+            return str(v).strip()
+
         enhanced_data = []
         for row, token in row_tokens:
-            ticker     = row.get("Ticker", "")
-            exchange   = row.get("Exchange", "NSE")
-            price_added = float(row.get("Price When Added", 0) or 0)
-            mc_added    = float(row.get("Market Cap when added", 0) or 0)
+            ticker     = safe_str(row.get("Ticker", ""))
+            exchange   = safe_str(row.get("Exchange", "NSE"))
+            price_added = safe_float(row.get("Price When Added", 0))
+            mc_added    = safe_float(row.get("Market Cap when added", 0))
             
             # --- Target Timeframe & Status Calculation ---
             import datetime
-            date_added_str = row.get("Date Added", "")
-            target_timeframe = int(float(row.get("Target Timeframe (Months)", 12) or 12))
-            target_price = float(row.get("Target Price", 0) or 0)
+            date_added_str = safe_str(row.get("Date Added", ""))
+            target_timeframe = safe_int(row.get("Target Timeframe (Months)"), 12)
+            target_price = safe_float(row.get("Target Price", 0))
             target_end_date = ""
             target_status = "⏳ Pending"
 
@@ -620,7 +640,9 @@ def load_real_companies_db_raw(df):
             mc_change        = ((rt_market_cap - mc_added) / mc_added * 100) if mc_added > 0 else 0
 
             # Evaluate Target Status
-            if date_added_str:
+            if target_price > 0 and cmp >= target_price:
+                target_status = "✅ Achieved"
+            elif date_added_str:
                 try:
                     date_added_obj = datetime.datetime.strptime(date_added_str, "%Y-%m-%d").date()
                     month = date_added_obj.month - 1 + target_timeframe
@@ -632,24 +654,19 @@ def load_real_companies_db_raw(df):
                     target_end_date = end_date_obj.strftime("%Y-%m-%d")
                     
                     if target_price > 0:
-                        if cmp >= target_price:
-                            target_status = "✅ Achieved"
-                        elif datetime.date.today() > end_date_obj:
+                        if datetime.date.today() > end_date_obj:
                             target_status = "❌ Missed Deadline"
                         else:
                             days_left = (end_date_obj - datetime.date.today()).days
                             target_status = f"⏳ Pending ({days_left}d left)"
                 except Exception:
                     pass
-            else:
-                if target_price > 0 and cmp >= target_price:
-                    target_status = "✅ Achieved"
 
             enhanced_data.append({
-                "Company Name": row.get("Company Name", ticker),
+                "Company Name": safe_str(row.get("Company Name"), ticker),
                 "Ticker": ticker,
                 "Exchange": exchange,
-                "Date Added": row.get("Date Added", ""),
+                "Date Added": date_added_str,
                 "Price When Added": price_added,
                 "CMP (Real-time)": round(cmp, 2),
                 "% Change since added": round(pct_change_added, 2),
@@ -657,18 +674,18 @@ def load_real_companies_db_raw(df):
                 "Market Cap when added (Cr)": round(mc_added, 2),
                 "Real-time Market Cap (Cr)": round(rt_market_cap, 2),
                 "% Change of Market Cap": round(mc_change, 2),
-                "Rating": f"{int(float(row.get('Rating', 5)))}/10" if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else "",
-                "Rating_Num": float(row.get('Rating', 5)) if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" else 5.0,
+                "Rating": f"{safe_int(row.get('Rating'), 5)}/10" if pd.notna(row.get('Rating')) and str(row.get('Rating')).strip() != "" and str(row.get('Rating')).strip().lower() != "nan" else "",
+                "Rating_Num": float(safe_int(row.get('Rating'), 5)),
                 "Target Price": target_price,
                 "Target Achieved %": round(((cmp - price_added) / (target_price - price_added) * 100), 2) if target_price > 0 and target_price != price_added else 0.0,
                 "Target Timeframe (Months)": target_timeframe,
                 "Target End Date": target_end_date,
                 "Target Status": target_status,
-                "Industry": row.get("Industry", "Unknown"),
-                "Uploaded By": row.get("Analyst", "Unknown"),
-                "Owner Comment": row.get("Comment", ""),
-                "File ID": row.get("File ID", ""),
-                "File Link": row.get("File Link", "")
+                "Industry": safe_str(row.get("Industry"), "Unknown"),
+                "Uploaded By": safe_str(row.get("Analyst"), "Unknown"),
+                "Owner Comment": safe_str(row.get("Comment"), ""),
+                "File ID": safe_str(row.get("File ID"), ""),
+                "File Link": safe_str(row.get("File Link"), "")
             })
 
         return pd.DataFrame(enhanced_data)
