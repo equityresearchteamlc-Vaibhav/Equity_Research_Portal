@@ -74,28 +74,17 @@ if st.session_state.get("logout_triggered", False):
 if not st.session_state.authenticated:
     saved_email = None
     
-    # 1. Try reading from URL query parameters (bulletproof against hard refresh & blocked cookies)
-    session_token = st.query_params.get("session")
-    if session_token:
-        import base64
-        try:
-            saved_email = base64.b64decode(session_token).decode('utf-8')
-        except Exception:
-            pass
-            
-    # 2. Try reading from native Streamlit context cookies (instant on reload)
-    if not saved_email:
-        try:
-            saved_email = st.context.cookies.get("user_email")
-        except Exception:
-            pass
+    # 1. Try reading from native Streamlit context cookies (instant on reload)
+    try:
+        saved_email = st.context.cookies.get("user_email")
+    except Exception:
+        pass
         
-    # 3. Fallback to CookieController (requires React component to mount)
+    # 2. Fallback to CookieController (requires React component to mount)
     if not saved_email:
         try:
             saved_email = cookies.get("user_email")
         except Exception:
-            # Catch library uninitialized TypeError (NoneType is not iterable) on startup
             pass
         
     if saved_email:
@@ -106,13 +95,7 @@ if not st.session_state.authenticated:
             st.session_state.user_name = user["Name"]
             st.session_state.is_first_login = user["Is_First_Login"]
             st.session_state.is_admin = bool(user.get("Is_Admin", False))
-            st.session_state.cookie_checked = True
 
-# Wait 1.2 seconds on the very first run to let the cookie manager load if not recovered instantly
-needs_cookie_wait = False
-if not st.session_state.authenticated and not st.session_state.cookie_checked:
-    # Always wait on the first run of a session to allow CookieController to load cookies from the browser
-    needs_cookie_wait = True
 
 # -------------------------------------------------
 # Login / Register UI
@@ -324,15 +307,7 @@ def login_register():
                                 st.session_state.is_first_login = data["Is_First_Login"]
                                 st.session_state.is_admin      = bool(data.get("Is_Admin", False))
         
-                                # ---- persist via URL query parameter (survives hard refresh) ----
-                                import base64
-                                try:
-                                    email_b64 = base64.b64encode(data["Email"].lower().strip().encode('utf-8')).decode('utf-8')
-                                    st.query_params["session"] = email_b64
-                                except Exception:
-                                    pass
-        
-                                # ---- persist via cookie as fallback ----
+                                # ---- persist via cookie (survives hard refresh) ----
                                 try:
                                     cookies.set("user_email", data["Email"], max_age=86400, path="/", same_site="none", secure=True)
                                 except Exception:
@@ -401,11 +376,6 @@ def logout():
     st.session_state.user_name = ""
     st.session_state.is_first_login = False
     st.session_state.is_admin = False
-    st.session_state.cookie_checked = True
-    try:
-        st.query_params.clear()
-    except Exception:
-        pass
     try:
         cookies.remove("user_email", path="/")      # clear persisted cookie
     except Exception:
@@ -415,125 +385,7 @@ def logout():
 # -------------------------------------------------
 # Main routing
 # -------------------------------------------------
-if needs_cookie_wait:
-    def show_loading_page():
-        st.markdown(
-            """
-            <style>
-                section[data-testid="stSidebar"] {
-                    display: none !important;
-                }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            """
-            <div style="
-                display: flex; 
-                flex-direction: column; 
-                justify-content: center; 
-                align-items: center; 
-                height: 85vh;
-                background: radial-gradient(circle at center, #0a0e1a 0%, #030712 100%);
-                font-family: 'Calibri', 'Segoe UI', -apple-system, sans-serif;
-            ">
-                <!-- Beautiful Glowing Double-Ring Spinner -->
-                <div style="position: relative; width: 80px; height: 80px; margin-bottom: 30px;">
-                    <div style="
-                        position: absolute;
-                        width: 100%;
-                        height: 100%;
-                        border: 4px solid transparent;
-                        border-top: 4px solid #3b82f6;
-                        border-bottom: 4px solid #8b5cf6;
-                        border-radius: 50%;
-                        animation: spin-clockwise 1.5s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-                        filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
-                    "></div>
-                    <div style="
-                        position: absolute;
-                        top: 10px;
-                        left: 10px;
-                        width: 60px;
-                        height: 60px;
-                        border: 4px solid transparent;
-                        border-left: 4px solid #ec4899;
-                        border-right: 4px solid #f43f5e;
-                        border-radius: 50%;
-                        animation: spin-counter 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-                        filter: drop-shadow(0 0 6px rgba(236, 72, 153, 0.5));
-                    "></div>
-                    <div style="
-                        position: absolute;
-                        top: 25px;
-                        left: 25px;
-                        width: 30px;
-                        height: 30px;
-                        background: linear-gradient(135deg, #3b82f6, #ec4899);
-                        border-radius: 50%;
-                        animation: pulse-center 1.5s ease-in-out infinite;
-                        filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.8));
-                    "></div>
-                </div>
-                
-                <!-- Pulsing Glowing Text -->
-                <div style="
-                    font-size: 1.25rem;
-                    font-weight: 700;
-                    letter-spacing: -0.5px;
-                    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    animation: text-pulse 2s ease-in-out infinite;
-                    text-align: center;
-                    padding: 0 20px;
-                ">
-                    Hang on, We are loading your page...
-                </div>
-                
-                <div style="
-                    margin-top: 12px;
-                    font-size: 0.8rem;
-                    color: rgba(249, 250, 251, 0.35);
-                    letter-spacing: 1.5px;
-                    text-transform: uppercase;
-                    font-weight: 600;
-                ">
-                    Securing terminal link
-                </div>
-
-                <!-- Styles for animations -->
-                <style>
-                    @keyframes spin-clockwise {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                    @keyframes spin-counter {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(-360deg); }
-                    }
-                    @keyframes pulse-center {
-                        0%, 100% { transform: scale(0.95); opacity: 0.8; }
-                        50% { transform: scale(1.1); opacity: 1; }
-                    }
-                    @keyframes text-pulse {
-                        0%, 100% { opacity: 0.75; filter: drop-shadow(0 0 2px rgba(139, 92, 246, 0.15)); }
-                        50% { opacity: 1; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.45)); }
-                    }
-                </style>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    loading_page = st.Page(show_loading_page, title="Connecting...", icon="🔄")
-    pg = st.navigation([loading_page], position="hidden")
-    st.session_state.cookie_checked = True
-    pg.run()
-    time.sleep(1.2)
-    st.rerun()
-elif not st.session_state.authenticated:
+if not st.session_state.authenticated:
     # Show login / register page
     login_page = st.Page(login_register, title="Login / Register", icon="🔐")
     pg = st.navigation([login_page], position="hidden")
