@@ -111,18 +111,8 @@ if not st.session_state.authenticated:
 # Wait 1.2 seconds on the very first run to let the cookie manager load if not recovered instantly
 needs_cookie_wait = False
 if not st.session_state.authenticated and not st.session_state.cookie_checked:
-    # Only wait if there is actually a session parameter or cookie to recover
-    has_session_param = "session" in st.query_params
-    has_cookie = False
-    try:
-        has_cookie = "user_email" in st.context.cookies
-    except Exception:
-        pass
-        
-    if has_session_param or has_cookie:
-        needs_cookie_wait = True
-    else:
-        st.session_state.cookie_checked = True
+    # Always wait on the first run of a session to allow CookieController to load cookies from the browser
+    needs_cookie_wait = True
 
 # -------------------------------------------------
 # Login / Register UI
